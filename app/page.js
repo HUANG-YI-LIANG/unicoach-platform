@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import Onboarding from '@/components/Onboarding';
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -18,7 +17,7 @@ export default function Home() {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading && user) {
     return (
       <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
         <Loader2 className="animate-spin" size={32} />
@@ -37,7 +36,6 @@ export default function Home() {
 
   return (
     <div className="home-wrapper">
-      <Onboarding />
       <div className="home-main">
         <div className="brand-header">UniCoach</div>
 

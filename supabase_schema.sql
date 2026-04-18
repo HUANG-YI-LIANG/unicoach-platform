@@ -12,6 +12,8 @@ CREATE TABLE users (
   level INTEGER DEFAULT 1,
   is_frozen BOOLEAN DEFAULT false,
   address TEXT,
+  gender TEXT,
+  grade TEXT,
   language TEXT DEFAULT '中文',
   learning_goals TEXT,
   avatar_url TEXT DEFAULT NULL,
@@ -56,6 +58,12 @@ CREATE TABLE bookings (
   amount_total INTEGER,
   amount_deposit INTEGER,
   status TEXT CHECK(status IN ('pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed', 'disputed', 'cancelled', 'refunded')) DEFAULT 'pending_payment',
+  grade TEXT,
+  gender TEXT,
+  attendees_count INTEGER DEFAULT 1,
+  learning_status TEXT,
+  coupon_id TEXT,
+  coupon_discount INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ
 );

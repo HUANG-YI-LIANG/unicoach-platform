@@ -20,7 +20,7 @@ async function loadEnv() {
   return env;
 }
 
-const BASE_URL = 'http://localhost:3000';
+const BASE_URL = 'http://localhost:4000';
 
 async function runProbe() {
   console.log('🚀 [UniCoach API 探針] 啟動深度狀態機掃描...\n');

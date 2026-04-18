@@ -104,10 +104,14 @@ function RegisterForm() {
               <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>年齡</label>
               <input 
                 type="number" 
+                min="0"
                 value={form.age} 
-                onChange={e=>setForm({...form, age: parseInt(e.target.value) || 0})} 
+                onChange={e => {
+                  const val = e.target.value.replace(/^0+/, '') || '0';
+                  setForm({...form, age: parseInt(val) || 0});
+                }} 
                 required 
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
               />
             </div>
           </div>

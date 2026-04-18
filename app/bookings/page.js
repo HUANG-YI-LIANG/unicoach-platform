@@ -228,9 +228,12 @@ export default function BookingsPage() {
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                   borderTop: '1px solid #F1F5F9', paddingTop: 12, marginBottom: canStartReport || isCompleted ? 12 : 0,
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MUTED, fontSize: 13 }}>
-                    <Calendar size={13} />
-                    {b.expected_time ? new Date(b.expected_time).toLocaleDateString('zh-TW') : '時間待定'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: DARK, fontSize: 13, fontWeight: 700 }}>
+                    <Calendar size={13} color={BLUE} />
+                    {b.expected_time ? new Date(b.expected_time).toLocaleString('zh-TW', { 
+                      year: 'numeric', month: 'long', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit'
+                    }) : '時間待定'}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     {(b.discount_amount > 0 || b.price_adjustment !== 0) && (

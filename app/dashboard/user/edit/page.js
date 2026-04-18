@@ -26,6 +26,7 @@ export default function UserProfileEdit() {
     address: '',
     language: '中文',
     grade: '',
+    gender: '',
     learning_goals: '',
     avatar_url: '',
     frequent_addresses: []
@@ -65,6 +66,7 @@ export default function UserProfileEdit() {
           address: data.profile?.address || '',
           language: data.profile?.language || '中文',
           grade: data.profile?.grade || '',
+          gender: data.profile?.gender || '',
           learning_goals: data.profile?.learning_goals || '',
           avatar_url: data.profile?.avatar_url || '',
           frequent_addresses: Array.isArray(freq) ? freq : []
@@ -282,6 +284,22 @@ export default function UserProfileEdit() {
 
             <div>
               <label style={{ display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: DARK, marginBottom: 8 }}>
+                <User size={14} color={BLUE} /> 性別
+              </label>
+              <select 
+                value={formData.gender}
+                onChange={e => setFormData({...formData, gender: e.target.value})}
+                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, background: CARD }}
+              >
+                <option value="">請選擇性別</option>
+                <option value="男">男</option>
+                <option value="女">女</option>
+                <option value="不願透露">不願透露</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: DARK, marginBottom: 8 }}>
                 <Target size={14} color={BLUE} /> 年級
               </label>
               <select 
@@ -290,11 +308,9 @@ export default function UserProfileEdit() {
                 style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, background: CARD }}
               >
                 <option value="">請選擇年級</option>
-                <option value="國小">國小</option>
-                <option value="國中">國中</option>
-                <option value="高中">高中</option>
-                <option value="大學">大學</option>
-                <option value="成人">成人</option>
+                {['國小', '國中', '高中', '大學', '成人'].map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
               </select>
             </div>
 

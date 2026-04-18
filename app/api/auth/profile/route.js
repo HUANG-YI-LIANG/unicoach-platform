@@ -32,8 +32,14 @@ export async function GET(request) {
 
     // 3. 資料庫欄位遷移 (Migration Service)
     try {
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN coupon_id TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN coupon_discount INTEGER DEFAULT 0' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS grade TEXT' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS gender TEXT' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS attendees_count INTEGER DEFAULT 1' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS learning_status TEXT' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS coupon_id TEXT' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS coupon_discount INTEGER DEFAULT 0' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE users ADD COLUMN IF NOT EXISTS grade TEXT' }).catch(() => {});
+      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT' }).catch(() => {});
     } catch (migErr) {}
 
     // 4. 計算基礎折扣百分比 (base_discount)
@@ -72,6 +78,7 @@ export async function POST(request) {
     if (body.language !== undefined) userUpdates.language = body.language;
     if (body.learning_goals !== undefined) userUpdates.learning_goals = body.learning_goals;
     if (body.grade !== undefined) userUpdates.grade = body.grade;
+    if (body.gender !== undefined) userUpdates.gender = body.gender;
     if (body.frequent_addresses !== undefined) {
       userUpdates.frequent_addresses = body.frequent_addresses ? JSON.stringify(body.frequent_addresses) : null;
     }

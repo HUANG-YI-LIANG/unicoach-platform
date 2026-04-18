@@ -14,12 +14,15 @@ export async function POST(request) {
       coachId, 
       expectedTime, 
       grade, 
+      age, // 新增：支援前端傳入的 age
       gender, 
       attendeesCount, 
       learningStatus,
       couponId = null,
-      couponDiscount = 0 // 從前端傳入本次使用的優惠券折扣 %
+      couponDiscount = 0 
     } = await request.json();
+
+    const finalGrade = age || grade; // 映射
 
     // 1. 獲取教練當前價格、抽成比例與審核狀態
     const { data: coach, error: coachErr } = await adminSupabase
@@ -78,7 +81,7 @@ export async function POST(request) {
       deposit_paid: depositPaid,
       platform_fee: platformFee,
       coach_payout: coachPayout,
-      grade: grade,
+      grade: finalGrade,
       gender: gender,
       attendees_count: attendeesCount,
       learning_status: learningStatus,

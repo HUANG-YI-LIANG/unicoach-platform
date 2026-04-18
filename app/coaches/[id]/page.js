@@ -13,10 +13,11 @@ export default function CoachDetailPage({ params }) {
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookingForm, setBookingForm] = useState({
-    grade: '',
+    age: '',
     gender: '',
     attendeesCount: 1,
     learningStatus: '初學者',
+    expectedTime: '',
     address: '',
     couponId: null,
     couponDiscount: 0
@@ -53,8 +54,8 @@ export default function CoachDetailPage({ params }) {
   };
 
   const handleBook = async () => {
-    if (!bookingForm.grade || !bookingForm.gender || !bookingForm.address) {
-      alert('請填寫完整預約資料');
+    if (!bookingForm.age || !bookingForm.gender || !bookingForm.address || !bookingForm.expectedTime) {
+      alert('請填寫完整預約資料（含日期時間）');
       return;
     }
 
@@ -63,7 +64,6 @@ export default function CoachDetailPage({ params }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         coachId: coach.user_id || coach.id, 
-        expectedTime: new Date(Date.now() + 86400000).toISOString(),
         ...bookingForm
       })
     });
@@ -168,54 +168,59 @@ export default function CoachDetailPage({ params }) {
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員年級</label>
-                <select 
-                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
-                  value={bookingForm.grade}
-                  onChange={e => setBookingForm({...bookingForm, grade: e.target.value})}
-                >
-                  <option value="">選擇年級</option>
-                  <option value="國小">國小</option>
-                  <option value="國中">國中</option>
-                  <option value="高中">高中</option>
-                  <option value="大學">大學</option>
-                  <option value="成人">成人</option>
-                </select>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學員年紀</label>
+                <div className="flex flex-wrap gap-2">
+                  {['國小', '國中', '高中', '大學', '成人'].map(g => (
+                    <button 
+                      key={g}
+                      onClick={() => setBookingForm({...bookingForm, age: g})}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${bookingForm.age === g ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">性別</label>
-                  <select 
-                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
-                    value={bookingForm.gender}
-                    onChange={e => setBookingForm({...bookingForm, gender: e.target.value})}
-                  >
-                    <option value="">選擇性別</option>
-                    <option value="男">男</option>
-                    <option value="女">女</option>
-                    <option value="不願透露">不願透露</option>
-                  </select>
+                  <div className="flex gap-2">
+                    {['男', '女', '不願透露'].map(g => (
+                      <button 
+                        key={g}
+                        onClick={() => setBookingForm({...bookingForm, gender: g})}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${bookingForm.gender === g ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">人數 (1-5)</label>
-                  <input 
-                    type="number" min="1" max="5"
-                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
-                    value={bookingForm.attendeesCount}
-                    onChange={e => setBookingForm({...bookingForm, attendeesCount: parseInt(e.target.value) || 1})}
-                  />
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">預約人數</label>
+                  <div className="flex gap-2">
+                    {[1, 2, 3, 4, 5].map(v => (
+                      <button 
+                        key={v}
+                        onClick={() => setBookingForm({...bookingForm, attendeesCount: v})}
+                        className={`flex-1 py-2 rounded-xl text-sm font-bold transition-all border-2 ${bookingForm.attendeesCount === v ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
+                      >
+                        {v} 人
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學習狀況</label>
-                <div className="flex gap-4">
-                  {['初學者', '進階'].map(s => (
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">學習需求</label>
+                <div className="flex flex-wrap gap-2">
+                  {['完全不會', '初學者', '進階', '其他'].map(s => (
                     <button 
                       key={s}
                       onClick={() => setBookingForm({...bookingForm, learningStatus: s})}
-                      className={`flex-1 py-3 rounded-xl font-bold transition-all ${bookingForm.learningStatus === s ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-50 text-slate-500'}`}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${bookingForm.learningStatus === s ? 'border-blue-600 bg-blue-50 text-blue-600' : 'border-slate-100 bg-slate-50 text-slate-500'}`}
                     >
                       {s}
                     </button>
@@ -224,47 +229,78 @@ export default function CoachDetailPage({ params }) {
               </div>
 
               <div>
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">選取預約時間</label>
+                <div className="relative">
+                  <input 
+                    type="datetime-local"
+                    className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700 outline-none focus:border-blue-600 transition-all"
+                    value={bookingForm.expectedTime}
+                    onChange={e => setBookingForm({...bookingForm, expectedTime: e.target.value})}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none">📅</div>
+                </div>
+              </div>
+
+              <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">上課地址</label>
                 {/* Frequent addresses dropdown */}
-                {frequentAddresses.length > 0 && (
+                <div className="flex gap-2">
                   <select 
-                    className="w-full p-2 mb-2 bg-blue-50 border border-blue-100 rounded-lg text-xs font-bold text-blue-600"
+                    className="flex-1 p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
+                    value={bookingForm.address}
                     onChange={e => setBookingForm({...bookingForm, address: e.target.value})}
                   >
-                    <option value="">從常用地址選取...</option>
+                    <option value="">請輸入或從常用地址選取</option>
                     {frequentAddresses.map((a, i) => (
                       <option key={i} value={a.address}>【{a.label}】{a.address}</option>
                     ))}
+                    {bookingForm.address && !frequentAddresses.some(a => a.address === bookingForm.address) && (
+                      <option value={bookingForm.address}>{bookingForm.address}</option>
+                    )}
                   </select>
+                </div>
+                {!frequentAddresses.some(a => a.address === bookingForm.address) && (
+                  <input 
+                    type="text"
+                    placeholder="或手動輸入詳細地址"
+                    className="w-full p-3 mt-2 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
+                    value={bookingForm.address}
+                    onChange={e => setBookingForm({...bookingForm, address: e.target.value})}
+                  />
                 )}
-                <input 
-                  type="text"
-                  placeholder="請輸入或選取上課地址"
-                  className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700"
-                  value={bookingForm.address}
-                  onChange={e => setBookingForm({...bookingForm, address: e.target.value})}
-                />
               </div>
 
               {/* Coupon Selection Section */}
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">套用優惠券 (選填)</label>
                 <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-                  {userProfile?.coupons?.map(c => (
-                    <button 
-                      key={c.id}
-                      onClick={() => setBookingForm(prev => ({ 
-                        ...prev, 
-                        couponId: prev.couponId === c.id ? null : c.id,
-                        couponDiscount: prev.couponId === c.id ? 0 : c.discount 
-                      }))}
-                      className={`flex-shrink-0 p-3 rounded-xl border-2 transition-all text-left ${bookingForm.couponId === c.id ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-white'}`}
-                      style={{ minWidth: '100px' }}
-                    >
-                      <p className={`text-lg font-black ${bookingForm.couponId === c.id ? 'text-blue-600' : 'text-slate-600'}`}>{c.discount}%</p>
-                      <p className="text-[10px] font-bold text-slate-400">{c.label || '折扣券'}</p>
-                    </button>
-                  ))}
+                  {userProfile?.coupons?.map(c => {
+                    const isSelected = bookingForm.couponId === c.id;
+                    const isOtherSelected = bookingForm.couponId && !isSelected;
+                    return (
+                      <div 
+                        key={c.id}
+                        className={`flex-shrink-0 p-3 rounded-xl border-2 transition-all flex flex-col justify-between ${isSelected ? 'border-blue-600 bg-blue-50' : 'border-slate-100 bg-white'}`}
+                        style={{ minWidth: '130px' }}
+                      >
+                        <div>
+                          <p className={`text-lg font-black ${isSelected ? 'text-blue-600' : 'text-slate-600'}`}>{c.discount}%</p>
+                          <p className="text-[10px] font-bold text-slate-400 mb-2 truncate">{c.label || '折扣券'}</p>
+                        </div>
+                        <button 
+                          disabled={isOtherSelected}
+                          onClick={() => setBookingForm(prev => ({ 
+                            ...prev, 
+                            couponId: isSelected ? null : c.id,
+                            couponDiscount: isSelected ? 0 : c.discount 
+                          }))}
+                          className={`w-full py-1 rounded-lg text-[10px] font-black transition-all ${isSelected ? 'bg-blue-600 text-white' : (isOtherSelected ? 'bg-slate-100 text-slate-300' : 'bg-slate-800 text-white')}`}
+                        >
+                          {isSelected ? '取消使用' : '使用'}
+                        </button>
+                      </div>
+                    );
+                  })}
                   {(!userProfile?.coupons || userProfile.coupons.length === 0) && (
                     <p className="text-xs text-slate-400 font-medium italic">目前無可用優惠券</p>
                   )}
