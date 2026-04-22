@@ -48,16 +48,26 @@ export async function POST(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    // 1. 尋找該月份「已完課」且「尚未結外」的預約
-    // ⚠️ 這裡假設已在 bookings 加了 settlement_id 欄位
-    // 如果還沒有加，這行查詢會失敗，請先執行 SQL: 
-    // ALTER TABLE bookings ADD COLUMN settlement_id UUID REFERENCES settlement_batches(id);
+    const { data: existingBatches, error: existingError } = await adminSupabase
+      .from('settlement_batches')
+      .select('id')
+      .eq('month', month)
+      .neq('status', 'cancelled')
+      .limit(1);
+
+    if (existingError) throw existingError;
+    if (existingBatches?.length) {
+      return NextResponse.json({ error: '此月份已有未取消的結算批次，請勿重複產生。' }, { status: 409 });
+    }
+
+    // 1. 尋找該月份「已完課」且「尚未結算」的預約
     const { data: bookings, error: bError } = await adminSupabase
       .from('bookings')
-      .select('id, coach_id, coach_payout, completed_at')
+      .select('id, coach_id, coach_payout, completed_at, settlement_id')
       .eq('status', 'completed')
       .is('settlement_id', null)
-      .like('completed_at', `${month}%`);
+      .gte('completed_at', `${month}-01T00:00:00.000Z`)
+      .lt('completed_at', nextMonthStart(month));
 
     if (bError) {
       if (bError.message.includes('settlement_id')) {
@@ -76,16 +86,18 @@ export async function POST(request) {
       if (!coachGroups[b.coach_id]) {
         coachGroups[b.coach_id] = { total: 0, bookingIds: [] };
       }
-      coachGroups[b.coach_id].total += b.coach_payout;
+      coachGroups[b.coach_id].total += Number(b.coach_payout || 0);
       coachGroups[b.coach_id].bookingIds.push(b.id);
     });
 
     let createdCount = 0;
+    const createdBatches = [];
 
     // 3. 為每個教練建立結算批次並更新訂單
-    // 註：這部分在 Supabase 中建議使用 Transaction，但在這裡我們先用逐筆處理
+    // 採兩階段補償：若訂單關聯失敗，立即將批次標記 cancelled，避免誤撥款。
     for (const coachId in coachGroups) {
       const { total, bookingIds } = coachGroups[coachId];
+      if (total <= 0 || bookingIds.length === 0) continue;
 
       // A. 建立批次
       const { data: batch, error: batchErr } = await adminSupabase
@@ -94,9 +106,10 @@ export async function POST(request) {
           month,
           coach_id: coachId,
           total_amount: total,
+          booking_count: bookingIds.length,
           status: 'pending'
         }])
-        .select('id')
+        .select('id, month, coach_id, total_amount, booking_count, status')
         .single();
 
       if (batchErr) {
@@ -112,19 +125,39 @@ export async function POST(request) {
 
       if (updateErr) {
         console.error(`Booking linkage failed for batch ${batch.id}:`, updateErr);
+        await adminSupabase
+          .from('settlement_batches')
+          .update({ status: 'cancelled' })
+          .eq('id', batch.id);
       } else {
         createdCount++;
+        createdBatches.push(batch);
       }
     }
+
+    await adminSupabase.from('audit_logs').insert([{
+      actor_id: auth.user.id,
+      actor_role: auth.user.role,
+      action: 'GENERATE_SETTLEMENT_BATCHES',
+      target_id: month,
+      details: JSON.stringify({ createdCount, batchIds: createdBatches.map((batch) => batch.id) }),
+    }]);
 
     return NextResponse.json({ 
       success: true, 
       message: `成功為 ${createdCount} 位教練產生結算批次。`,
-      createdCount 
+      createdCount,
+      batches: createdBatches,
     });
 
   } catch (err) {
     console.error('Generate settlement error:', err);
     return NextResponse.json({ error: '結算批次產生失敗：' + err.message }, { status: 500 });
   }
+}
+
+function nextMonthStart(month) {
+  const [year, monthNumber] = month.split('-').map(Number);
+  const date = new Date(Date.UTC(year, monthNumber, 1));
+  return date.toISOString();
 }

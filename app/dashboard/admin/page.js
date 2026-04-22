@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { 
-  ShieldCheck, ArrowRight, Activity, Clock, Settings
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet
 } from 'lucide-react';
 
 export default function AdminDashboard() {
@@ -34,7 +34,7 @@ export default function AdminDashboard() {
   return (
       <div className="p-4 space-y-4 -mt-4 relative z-10">
         {/* -- Admin Management Center -- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div 
             onClick={() => router.push('/admin/verification')}
             className="bg-white p-6 rounded-2xl shadow-md border border-blue-100 flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors"
@@ -62,6 +62,22 @@ export default function AdminDashboard() {
               <div>
                 <h3 className="font-bold text-gray-900">全域參數設定</h3>
                 <p className="text-sm text-gray-500">調整曠課、抽成等參數</p>
+              </div>
+            </div>
+            <ArrowRight className="text-gray-300" />
+          </div>
+
+          <div 
+            onClick={() => router.push('/admin/settlements')}
+            className="bg-white p-6 rounded-2xl shadow-md border border-emerald-100 flex items-center justify-between cursor-pointer hover:bg-emerald-50 transition-colors"
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600">
+                <Wallet size={28} />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">結算管理</h3>
+                <p className="text-sm text-gray-500">產生與確認教練撥款</p>
               </div>
             </div>
             <ArrowRight className="text-gray-300" />

@@ -41,6 +41,8 @@ export async function GET(request, { params }) {
         final_price,
         coach_payout,
         completed_at,
+        expected_time,
+        plan_title,
         users!bookings_user_id_fkey(name)
       `)
       .eq('settlement_id', id);
@@ -73,15 +75,32 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const { status } = await request.json();
 
-    if (!['pending', 'paid'].includes(status)) {
+    if (!['pending', 'paid', 'cancelled'].includes(status)) {
       return NextResponse.json({ error: '無效的狀態值' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
 
+    const { data: currentBatch, error: currentError } = await adminSupabase
+      .from('settlement_batches')
+      .select('id, status')
+      .eq('id', id)
+      .single();
+
+    if (currentError || !currentBatch) {
+      return NextResponse.json({ error: '找不到該結算批次' }, { status: 404 });
+    }
+
+    if (currentBatch.status === 'paid' && status !== 'paid') {
+      return NextResponse.json({ error: '已撥款批次不可改回其他狀態' }, { status: 400 });
+    }
+
     const updateData = { status };
     if (status === 'paid') {
       updateData.paid_at = new Date().toISOString();
+    }
+    if (status === 'cancelled') {
+      updateData.paid_at = null;
     }
 
     const { data, error } = await adminSupabase
@@ -92,6 +111,21 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (error) throw error;
+
+    if (status === 'cancelled') {
+      await adminSupabase
+        .from('bookings')
+        .update({ settlement_id: null })
+        .eq('settlement_id', id);
+    }
+
+    await adminSupabase.from('audit_logs').insert([{
+      actor_id: auth.user.id,
+      actor_role: auth.user.role,
+      action: 'UPDATE_SETTLEMENT_STATUS',
+      target_id: id,
+      details: JSON.stringify({ from: currentBatch.status, to: status }),
+    }]);
 
     return NextResponse.json({ success: true, batch: data });
 
