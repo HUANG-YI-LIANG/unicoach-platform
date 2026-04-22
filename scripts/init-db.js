@@ -46,6 +46,56 @@ async function initDb() {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
+    CREATE TABLE IF NOT EXISTS coach_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      duration_minutes INTEGER NOT NULL DEFAULT 60,
+      price INTEGER NOT NULL,
+      is_active BOOLEAN DEFAULT 1,
+      is_default BOOLEAN DEFAULT 0,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS coach_availability_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id INTEGER NOT NULL,
+      weekday INTEGER NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      slot_minutes INTEGER NOT NULL DEFAULT 30,
+      is_active BOOLEAN DEFAULT 1,
+      display_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS coach_availability_exceptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      coach_id INTEGER NOT NULL,
+      exception_date TEXT NOT NULL,
+      exception_type TEXT NOT NULL CHECK(exception_type IN ('available', 'unavailable')),
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      reason TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (coach_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS video_likes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      video_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(video_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS bookings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -65,6 +115,15 @@ async function initDb() {
       status TEXT CHECK(status IN ('pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed', 'disputed', 'cancelled', 'refunded')) DEFAULT 'pending_payment',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
+      series_id TEXT,
+      recurrence_pattern TEXT,
+      session_number INTEGER,
+      duration_minutes INTEGER DEFAULT 60,
+      payment_expires_at DATETIME,
+      plan_id TEXT,
+      plan_title TEXT,
+      plan_snapshot TEXT,
+      settlement_id INTEGER,
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (coach_id) REFERENCES users(id)
     );
@@ -116,6 +175,12 @@ async function initDb() {
       understanding_score INTEGER CHECK(understanding_score >= 1 AND understanding_score <= 5),
       observation TEXT,
       suggestions TEXT,
+      ai_draft_observation TEXT,
+      ai_draft_suggestions TEXT,
+      ai_generated_at DATETIME,
+      ai_model TEXT,
+      ai_prompt_snapshot TEXT,
+      ai_applied_at DATETIME,
       media_urls TEXT,
       progress_level TEXT CHECK(progress_level IN ('obvious', 'slight', 'none', 'needs_improvement')),
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -128,8 +193,10 @@ async function initDb() {
       month TEXT NOT NULL,
       coach_id INTEGER NOT NULL,
       total_amount INTEGER NOT NULL,
-      status TEXT CHECK(status IN ('pending', 'paid')) DEFAULT 'pending',
+      booking_count INTEGER DEFAULT 0,
+      status TEXT CHECK(status IN ('pending', 'paid', 'cancelled')) DEFAULT 'pending',
       paid_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (coach_id) REFERENCES users(id)
     );
 

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 /**
- * UniCoach Middleware v4.0 (Emergency Cleanout)
+ * UniCoach Proxy (Migrated from Middleware v4.0)
  * 暫時移除所有外部依賴（Upstash Redis），確保開發環境 0ms 延遲。
  */
-export function middleware(request) {
+export function proxy(request) {
   // 對所有 API 請求直接放行，不進行速率限制
   return NextResponse.next();
 }

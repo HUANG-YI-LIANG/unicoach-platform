@@ -39,7 +39,56 @@ CREATE TABLE coaches (
   photos TEXT
 );
 
--- 3. Create Bookings
+-- 3. Create Coach Plans
+CREATE TABLE coach_plans (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT,
+  duration_minutes INTEGER NOT NULL DEFAULT 60,
+  price INTEGER NOT NULL,
+  is_active BOOLEAN DEFAULT true,
+  is_default BOOLEAN DEFAULT false,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_coach_plans_coach_id ON coach_plans(coach_id);
+
+-- 4. Create Coach Availability
+CREATE TABLE coach_availability_rules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  weekday INTEGER NOT NULL CHECK(weekday >= 0 AND weekday <= 6),
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  slot_minutes INTEGER NOT NULL DEFAULT 30,
+  is_active BOOLEAN DEFAULT true,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK(end_time > start_time)
+);
+
+CREATE INDEX idx_coach_availability_rules_coach_id ON coach_availability_rules(coach_id);
+
+CREATE TABLE coach_availability_exceptions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  coach_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exception_date DATE NOT NULL,
+  exception_type TEXT NOT NULL CHECK(exception_type IN ('available', 'unavailable')),
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK(end_time > start_time)
+);
+
+CREATE INDEX idx_coach_availability_exceptions_coach_id_date ON coach_availability_exceptions(coach_id, exception_date);
+
+-- 5. Create Bookings
 CREATE TABLE bookings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id),
@@ -65,10 +114,19 @@ CREATE TABLE bookings (
   coupon_id TEXT,
   coupon_discount INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  completed_at TIMESTAMPTZ
+  completed_at TIMESTAMPTZ,
+  series_id TEXT,
+  recurrence_pattern TEXT,
+  session_number INTEGER,
+  duration_minutes INTEGER DEFAULT 60,
+  payment_expires_at TIMESTAMPTZ,
+  plan_id TEXT,
+  plan_title TEXT,
+  plan_snapshot TEXT,
+  settlement_id UUID
 );
 
--- 4. Create Chat Rooms & Messages
+-- 6. Create Chat Rooms & Messages
 CREATE TABLE chat_rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID REFERENCES bookings(id),
@@ -86,7 +144,7 @@ CREATE TABLE chat_messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 5. Create Reviews
+-- 7. Create Reviews
 CREATE TABLE reviews (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID NOT NULL REFERENCES bookings(id),
@@ -98,7 +156,7 @@ CREATE TABLE reviews (
   UNIQUE(booking_id)
 );
 
--- 6. Create Learning Reports
+-- 8. Create Learning Reports
 CREATE TABLE learning_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID NOT NULL UNIQUE REFERENCES bookings(id),
@@ -110,22 +168,34 @@ CREATE TABLE learning_reports (
   understanding_score INTEGER CHECK(understanding_score >= 1 AND understanding_score <= 5),
   observation TEXT,
   suggestions TEXT,
+  ai_draft_observation TEXT,
+  ai_draft_suggestions TEXT,
+  ai_generated_at TIMESTAMPTZ,
+  ai_model TEXT,
+  ai_prompt_snapshot TEXT,
+  ai_applied_at TIMESTAMPTZ,
   media_urls TEXT,
   progress_level TEXT CHECK(progress_level IN ('obvious', 'slight', 'none', 'needs_improvement')),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 7. Settlement Batches (Monthly)
+-- 9. Settlement Batches (Monthly)
 CREATE TABLE settlement_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   month TEXT NOT NULL,
   coach_id UUID NOT NULL REFERENCES users(id),
   total_amount INTEGER NOT NULL,
-  status TEXT CHECK(status IN ('pending', 'paid')) DEFAULT 'pending',
-  paid_at TIMESTAMPTZ
+  booking_count INTEGER DEFAULT 0,
+  status TEXT CHECK(status IN ('pending', 'paid', 'cancelled')) DEFAULT 'pending',
+  paid_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. Coupons
+ALTER TABLE bookings
+ADD CONSTRAINT bookings_settlement_id_fkey
+FOREIGN KEY (settlement_id) REFERENCES settlement_batches(id);
+
+-- 10. Coupons
 CREATE TABLE coupons (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id),
@@ -136,7 +206,7 @@ CREATE TABLE coupons (
   used_at TIMESTAMPTZ
 );
 
--- 9. Referrals
+-- 11. Referrals
 CREATE TABLE referrals (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   referrer_id UUID NOT NULL REFERENCES users(id),
@@ -145,7 +215,7 @@ CREATE TABLE referrals (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. Admin Audit Logs
+-- 12. Admin Audit Logs
 CREATE TABLE audit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id UUID NOT NULL REFERENCES users(id),
@@ -156,7 +226,7 @@ CREATE TABLE audit_logs (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 11. Terms Consents
+-- 13. Terms Consents
 CREATE TABLE terms_consents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id),
@@ -164,7 +234,7 @@ CREATE TABLE terms_consents (
   consented_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 12. User Files
+-- 14. User Files
 CREATE TABLE user_files (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -183,18 +253,31 @@ CREATE TABLE user_files (
 CREATE INDEX idx_user_files_user_id ON user_files(user_id);
 CREATE INDEX idx_user_files_file_type ON user_files(file_type);
 
--- 13. Coach Uploaded Videos
+-- 15. Coach Uploaded Videos
 CREATE TABLE coach_videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   coach_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   video_url TEXT NOT NULL,
   title TEXT NOT NULL,
   category TEXT CHECK(category IN ('teaching', 'intro', 'highlight')),
+  view_count INTEGER DEFAULT 0,
+  like_count INTEGER DEFAULT 0,
+  share_count INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 14. User/Coach Video Links (YouTube/Vimeo)
+CREATE TABLE video_likes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  video_id UUID NOT NULL REFERENCES coach_videos(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(video_id, user_id)
+);
+
+CREATE INDEX idx_video_likes_video_id ON video_likes(video_id);
+
+-- 16. User/Coach Video Links (YouTube/Vimeo)
 CREATE TABLE user_videos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
