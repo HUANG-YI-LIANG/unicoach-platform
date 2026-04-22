@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { calcBaseDiscount } from '@/lib/discountRules';
+import { addWeeks } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
+import { pickDefaultPlanById, normalizePlan } from '@/lib/coachPlans';
 
 export async function POST(request) {
   try {
@@ -19,7 +22,10 @@ export async function POST(request) {
       attendeesCount, 
       learningStatus,
       couponId = null,
-      couponDiscount = 0 
+      couponDiscount = 0,
+      isRecurring = false,
+      recurringWeeks = 1,
+      planId
     } = await request.json();
 
     const finalGrade = age || grade; // 映射
@@ -31,6 +37,13 @@ export async function POST(request) {
       .eq('user_id', coachId)
       .single();
 
+    const normalizedExpectedTime = new Date(expectedTime);
+    if (Number.isNaN(normalizedExpectedTime.getTime())) {
+      return NextResponse.json({ error: 'Invalid booking time' }, { status: 400 });
+    }
+
+    const bookingTimeIso = normalizedExpectedTime.toISOString();
+
     if (coachErr || !coach) return NextResponse.json({ error: '找不到該教練資料' }, { status: 404 });
 
     // ✅ 安全門檻：只有 'approved' 狀態的教練才能接受預約
@@ -41,7 +54,70 @@ export async function POST(request) {
       }, { status: 403 });
     }
 
-    const basePrice = coach.base_price || 1000;
+    let selectedPlan = null;
+    if (planId && !String(planId).startsWith('default-')) {
+      const { data: plan, error: planError } = await adminSupabase
+        .from('coach_plans')
+        .select('*')
+        .eq('id', planId)
+        .eq('coach_id', coachId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (planError) throw planError;
+      selectedPlan = normalizePlan(plan);
+      if (!selectedPlan) {
+        return NextResponse.json({ error: '找不到可預約的教練方案' }, { status: 400 });
+      }
+    } else {
+      selectedPlan = pickDefaultPlanById(coachId, coach.base_price, planId);
+    }
+
+    const durationMinutes = selectedPlan.duration_minutes;
+    const planPrice = selectedPlan.price;
+
+    const totalSessions = isRecurring ? parseInt(recurringWeeks) : 1;
+    const seriesId = isRecurring ? uuidv4() : null;
+    const recurrencePattern = isRecurring ? 'weekly' : null;
+
+    // 獲取該教練未來的所有有效預約 (為了在記憶體中進行區間比對)
+    const nowIso = new Date().toISOString();
+    const { data: existingBookings, error: fetchErr } = await adminSupabase
+      .from('bookings')
+      .select('id, expected_time, status, payment_expires_at, duration_minutes')
+      .eq('coach_id', coachId)
+      .gte('expected_time', nowIso)
+      .in('status', ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed']);
+
+    if (fetchErr) throw fetchErr;
+
+    for (let i = 0; i < totalSessions; i++) {
+      const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
+      const newStart = sessionTime.getTime();
+      const newEnd = newStart + durationMinutes * 60 * 1000;
+
+      // 嚴格比對時間區間重疊
+      const hasOverlap = existingBookings?.some(booking => {
+        // 若為 pending_payment 且已過期，則不視為衝突
+        if (booking.status === 'pending_payment' && booking.payment_expires_at) {
+          const expiresAt = new Date(booking.payment_expires_at).getTime();
+          if (Date.now() > expiresAt) return false;
+        }
+
+        const existingStart = new Date(booking.expected_time).getTime();
+        const existingDuration = booking.duration_minutes || 60; 
+        const existingEnd = existingStart + existingDuration * 60 * 1000;
+        
+        // 區間重疊條件: (StartA < EndB) && (StartB < EndA)
+        return (newStart < existingEnd) && (existingStart < newEnd);
+      });
+
+      if (hasOverlap) {
+        return NextResponse.json({ error: `時段衝突：第 ${i + 1} 堂課的時段（包含課程長度）已與現有預約重疊。` }, { status: 409 });
+      }
+    }
+
+    const basePrice = planPrice;
 
     // 2. 計算基礎折扣率 (基於用戶等級與預約歷史)
     const { count: userBookingsCount } = await adminSupabase
@@ -71,30 +147,55 @@ export async function POST(request) {
     const coachPayout = basePrice - platformFee; // 教練實拿
 
     // 5. 建立預約紀錄
-    const { data: booking, error: insertErr } = await adminSupabase.from('bookings').insert([{
-      user_id: userId,
-      coach_id: coachId,
-      expected_time: expectedTime,
-      base_price: basePrice,
-      discount_amount: discountAmount,
-      final_price: finalPrice,
-      deposit_paid: depositPaid,
-      platform_fee: platformFee,
-      coach_payout: coachPayout,
-      grade: finalGrade,
-      gender: gender,
-      attendees_count: attendeesCount,
-      learning_status: learningStatus,
-      coupon_id: couponId,
-      coupon_discount: couponDiscount,
-      status: 'scheduled'
-    }]).select('id');
+    const bookingsToInsert = [];
+    const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    for (let i = 0; i < totalSessions; i++) {
+      const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
+      bookingsToInsert.push({
+        user_id: userId,
+        coach_id: coachId,
+        expected_time: sessionTime.toISOString(),
+        base_price: basePrice,
+        discount_amount: discountAmount,
+        final_price: finalPrice,
+        deposit_paid: depositPaid,
+        platform_fee: platformFee,
+        coach_payout: coachPayout,
+        grade: finalGrade,
+        gender: gender,
+        attendees_count: attendeesCount,
+        learning_status: learningStatus,
+        coupon_id: couponId,
+        coupon_discount: couponDiscount,
+        status: 'pending_payment',
+        series_id: seriesId,
+        recurrence_pattern: recurrencePattern,
+        session_number: i + 1,
+        duration_minutes: durationMinutes,
+        payment_expires_at: paymentExpiresAt,
+        plan_id: selectedPlan.id,
+        plan_title: selectedPlan.title,
+        plan_snapshot: JSON.stringify({
+          id: selectedPlan.id,
+          title: selectedPlan.title,
+          description: selectedPlan.description || '',
+          duration_minutes: selectedPlan.duration_minutes,
+          price: selectedPlan.price,
+          is_default: selectedPlan.is_default,
+        })
+      });
+    }
 
-    if (insertErr || !booking || booking.length === 0) {
+    const { data: bookings, error: insertErr } = await adminSupabase
+      .from('bookings')
+      .insert(bookingsToInsert)
+      .select('id');
+
+    if (insertErr || !bookings || bookings.length === 0) {
       throw insertErr || new Error('預約建立失敗，無回傳資料');
     }
 
-    const bookingId = booking[0].id;
+    const bookingId = bookings[0].id;
 
     // 5. 自動建立或連結聊天室 (Auto-Chat Feature)
     try {
@@ -136,9 +237,15 @@ export async function POST(request) {
 
     return NextResponse.json({ 
       success: true, 
-      bookingId: booking[0].id, 
-      finalPrice, 
-      depositPaid 
+      bookingId: bookings[0].id,
+      seriesId: seriesId,
+      perSessionFinalPrice: finalPrice,
+      totalFinalPrice: finalPrice * totalSessions,
+      finalPrice: finalPrice * totalSessions,
+      perSessionDepositPaid: depositPaid,
+      totalDepositPaid: depositPaid * totalSessions,
+      depositPaid: depositPaid * totalSessions,
+      totalSessions
     });
   } catch (error) {
     console.error('Booking creation error:', error);

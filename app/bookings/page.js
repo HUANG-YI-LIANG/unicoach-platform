@@ -22,6 +22,7 @@ const STATUS_MAP = {
 };
 
 const STATUS_STYLE = {
+  pending_payment: { bg: '#FEF3C7', color: '#92400E' },
   completed:   { bg: '#D1FAE5', color: '#065F46' },
   scheduled:   { bg: '#DBEAFE', color: '#1D4ED8' },
   in_progress: { bg: '#FEF9C3', color: '#854D0E' },
@@ -83,6 +84,18 @@ export default function BookingsPage() {
   const [adjustingId, setAdjustingId] = useState(null);
   const [adjustmentValue, setAdjustmentValue] = useState(0);
   const [adjusting, setAdjusting] = useState(false);
+
+  const handleConfirmPayment = async (bookingId) => {
+    const res = await fetch(`/api/bookings/${bookingId}/confirm-payment`, {
+      method: 'POST',
+    });
+    const data = await res.json();
+    if (res.ok) {
+      fetchBookings();
+    } else {
+      alert(data.error || '付款確認失敗');
+    }
+  };
 
   const handleSubmitReview = async () => {
     if (!reviewingBooking) return;
@@ -175,7 +188,14 @@ export default function BookingsPage() {
           <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
             {isCoach ? '完善教練資料後學員就能找到你' : '去找一位教練開始預約吧！'}
           </p>
-          {!isCoach && (
+          {isCoach ? (
+            <button
+              onClick={() => router.push('/dashboard/coach')}
+              style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: WHITE, border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+            >
+              完善個人資料 →
+            </button>
+          ) : (
             <button
               onClick={() => router.push('/coaches')}
               style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: WHITE, border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
@@ -190,6 +210,8 @@ export default function BookingsPage() {
             const ss = statusStyle(b.status);
             const canStartReport = isCoach && (b.status === 'scheduled' || b.status === 'in_progress');
             const isCompleted = b.status === 'completed';
+            const isPendingPayment = b.status === 'pending_payment';
+            const paymentExpiresAt = b.payment_expires_at ? new Date(b.payment_expires_at) : null;
             return (
               <div key={b.id} style={{
                 background: WHITE, borderRadius: 20, padding: 18,
@@ -226,7 +248,7 @@ export default function BookingsPage() {
                 {/* Meta row: date + price */}
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  borderTop: '1px solid #F1F5F9', paddingTop: 12, marginBottom: canStartReport || isCompleted ? 12 : 0,
+                  borderTop: '1px solid #F1F5F9', paddingTop: 12, marginBottom: canStartReport || isCompleted || isPendingPayment ? 12 : 0,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: DARK, fontSize: 13, fontWeight: 700 }}>
                     <Calendar size={13} color={BLUE} />
@@ -249,8 +271,25 @@ export default function BookingsPage() {
                   </div>
                 </div>
 
+                {isPendingPayment && (
+                  <div style={{
+                    borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 12,
+                    background: '#FFFBEB', borderRadius: 14, padding: 12,
+                    color: '#92400E', fontSize: 12, fontWeight: 700, lineHeight: 1.5,
+                  }}>
+                    {isCoach
+                      ? '此訂單尚未付款確認，請勿視為正式排程。'
+                      : '此時段已暫時保留，付款確認後才會正式排程。'}
+                    {paymentExpiresAt && (
+                      <div style={{ fontWeight: 600, marginTop: 4 }}>
+                        保留至：{paymentExpiresAt.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Price Adjust Actions (Coach Only) */}
-                {isCoach && !isCompleted && b.status !== 'cancelled' && (
+                {isCoach && !isCompleted && !isPendingPayment && b.status !== 'cancelled' && (
                   <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 12, paddingTop: 12 }}>
                     {adjustingId === b.id ? (
                       <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
@@ -292,6 +331,17 @@ export default function BookingsPage() {
                 {/* Coach action buttons */}
                 {isCoach && !isCompleted && (
                   <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #F1F5F9', paddingTop: 12 }}>
+                    {user?.role === 'admin' && isPendingPayment && (
+                      <button
+                        onClick={() => handleConfirmPayment(b.id)}
+                        style={{
+                          flex: 1, padding: '10px', borderRadius: 12, border: 'none',
+                          background: '#059669', color: WHITE, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                        }}
+                      >
+                        確認付款
+                      </button>
+                    )}
                     {b.status === 'scheduled' && (
                       <button
                         onClick={() => handleStatusUpdate(b.id, 'in_progress')}

@@ -1,11 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 
 export default function Login() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refresh } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -22,6 +23,11 @@ export default function Login() {
     const data = await res.json();
     if (res.ok) {
       await refresh();
+      const redirectTarget = searchParams.get('redirect');
+      if (redirectTarget) {
+        router.push(redirectTarget);
+        return;
+      }
       if (data.user.role === 'admin') router.push('/dashboard/admin');
       else router.push('/dashboard/' + data.user.role);
     } else {

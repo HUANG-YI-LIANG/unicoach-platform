@@ -73,6 +73,7 @@ export async function POST(request, { params }) {
         .from('learning_reports')
         .select('id')
         .eq('booking_id', id)
+        .neq('completed_items', '__AI_DRAFT__')
         .single();
       if (!report) {
         return NextResponse.json({ error: '必須先填寫學習報告，才能將課程標記為完成。' }, { status: 400 });

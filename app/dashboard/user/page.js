@@ -23,6 +23,18 @@ const DARK   = '#0F172A';
 const RADIUS = '20px';
 const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
 
+const BOOKING_STATUS = {
+  pending_payment: { label: '待付款', bg: '#FEF3C7', color: '#92400E' },
+  scheduled: { label: '已排程', bg: '#DBEAFE', color: '#1D4ED8' },
+  in_progress: { label: '進行中', bg: '#FEF9C3', color: '#854D0E' },
+  completed: { label: '已完成', bg: '#D1FAE5', color: '#065F46' },
+  cancelled: { label: '已取消', bg: '#FEE2E2', color: '#991B1B' },
+};
+
+function bookingStatus(status) {
+  return BOOKING_STATUS[status] || { label: status || '未知', bg: '#F1F5F9', color: '#475569' };
+}
+
 // ── Reusable components ───────────────────────────────────────────────────────
 function SLabel({ children }) {
   return <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: MUTED,
@@ -191,25 +203,28 @@ export default function UserDashboard() {
                   border:'none', borderRadius: 12, fontSize:13, fontWeight:700, cursor:'pointer' }}
               >去找教練 →</button>
             </div>
-          ) : bookings.slice(0,4).map(b => (
-            <div key={b.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
-              padding: '14px 18px', borderBottom:`1px solid ${BORDER}` }}>
-              <div>
-                <p style={{ margin:0, fontSize:14, fontWeight:700, color:DARK }}>{b.coach_name ?? `教練 #${b.coach_id?.substring(0,6)}`}</p>
-                <p style={{ margin:'3px 0 0', fontSize:12, color:MUTED }}>
-                  {b.expected_time ? new Date(b.expected_time).toLocaleDateString('zh-TW') : '時間待定'}
-                  {' · '}NT${b.final_price ?? b.base_price}
-                </p>
+          ) : bookings.slice(0,4).map(b => {
+            const status = bookingStatus(b.status);
+            return (
+              <div key={b.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding: '14px 18px', borderBottom:`1px solid ${BORDER}` }}>
+                <div>
+                  <p style={{ margin:0, fontSize:14, fontWeight:700, color:DARK }}>{b.coach_name ?? `教練 #${b.coach_id?.substring(0,6)}`}</p>
+                  <p style={{ margin:'3px 0 0', fontSize:12, color:MUTED }}>
+                    {b.expected_time ? new Date(b.expected_time).toLocaleDateString('zh-TW') : '時間待定'}
+                    {' · '}NT${b.final_price ?? b.base_price}
+                  </p>
+                </div>
+                <span style={{
+                  fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:100,
+                  background: status.bg,
+                  color: status.color,
+                }}>
+                  {status.label}
+                </span>
               </div>
-              <span style={{
-                fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:100,
-                background: b.status==='completed'?'#D1FAE5': b.status==='scheduled'?'#DBEAFE':'#FEE2E2',
-                color: b.status==='completed'?'#065F46': b.status==='scheduled'?'#1D4ED8':'#991B1B',
-              }}>
-                {b.status==='completed'?'已完成':b.status==='scheduled'?'已排程':b.status}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
         <p style={{ marginTop: 12, fontSize: 11, color: MUTED, display: 'flex', flexDirection: 'column', gap: 4, padding: '0 4px', lineHeight: 1.5 }}>
           <span>ℹ️ 取消政策：開課前 1 小時內取消，可能需支付取消費用，詳情依平台規定。</span>
