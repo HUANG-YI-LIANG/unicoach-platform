@@ -30,17 +30,6 @@ export async function GET(request) {
       coachData = coach;
     }
 
-    // 3. 資料庫欄位遷移 (Migration Service)
-    try {
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS grade TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS gender TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS attendees_count INTEGER DEFAULT 1' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS learning_status TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS coupon_id TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE bookings ADD COLUMN IF NOT EXISTS coupon_discount INTEGER DEFAULT 0' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE users ADD COLUMN IF NOT EXISTS grade TEXT' }).catch(() => {});
-      await adminSupabase.rpc('run_sql', { sql: 'ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT' }).catch(() => {});
-    } catch (migErr) {}
 
     // 4. 計算基礎折扣百分比 (base_discount)
     const { count: bookingsCount } = await adminSupabase
@@ -101,6 +90,7 @@ export async function POST(request) {
       if (body.experience !== undefined) coachUpdates.experience = body.experience?.trim();
       if (body.philosophy !== undefined) coachUpdates.philosophy = body.philosophy?.trim();
       if (body.base_price !== undefined) coachUpdates.base_price = parseInt(body.base_price) || 1000;
+      if (body.available_times !== undefined) coachUpdates.available_times = body.available_times;
 
       if (Object.keys(coachUpdates).length > 1) { // 至少要有 user_id 以外的欄位
         const { error: coachError } = await adminSupabase
