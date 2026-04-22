@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { Home, Search, MessageCircle, User, LogIn, PieChart, ShoppingBag } from 'lucide-react';
+import { Home, Search, MessageCircle, User, LogIn, PieChart, ShoppingBag, PlaySquare } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -19,6 +19,7 @@ export default function Navigation() {
     // Unlogged state
     navItems = [
       { name: '首頁', path: '/', icon: Home },
+      { name: '探索', path: '/explore', icon: PlaySquare },
       { name: '教練列表', path: '/coaches', icon: Search },
       { name: '登入', path: '/login', icon: LogIn }
     ];
@@ -26,8 +27,9 @@ export default function Navigation() {
     // Logged in User state
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
-      { name: '教練列表', path: '/coaches', icon: Search },
-      { name: '聊天', path: '/chat', icon: MessageCircle }
+      { name: '探索', path: '/explore', icon: PlaySquare },
+      { name: '聊天', path: '/chat', icon: MessageCircle },
+      { name: '個人', path: '/bookings', icon: ShoppingBag }
     ];
   } else if (role === 'coach') {
     // Logged in Coach state

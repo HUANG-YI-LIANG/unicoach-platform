@@ -3,11 +3,6 @@ import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-export const config = {
-  api: {
-    bodyParser: false, // 讓 formidable 或其他解析器處理 multipart
-  },
-};
 
 export async function POST(request) {
   try {
@@ -87,6 +82,9 @@ export async function POST(request) {
         video_url: publicUrl,
         title: title.trim(),
         category: category,
+        view_count: 0,
+        like_count: 0,
+        share_count: 0,
         created_at: new Date().toISOString()
       }])
       .select()
