@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { 
   ShoppingBag, MessageCircle, UserCircle, FileText, 
   ChevronRight, TrendingUp, Clock, Wallet, CheckCircle, Info,
-  Plus, ShieldCheck, ShieldAlert, Shield, X, ExternalLink
+  Plus, ShieldCheck, ShieldAlert, Shield, X, ExternalLink, CalendarDays, ListChecks
 } from 'lucide-react';
 import VideoUpload from '@/components/VideoUpload';
 
@@ -18,6 +18,19 @@ const MUTED  = '#94A3B8';
 const DARK   = '#0F172A';
 const RADIUS = '20px';
 const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
+
+const BOOKING_STATUS = {
+  pending_payment: { label: '待付款', color: '#92400E' },
+  scheduled: { label: '已確認', color: '#1D4ED8' },
+  in_progress: { label: '進行中', color: '#854D0E' },
+  pending_completion: { label: '待完課', color: '#7C3AED' },
+  completed: { label: '已完成', color: '#059669' },
+  cancelled: { label: '已取消', color: '#991B1B' },
+};
+
+function bookingStatus(status) {
+  return BOOKING_STATUS[status] || { label: status || '未知', color: MUTED };
+}
 
 // ── Reusable Components ──────────────────────────────────────────────────────
 function SLabel({ children }) {
@@ -114,7 +127,7 @@ export default function CoachDashboard() {
     </div>
   );
 
-  const pendingBookings = bookings.filter(b => b.status === 'scheduled').length;
+  const confirmedBookings = bookings.filter(b => ['scheduled', 'in_progress', 'pending_completion'].includes(b.status)).length;
   // ✅ 修正：累加各房未讀數
   const pendingMessages = chatRooms.reduce((sum, r) => sum + (r.unread_count || 0), 0);
   const latestRoomId = chatRooms[0]?.id;
@@ -214,7 +227,7 @@ export default function CoachDashboard() {
         />
         <MetricCard 
           label="待處理訂單" 
-          value={pendingBookings} 
+          value={confirmedBookings} 
           icon={Clock} 
           color="#F59E0B" 
           onClick={() => router.push('/bookings')} 
@@ -228,8 +241,10 @@ export default function CoachDashboard() {
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap: 12 }}>
           <QuickAction icon={ShoppingBag} label="訂單" color="#6366F1" onClick={() => router.push('/bookings')} />
           <QuickAction icon={TrendingUp} label="價格調整" color="#10B981" onClick={() => router.push('/coach/profile/edit')} />
+          <QuickAction icon={ListChecks} label="方案管理" color="#7C3AED" onClick={() => router.push('/coach/plans')} />
           <QuickAction icon={UserCircle} label="基本資料" color="#F59E0B" onClick={() => router.push('/coach/profile/edit')} />
           <QuickAction icon={FileText} label="紀錄卡" color="#EC4899" onClick={() => router.push('/bookings')} />
+          <QuickAction icon={CalendarDays} label="時段維護" color="#2563EB" onClick={() => router.push('/coach/schedule')} />
         </div>
       </div>
 
@@ -274,7 +289,9 @@ export default function CoachDashboard() {
               </button>
             </div>
           ) : (
-            bookings.slice(0, 3).map(b => (
+            bookings.slice(0, 3).map(b => {
+              const status = bookingStatus(b.status);
+              return (
               <div key={b.id} style={{ padding: '16px 20px', borderBottom:`1px solid ${BORDER}`, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer' }} onClick={() => router.push('/bookings')}>
                 <div style={{ display:'flex', alignItems:'center', gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 10, background: BG, color: MUTED, display:'flex', alignItems:'center', justifyContent:'center', fontWeight: 800 }}>
@@ -286,13 +303,14 @@ export default function CoachDashboard() {
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap: 6 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: b.status==='completed'? '#059669' : '#F59E0B' }}>
-                    {b.status==='completed'?'已完成':'進行中'}
+                  <span style={{ fontSize: 12, fontWeight: 700, color: status.color }}>
+                    {status.label}
                   </span>
                   <ChevronRight size={14} color={MUTED} />
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
         <p style={{ marginTop: 12, fontSize: 11, color: MUTED, display: 'flex', flexDirection: 'column', gap: 4, padding: '0 4px', lineHeight: 1.5 }}>
