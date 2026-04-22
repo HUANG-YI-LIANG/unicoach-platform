@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/AuthProvider';
 
 // ── Palette ───────────────────────────────────────────────────────────────────
 const BLUE   = '#2563EB';
@@ -48,6 +49,8 @@ export default function ChatPage() {
   const [philosophies, setPhilosophies] = useState(MOCK_PHILOSOPHIES);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { user } = useAuth();
+  const isCoach = user?.role === 'coach';
 
   useEffect(() => {
     fetch('/api/chat/rooms')
@@ -109,15 +112,28 @@ export default function ChatPage() {
         <div style={{ padding:'32px 24px', textAlign:'center', marginTop:20 }}>
           <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
           <p style={{ margin:'0 0 8px', fontSize:18, fontWeight:800, color:DARK }}>還沒有任何對話</p>
-          <p style={{ margin:'0 0 24px', fontSize:14, color:MUTED }}>先找一位教練開始聊聊吧！</p>
-          <button
-            onClick={() => router.push('/coaches')}
-            style={{
-              padding:'14px 36px', background: BLUE, color:'#fff', border:'none',
-              borderRadius:16, fontSize:15, fontWeight:800, cursor:'pointer',
-              boxShadow:'0 8px 20px rgba(37,99,235,0.3)',
-            }}
-          >去找教練 →</button>
+          <p style={{ margin:'0 0 24px', fontSize:14, color:MUTED }}>
+            {isCoach ? '完善教練資料後學員就能找到你' : '先找一位教練開始聊聊吧！'}
+          </p>
+          {isCoach ? (
+            <button
+              onClick={() => router.push('/dashboard/coach')}
+              style={{
+                padding:'14px 36px', background: BLUE, color:'#fff', border:'none',
+                borderRadius:16, fontSize:15, fontWeight:800, cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(37,99,235,0.3)',
+              }}
+            >完善個人資料 →</button>
+          ) : (
+            <button
+              onClick={() => router.push('/coaches')}
+              style={{
+                padding:'14px 36px', background: BLUE, color:'#fff', border:'none',
+                borderRadius:16, fontSize:15, fontWeight:800, cursor:'pointer',
+                boxShadow:'0 8px 20px rgba(37,99,235,0.3)',
+              }}
+            >去找教練 →</button>
+          )}
         </div>
       ) : (
         /* Room List */
