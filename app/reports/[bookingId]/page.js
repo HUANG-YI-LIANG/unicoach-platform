@@ -65,6 +65,9 @@ export default function ReportPage({ params }) {
     progressLevel: 'none',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiDraft, setAiDraft] = useState(null);
+  const [aiDraftApplied, setAiDraftApplied] = useState(false);
   const [error, setError] = useState('');
 
   const canSubmit = form.focusScore && form.cooperationScore &&
@@ -83,7 +86,7 @@ export default function ReportPage({ params }) {
       const reportRes = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, ...form }),
+        body: JSON.stringify({ bookingId, ...form, applyAiDraft: aiDraftApplied }),
       });
       const reportData = await reportRes.json();
       if (!reportRes.ok) throw new Error(reportData.error || '紀錄卡提交失敗');
@@ -104,6 +107,40 @@ export default function ReportPage({ params }) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleGenerate = async () => {
+    if (!form.observation && !form.suggestions) {
+      alert('請至少先填寫幾個關鍵字喔！');
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/ai/generate-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, observation: form.observation, suggestions: form.suggestions })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'AI 擴寫失敗');
+
+      setAiDraft(data.draft || null);
+      setAiDraftApplied(false);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleApplyAiDraft = () => {
+    if (!aiDraft) return;
+    setForm(f => ({
+      ...f,
+      observation: aiDraft.observation || f.observation,
+      suggestions: aiDraft.suggestions || f.suggestions,
+    }));
+    setAiDraftApplied(true);
   };
 
   return (
@@ -212,6 +249,64 @@ export default function ReportPage({ params }) {
             onFocus={e => e.target.style.borderColor = BLUE}
             onBlur={e => e.target.style.borderColor = '#E2E8F0'}
           />
+          
+          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={isGenerating || (!form.observation && !form.suggestions)}
+              style={{
+                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
+                color: WHITE, border: 'none', padding: '10px 16px', borderRadius: 12,
+                fontSize: 13, fontWeight: 700, cursor: (isGenerating || (!form.observation && !form.suggestions)) ? 'not-allowed' : 'pointer',
+                opacity: (isGenerating || (!form.observation && !form.suggestions)) ? 0.6 : 1,
+                display: 'flex', alignItems: 'center', gap: 6,
+                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)'
+              }}
+            >
+              {isGenerating ? '✨ AI 努力撰寫中...' : '✨ 讓 AI 幫我擴寫與潤飾'}
+            </button>
+          </div>
+
+          {aiDraft && (
+            <div style={{
+              marginTop: 16,
+              border: '1px solid #DDD6FE',
+              background: '#F5F3FF',
+              borderRadius: 16,
+              padding: 16,
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 10 }}>
+                <div>
+                  <p style={{ margin: 0, color: '#5B21B6', fontSize: 13, fontWeight: 900 }}>AI 生成草稿</p>
+                  <p style={{ margin: '3px 0 0', color: '#7C3AED', fontSize: 11 }}>
+                    {aiDraft.model || 'AI'} · {aiDraft.generatedAt ? new Date(aiDraft.generatedAt).toLocaleString('zh-TW') : '剛剛生成'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleApplyAiDraft}
+                  style={{
+                    background: aiDraftApplied ? '#DDD6FE' : '#7C3AED',
+                    color: aiDraftApplied ? '#5B21B6' : WHITE,
+                    border: 'none',
+                    padding: '9px 13px',
+                    borderRadius: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {aiDraftApplied ? '已套用' : '套用草稿'}
+                </button>
+              </div>
+              <div style={{ color: '#312E81', fontSize: 13, lineHeight: 1.7 }}>
+                <strong>教練觀察：</strong>
+                <p style={{ margin: '4px 0 10px' }}>{aiDraft.observation || '無'}</p>
+                <strong>下堂建議：</strong>
+                <p style={{ margin: '4px 0 0' }}>{aiDraft.suggestions || '無'}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {error && (

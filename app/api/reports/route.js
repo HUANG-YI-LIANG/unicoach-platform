@@ -20,7 +20,8 @@ export async function POST(request) {
       understandingScore, 
       observation, 
       suggestions, 
-      progressLevel 
+      progressLevel,
+      applyAiDraft = false,
     } = body;
 
     const adminSupabase = getAdminSupabase();
@@ -45,31 +46,55 @@ export async function POST(request) {
     // 2. 檢查是否已存在報告（防止重複提交）
     const { data: existing } = await adminSupabase
       .from('learning_reports')
-      .select('id')
+      .select('id, completed_items, ai_draft_observation, ai_draft_suggestions')
       .eq('booking_id', bookingId)
       .maybeSingle();
 
-    if (existing) {
+    const isDraftOnly = existing?.completed_items === '__AI_DRAFT__';
+    if (existing && !isDraftOnly) {
       return NextResponse.json({ error: '此預約已提交過學習報告。' }, { status: 400 });
     }
 
-    // 3. 執行插入
-    const { error: insertError } = await adminSupabase
-      .from('learning_reports')
-      .insert([{
-        booking_id: bookingId,
-        coach_id: booking.coach_id,
-        completed_items: completedItems,
-        focus_score: focusScore,
-        cooperation_score: cooperationScore,
-        completion_score: completionScore,
-        understanding_score: understandingScore,
-        observation,
-        suggestions,
-        progress_level: progressLevel
-      }]);
+    const reportPayload = {
+      booking_id: bookingId,
+      coach_id: booking.coach_id,
+      completed_items: completedItems,
+      focus_score: focusScore,
+      cooperation_score: cooperationScore,
+      completion_score: completionScore,
+      understanding_score: understandingScore,
+      observation,
+      suggestions,
+      progress_level: progressLevel,
+    };
+
+    if (applyAiDraft) {
+      reportPayload.ai_applied_at = new Date().toISOString();
+    }
+
+    // 3. 執行插入或將 AI 草稿轉為正式報告
+    const query = existing
+      ? adminSupabase
+          .from('learning_reports')
+          .update(reportPayload)
+          .eq('id', existing.id)
+      : adminSupabase
+          .from('learning_reports')
+          .insert([{
+            ...reportPayload,
+          }]);
+
+    const { error: insertError } = await query;
 
     if (insertError) throw insertError;
+
+    await adminSupabase.from('audit_logs').insert([{
+      actor_id: auth.user.id,
+      actor_role: auth.user.role,
+      action: applyAiDraft ? 'APPLY_AI_REPORT_DRAFT' : 'SUBMIT_LEARNING_REPORT',
+      target_id: bookingId,
+      details: JSON.stringify({ report_id: existing?.id || null }),
+    }]);
 
     return NextResponse.json({ success: true, message: '學習報告提交成功。' });
   } catch (err) {
@@ -101,6 +126,7 @@ export async function GET(request) {
         student:users!learning_reports_user_id_fkey(name)
       `)
       .eq('booking_id', bookingId)
+      .neq('completed_items', '__AI_DRAFT__')
       .maybeSingle();
 
     if (error) throw error;
