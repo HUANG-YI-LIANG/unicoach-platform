@@ -151,9 +151,11 @@ export default function AdminSettings() {
             </div>
           </div>
 
-          {/* Planned Settings Placeholder */}
+          {/* Additional Settings */}
           <div className="p-8 border-2 border-dashed border-[#2a2a35] rounded-3xl text-center">
-             <p className="text-sm text-[#888899] font-medium italic">更多全域設定（如佣金比例、支付門檻）開發中...</p>
+             <p className="text-sm text-[#888899] font-medium italic">
+               佣金與支付門檻目前由結算與教練設定流程管理；此頁僅保留全域營運門檻。
+             </p>
           </div>
 
         </div>

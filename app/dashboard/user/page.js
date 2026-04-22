@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
-// ── Mock data (replaced by API on mount) ──────────────────────────────────────
+// ── Local fallback profile shown before API data is loaded ───────────────────
 const MOCK = {
   name: '一般用戶', email: 'user@test.com',
   phone: null, address: null, language: '中文', learning_goals: null,

@@ -48,3 +48,6 @@ database.sqlite-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local design scratch files
+/scratch/

@@ -374,18 +374,21 @@ export default function CoachDashboard() {
                 padding: 20, borderRadius: 16, border: `2px solid ${BLUE}`,
                 background: `${BLUE}05`, cursor: 'pointer', transition: 'transform 0.2s'
               }}
-              onClick={() => alert('配對系統建置中，敬請期待')}
+              onClick={() => {
+                setIsModalOpen(false);
+                router.push('/bookings');
+              }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                    <span style={{ fontSize: 12, fontWeight: 800, color: BLUE, background: `${BLUE}15`, padding: '2px 8px', borderRadius: 100 }}>【主要】平台訂單</span>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: DARK }}>等待配對中的學生</h3>
-                <p style={{ margin: '4px 0 12px', fontSize: 13, color: MUTED }}>由系統主動為您媒合適合的學員</p>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: DARK }}>查看平台訂單</h3>
+                <p style={{ margin: '4px 0 12px', fontSize: 13, color: MUTED }}>管理已預約、待付款與已確認的學生訂單</p>
                 <button style={{ 
                   width: '100%', padding: '10px', background: BLUE, color: WHITE, 
                   border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700 
                 }}>
-                  [ 查看配對 ]
+                  [ 查看訂單 ]
                 </button>
               </div>
 

@@ -12,7 +12,7 @@ const MUTED  = '#94A3B8';
 const DARK   = '#0F172A';
 const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Local fallback data used before API content is available ─────────────────
 const MOCK_PHILOSOPHIES = [
   { coach_name: '王牌教練', philosophy: '有教無類，穩定進步。' },
   { coach_name: '技術大師', philosophy: '細節決定成敗，重複造就卓越。' },
