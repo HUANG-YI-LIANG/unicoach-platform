@@ -3,18 +3,19 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Settings, Save, Clock, Info, 
-  ArrowLeft, Loader2, CheckCircle2 
+  ArrowLeft, Loader2, CheckCircle2, Percent
 } from 'lucide-react';
 
 const BLUE  = '#2563EB';
 const DARK  = '#0F172A';
-const MUTED = '#94A3B8';
+const MUTED = '#64748B';
 const WHITE = '#FFFFFF';
 const BG    = '#F8FAFC';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
-    no_show_threshold: '15'
+    no_show_threshold: '15',
+    commission_rate: '20',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,7 +31,12 @@ export default function AdminSettings() {
       const res = await fetch('/api/admin/settings');
       if (res.ok) {
         const data = await res.json();
-        if (data.settings) setSettings(data.settings);
+        if (data.settings) {
+          setSettings({
+            no_show_threshold: data.settings.no_show_threshold || '15',
+            commission_rate: data.settings.commission_rate || '20',
+          });
+        }
       } else if (res.status === 403) {
         router.push('/dashboard/admin');
       }
@@ -65,101 +71,137 @@ export default function AdminSettings() {
   };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0f] text-[#888899]">
-      <Loader2 className="animate-spin mb-4" size={40} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: BG, color: MUTED }}>
+      <Loader2 className="animate-spin" size={40} style={{ marginBottom: 16 }} />
       <p>正在載入全域設定...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] p-6 text-[#e8e8f0] font-sans">
-      <div className="max-w-2xl mx-auto">
+    <div style={{ minHeight: '100vh', background: BG, padding: 24, fontFamily: 'sans-serif' }}>
+      <div style={{ maxWidth: 800, margin: '0 auto' }}>
         
         {/* Header */}
-        <header className="flex items-center justify-between mb-10">
-          <div className="flex items-center gap-4">
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <button 
               onClick={() => router.push('/dashboard/admin')}
-              className="p-2 hover:bg-white/10 rounded-xl transition-colors"
+              style={{ padding: 8, background: WHITE, border: 'none', borderRadius: 12, cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={24} color={DARK} />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-white flex items-center gap-2">
-                <Settings className="text-blue-400" />
+              <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Settings color={BLUE} />
                 全域參數管理
               </h1>
-              <p className="text-sm text-[#888899]">調整平台運行規則與認定門檻</p>
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: MUTED }}>調整平台運行規則與認定門檻</p>
             </div>
           </div>
         </header>
 
         {/* Success/Error Message */}
         {message && (
-          <div className={`mb-6 p-4 rounded-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 ${
-            message.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'
-          }`}>
-            {message.type === 'success' ? <CheckCircle2 size={18} /> : <Info size={18} />}
-            <span className="text-sm font-bold">{message.text}</span>
+          <div style={{ 
+            marginBottom: 24, padding: 16, borderRadius: 16, display: 'flex', alignItems: 'center', gap: 12,
+            background: message.type === 'success' ? '#D1FAE5' : '#FEE2E2',
+            color: message.type === 'success' ? '#065F46' : '#991B1B',
+            fontWeight: 800
+          }}>
+            {message.type === 'success' ? <CheckCircle2 size={20} /> : <Info size={20} />}
+            <span>{message.text}</span>
           </div>
         )}
 
-        <div className="space-y-6">
+        <div style={{ display: 'grid', gap: 24 }}>
           
           {/* Setting: No-show Threshold */}
-          <div className="bg-[#111118] border border-[#2a2a35] rounded-3xl p-6 shadow-xl">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2 bg-blue-500/10 rounded-xl text-blue-400">
+          <div style={{ background: WHITE, border: '1px solid #E2E8F0', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ padding: 10, background: '#EFF6FF', borderRadius: 12, color: BLUE }}>
                 <Clock size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-white text-lg">曠課認定時間門檻</h3>
-                <p className="text-xs text-[#888899]">學員於開課後指定分鐘內未到，教練可標記為曠課</p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>曠課認定時間門檻</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>學員於開課後指定分鐘內未到，教練可標記為曠課</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex-1 relative">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
                 <input 
                   type="number"
                   value={settings.no_show_threshold}
                   onChange={(e) => setSettings({ ...settings, no_show_threshold: e.target.value })}
-                  className="w-full bg-[#0a0a0f] border border-[#2a2a35] rounded-xl px-4 py-3 text-lg font-black text-blue-400 focus:outline-none focus:border-blue-500/50 transition-colors"
+                  style={{ width: '100%', background: BG, border: '1px solid #CBD5E1', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-[#888899]">
+                <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 800, color: MUTED }}>
                   分鐘
                 </span>
               </div>
               <button 
                 onClick={() => handleSave('no_show_threshold', settings.no_show_threshold, '曠課認定時間門檻')}
                 disabled={saving}
-                className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20"
+                style={{ background: BLUE, color: WHITE, border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 儲存
               </button>
             </div>
 
-            <div className="mt-6 p-4 bg-white/5 rounded-2xl border border-white/5">
-              <div className="flex items-start gap-3">
-                <Info size={16} className="text-blue-400 mt-0.5" />
-                <p className="text-xs text-[#888899] leading-relaxed">
-                  此數值會直接影響教練與學員端顯示的「曠課提醒」文字。
-                  預設為 <span className="text-white font-bold">15 分鐘</span>。
-                </p>
-              </div>
+            <div style={{ marginTop: 20, padding: 16, background: '#F8FAFC', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <Info size={16} color={BLUE} style={{ flexShrink: 0, marginTop: 2 }} />
+              <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                此數值會直接影響教練與學員端顯示的「曠課提醒」文字。
+                預設為 <strong style={{ color: DARK }}>15 分鐘</strong>。
+              </p>
             </div>
           </div>
 
-          {/* Additional Settings */}
-          <div className="p-8 border-2 border-dashed border-[#2a2a35] rounded-3xl text-center">
-             <p className="text-sm text-[#888899] font-medium italic">
-               佣金與支付門檻目前由結算與教練設定流程管理；此頁僅保留全域營運門檻。
-             </p>
+          {/* Setting: Commission Rate */}
+          <div style={{ background: WHITE, border: '1px solid #E2E8F0', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ padding: 10, background: '#ECFDF5', borderRadius: 12, color: '#059669' }}>
+                <Percent size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>教練抽成管理</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>設定平台向教練收取的訂單抽成比例（%）</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+                <input 
+                  type="number"
+                  value={settings.commission_rate}
+                  onChange={(e) => setSettings({ ...settings, commission_rate: e.target.value })}
+                  style={{ width: '100%', background: BG, border: '1px solid #CBD5E1', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
+                />
+                <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 800, color: MUTED }}>
+                  %
+                </span>
+              </div>
+              <button 
+                onClick={() => handleSave('commission_rate', settings.commission_rate, '教練訂單抽成比例')}
+                disabled={saving}
+                style={{ background: '#059669', color: WHITE, border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                儲存比例
+              </button>
+            </div>
+
+            <div style={{ marginTop: 20, padding: 16, background: '#F8FAFC', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <Info size={16} color={'#059669'} style={{ flexShrink: 0, marginTop: 2 }} />
+              <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                學員付款後，系統在計算教練撥款時會自動扣除此比例的平台服務費。
+                預設為 <strong style={{ color: DARK }}>20%</strong>。
+              </p>
+            </div>
           </div>
 
         </div>
-
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 
 export default function VerificationAdmin() {
-  const [activeTab, setActiveTab] = useState('pending'); // 'pending' or 'coaches'
+  const [activeTab, setActiveTab] = useState('coaches'); // 'pending' or 'coaches'
   const [pendingFiles, setPendingFiles] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function VerificationAdmin() {
       if (!reason && action === 'reject') return;
     }
 
-    const actionText = { approve: '批准', reject: '拒絕', suspend: '停用' }[action];
+    const actionText = { approve: '批准', reject: '拒絕', suspend: '停用', delete_coach: '刪除' }[action];
     // if (!confirm(`確定要 ${actionText} 此${fileId ? '文件' : '教練'}嗎？`)) return;
 
     setProcessingId(fileId || coachUserId);
@@ -72,8 +72,8 @@ export default function VerificationAdmin() {
   };
 
   if (loading && pendingFiles.length === 0 && coaches.length === 0) return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-[#0a0a0f] text-[#888899]">
-      <Loader2 className="animate-spin mb-4" size={40} />
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0a0a0f', color: '#888899' }}>
+      <Loader2 className="animate-spin" size={40} style={{ marginBottom: 16 }} />
       <p>正在載入資料...</p>
     </div>
   );
@@ -94,16 +94,16 @@ export default function VerificationAdmin() {
         
         <div className="tab-control">
           <button 
-            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pending')}
-          >
-            待審核文件 ({pendingFiles.length})
-          </button>
-          <button 
             className={`tab-btn ${activeTab === 'coaches' ? 'active' : ''}`}
             onClick={() => setActiveTab('coaches')}
           >
-            所有教練管理
+            教練帳號審核與管理
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+            onClick={() => setActiveTab('pending')}
+          >
+            待審核補充文件 ({pendingFiles.length})
           </button>
         </div>
       </header>
@@ -190,18 +190,18 @@ export default function VerificationAdmin() {
                 {coaches.map(coach => (
                   <tr key={coach.id}>
                     <td>
-                      <div className="flex items-center gap-3">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {coach.user?.avatar_url ? (
-                          <img src={coach.user.avatar_url} className="w-10 h-10 rounded-full object-cover" />
+                          <img src={coach.user.avatar_url} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold">
+                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold' }}>
                             {coach.user?.name?.charAt(0)}
                           </div>
                         )}
-                        <span className="font-bold">{coach.user?.name}</span>
+                        <span style={{ fontWeight: 'bold' }}>{coach.user?.name}</span>
                       </div>
                     </td>
-                    <td><span className="text-xs text-[#888899]">{coach.user?.email}</span></td>
+                    <td><span style={{ fontSize: '12px', color: '#888899' }}>{coach.user?.email}</span></td>
                     <td>
                       <span className={`status-badge ${coach.approval_status}`}>
                         {coach.approval_status === 'approved' ? '已核准' : 
@@ -210,15 +210,25 @@ export default function VerificationAdmin() {
                       </span>
                     </td>
                     <td>
-                      <div className="flex gap-2">
+                      <div style={{ display: 'flex', gap: '8px' }}>
                         {coach.approval_status !== 'approved' && (
-                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} className="text-xs text-green-400 hover:underline">核准</button>
+                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} style={{ fontSize: '12px', color: '#4ade80', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>核准</button>
                         )}
                         {coach.approval_status !== 'suspended' ? (
-                          <button onClick={() => handleReview(null, coach.user_id, 'suspend')} className="text-xs text-red-500 hover:underline">停用</button>
+                          <button onClick={() => handleReview(null, coach.user_id, 'suspend')} style={{ fontSize: '12px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>停用</button>
                         ) : (
-                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} className="text-xs text-blue-400 hover:underline">恢復權限</button>
+                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} style={{ fontSize: '12px', color: '#60a5fa', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>恢復權限</button>
                         )}
+                        <button 
+                          onClick={() => {
+                            if(window.confirm('確定要刪除這位教練的資格嗎？他們將會被降級為一般學員。')) {
+                              handleReview(null, coach.user_id, 'delete_coach');
+                            }
+                          }} 
+                          style={{ fontSize: '12px', color: '#888899', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
+                        >
+                          刪除
+                        </button>
                       </div>
                     </td>
                   </tr>

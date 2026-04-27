@@ -2,9 +2,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { 
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet
+import {
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt
 } from 'lucide-react';
+
+const BLUE = '#2563EB';
+const DARK = '#0F172A';
+const MUTED = '#64748B';
+const BG = '#F8FAFC';
+const WHITE = '#FFFFFF';
 
 export default function AdminDashboard() {
   const [profile, setProfile] = useState(null);
@@ -27,81 +33,144 @@ export default function AdminDashboard() {
     });
   }, [router]);
 
-  // Local logout removed
-
-  if (loading) return <div className="text-center p-10">載入中...</div>;
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, color: MUTED }}>載入中...</div>;
 
   return (
-      <div className="p-4 space-y-4 -mt-4 relative z-10">
-        {/* -- Admin Management Center -- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div 
-            onClick={() => router.push('/admin/verification')}
-            className="bg-white p-6 rounded-2xl shadow-md border border-blue-100 flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-xl text-blue-600">
-                <ShieldCheck size={28} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">教練驗證中心</h3>
-                <p className="text-sm text-gray-500">審核證照與學生證</p>
-              </div>
+    <div style={{ padding: '16px', marginTop: '-16px', position: 'relative', zIndex: 10 }}>
+      {/* -- Admin Management Center -- */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gap: '16px',
+        marginBottom: '24px'
+      }}>
+        
+        {/* Verification */}
+        <div 
+          onClick={() => router.push('/admin/verification')}
+          style={cardStyle('#DBEAFE', '#2563EB')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#DBEAFE', padding: '12px', borderRadius: '12px', color: '#2563EB' }}>
+              <ShieldCheck size={28} />
             </div>
-            <ArrowRight className="text-gray-300" />
-          </div>
-
-          <div 
-            onClick={() => router.push('/admin/settings')}
-            className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-gray-100 p-3 rounded-xl text-gray-600">
-                <Settings size={28} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">全域參數設定</h3>
-                <p className="text-sm text-gray-500">調整曠課、抽成等參數</p>
-              </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>教練驗證中心</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>審核證照與學生證</p>
             </div>
-            <ArrowRight className="text-gray-300" />
           </div>
-
-          <div 
-            onClick={() => router.push('/admin/settlements')}
-            className="bg-white p-6 rounded-2xl shadow-md border border-emerald-100 flex items-center justify-between cursor-pointer hover:bg-emerald-50 transition-colors"
-          >
-            <div className="flex items-center gap-4">
-              <div className="bg-emerald-100 p-3 rounded-xl text-emerald-600">
-                <Wallet size={28} />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">結算管理</h3>
-                <p className="text-sm text-gray-500">產生與確認教練撥款</p>
-              </div>
-            </div>
-            <ArrowRight className="text-gray-300" />
-          </div>
+          <ArrowRight color="#CBD5E1" />
         </div>
 
-        <h2 className="text-xl font-bold px-2 text-gray-800 flex items-center gap-2">
-          <Activity size={20} className="text-blue-500" />
-          全站交易紀錄
-        </h2>
-        {bookings.length === 0 ? (
-          <div className="bg-white p-8 text-center rounded-2xl shadow-sm text-gray-400">系統尚無訂單</div>
-        ) : (
-          bookings.map(b => (
-            <div key={b.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-1">
-               <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-sm">#{b.id.substring(0,8)}</span>
-                <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded font-bold">{b.status}</span>
-               </div>
-               <div className="text-xs text-gray-500">從 {b.user_id.substring(0,6)} 到教練 {b.coach_id.substring(0,6)}</div>
-               <div className="text-xs font-bold mt-1 text-green-600">總付: ${b.final_amount || b.original_amount} / 抽成參數: {b.commission_rate}%</div>
+        {/* Settings */}
+        <div 
+          onClick={() => router.push('/admin/settings')}
+          style={cardStyle('#F1F5F9', '#475569')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#F1F5F9', padding: '12px', borderRadius: '12px', color: '#475569' }}>
+              <Settings size={28} />
             </div>
-          ))
-        )}
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>全域參數設定</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>調整曠課、抽成等參數</p>
+            </div>
+          </div>
+          <ArrowRight color="#CBD5E1" />
+        </div>
+
+        {/* Settlements */}
+        <div 
+          onClick={() => router.push('/admin/settlements')}
+          style={cardStyle('#D1FAE5', '#059669')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#D1FAE5', padding: '12px', borderRadius: '12px', color: '#059669' }}>
+              <Wallet size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>結算管理</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>產生與確認教練撥款</p>
+            </div>
+          </div>
+          <ArrowRight color="#CBD5E1" />
+        </div>
+
+        {/* Payments */}
+        <div
+          onClick={() => router.push('/admin/payments')}
+          style={cardStyle('#FEF3C7', '#D97706')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#FEF3C7', padding: '12px', borderRadius: '12px', color: '#D97706' }}>
+              <Receipt size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>訂單付款審核</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>管理與修改平台收款帳號</p>
+            </div>
+          </div>
+          <ArrowRight color="#CBD5E1" />
+        </div>
+
+        {/* Promotions and Discounts */}
+        <div
+          onClick={() => router.push('/admin/promotions')}
+          style={cardStyle('#FCE7F3', '#DB2777')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#FCE7F3', padding: '12px', borderRadius: '12px', color: '#DB2777' }}>
+              <Activity size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>抽成與折扣</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>個別教練抽成與全站通知</p>
+            </div>
+          </div>
+          <ArrowRight color="#CBD5E1" />
+        </div>
       </div>
-    );
+
+      <h2 style={{ fontSize: '20px', fontWeight: 800, padding: '0 8px', color: DARK, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+        <Activity size={20} color={BLUE} />
+        全站交易紀錄
+      </h2>
+      
+      {bookings.length === 0 ? (
+        <div style={{ background: WHITE, padding: '32px', textAlign: 'center', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', color: MUTED }}>
+          系統尚無訂單
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gap: '12px' }}>
+          {bookings.map(b => (
+            <div key={b.id} style={{ background: WHITE, padding: '16px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontWeight: 800, fontSize: '14px', color: DARK }}>#{b.id.substring(0,8)}</span>
+                <span style={{ background: '#F1F5F9', color: '#475569', fontSize: '12px', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>{b.status}</span>
+               </div>
+               <div style={{ fontSize: '12px', color: MUTED }}>從 {b.user_id.substring(0,6)} 到教練 {b.coach_id.substring(0,6)}</div>
+               <div style={{ fontSize: '12px', fontWeight: 800, marginTop: '4px', color: '#059669' }}>
+                 總付: NT${(b.final_price ?? b.base_price ?? 0).toLocaleString()} / 平台費: NT${(b.platform_fee ?? 0).toLocaleString()}
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function cardStyle(borderColor, hoverColor) {
+  return {
+    background: WHITE,
+    padding: '24px',
+    borderRadius: '16px',
+    boxShadow: '0 4px 12px rgba(15,23,42,0.05)',
+    border: `1px solid ${borderColor}`,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  };
 }

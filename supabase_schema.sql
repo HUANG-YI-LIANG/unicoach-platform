@@ -17,6 +17,9 @@ CREATE TABLE users (
   language TEXT DEFAULT '中文',
   learning_goals TEXT,
   avatar_url TEXT DEFAULT NULL,
+  promotion_code TEXT UNIQUE,
+  referred_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  wallet_balance INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -55,6 +58,31 @@ CREATE TABLE coach_plans (
 );
 
 CREATE INDEX idx_coach_plans_coach_id ON coach_plans(coach_id);
+
+CREATE TABLE wallet_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount INTEGER NOT NULL,
+  transaction_type TEXT NOT NULL,
+  reference_id UUID,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions(user_id);
+
+CREATE TABLE user_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  discount_code TEXT,
+  discount_percent INTEGER,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_user_notifications_user_id ON user_notifications(user_id);
 
 -- 4. Create Coach Availability
 CREATE TABLE coach_availability_rules (
@@ -302,3 +330,4 @@ CREATE INDEX idx_user_videos_user_id ON user_videos(user_id);
 
 -- Insert Default Demo Accounts
 -- Normally passwords should be encrypted. For this migration, please create them from the frontend login system or insert mock encrypted passwords manually.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS frequent_addresses TEXT;

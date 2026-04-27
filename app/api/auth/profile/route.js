@@ -89,6 +89,10 @@ export async function POST(request) {
       if (body.languages !== undefined) coachUpdates.languages = body.languages;
       if (body.experience !== undefined) coachUpdates.experience = body.experience?.trim();
       if (body.philosophy !== undefined) coachUpdates.philosophy = body.philosophy?.trim();
+      if (body.teaching_features !== undefined) coachUpdates.teaching_features = body.teaching_features?.trim();
+      if (body.communication_style !== undefined) coachUpdates.communication_style = body.communication_style?.trim();
+      if (body.policy_rules !== undefined) coachUpdates.policy_rules = body.policy_rules?.trim();
+      if (body.trust_badges !== undefined) coachUpdates.trust_badges = body.trust_badges;
       if (body.base_price !== undefined) coachUpdates.base_price = parseInt(body.base_price) || 1000;
       if (body.available_times !== undefined) coachUpdates.available_times = body.available_times;
 
@@ -106,6 +110,6 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error('Profile update error:', err);
-    return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 });
+    return NextResponse.json({ error: err.message || '伺服器錯誤' }, { status: 500 });
   }
 }

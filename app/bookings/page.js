@@ -2,13 +2,19 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { ShoppingBag, Calendar, FileText, Loader2 } from 'lucide-react';
+import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet } from 'lucide-react';
 
 const BLUE  = '#2563EB';
 const DARK  = '#0F172A';
 const MUTED = '#94A3B8';
 const BG    = '#F8FAFC';
 const WHITE = '#FFFFFF';
+const PAYMENT_SETTINGS_FALLBACK = {
+  bank_name: '',
+  bank_code: '',
+  bank_account_name: '',
+  bank_account_number: '',
+};
 
 const STATUS_MAP = {
   'pending_payment':    '待付款',
@@ -40,12 +46,21 @@ export default function BookingsPage() {
   const [reviewingBooking, setReviewingBooking] = useState(null);
   const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState(PAYMENT_SETTINGS_FALLBACK);
+  const [paymentModalBooking, setPaymentModalBooking] = useState(null);
+  const [paymentReceiptFile, setPaymentReceiptFile] = useState(null);
+  const [paymentReceiptPreview, setPaymentReceiptPreview] = useState('');
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
+  const [reportingPayment, setReportingPayment] = useState(false);
   const router = useRouter();
   const isCoach = user?.role === 'coach' || user?.role === 'admin';
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
-    if (user) fetchBookings();
+    if (user) {
+      fetchBookings();
+      fetchPaymentSettings();
+    }
   }, [user, authLoading]);
 
   const fetchBookings = async () => {
@@ -59,6 +74,22 @@ export default function BookingsPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.settings) {
+        setPaymentSettings((prev) => ({
+          ...prev,
+          ...data.settings,
+        }));
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -127,6 +158,82 @@ export default function BookingsPage() {
     }
   };
 
+  const resetPaymentModal = () => {
+    if (paymentReceiptPreview) {
+      URL.revokeObjectURL(paymentReceiptPreview);
+    }
+    setPaymentModalBooking(null);
+    setPaymentReceiptFile(null);
+    setPaymentReceiptPreview('');
+    setUploadingReceipt(false);
+    setReportingPayment(false);
+  };
+
+  const openPaymentModal = (booking) => {
+    if (paymentReceiptPreview) {
+      URL.revokeObjectURL(paymentReceiptPreview);
+    }
+    setPaymentModalBooking(booking);
+    setPaymentReceiptFile(null);
+    setPaymentReceiptPreview('');
+  };
+
+  const handleReceiptChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (paymentReceiptPreview) {
+      URL.revokeObjectURL(paymentReceiptPreview);
+    }
+    setPaymentReceiptFile(file);
+    setPaymentReceiptPreview(URL.createObjectURL(file));
+  };
+
+  const handleReportPayment = async () => {
+    if (!paymentModalBooking) return;
+    if (!paymentReceiptFile) {
+      alert('請先選擇轉帳截圖');
+      return;
+    }
+
+    setUploadingReceipt(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', paymentReceiptFile);
+      formData.append('fileType', 'payment_receipt');
+
+      const uploadRes = await fetch('/api/files/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
+        throw new Error(uploadData.error || '截圖上傳失敗');
+      }
+
+      setUploadingReceipt(false);
+      setReportingPayment(true);
+
+      const reportRes = await fetch(`/api/bookings/${paymentModalBooking.id}/report-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrl: uploadData.url }),
+      });
+      const reportData = await reportRes.json();
+      if (!reportRes.ok) {
+        throw new Error(reportData.error || '付款回報失敗');
+      }
+
+      await fetchBookings();
+      resetPaymentModal();
+      alert('已收到您的付款資訊，正在確認中（約1-10分鐘）');
+    } catch (err) {
+      console.error(err);
+      alert(err.message || '付款回報失敗');
+      setUploadingReceipt(false);
+      setReportingPayment(false);
+    }
+  };
+
   const handleAdjustPrice = async (bookingId) => {
     const val = parseInt(adjustmentValue);
     if (isNaN(val) || val < -200 || val > 200) {
@@ -162,6 +269,13 @@ export default function BookingsPage() {
       </div>
     );
   }
+
+  const hasPaymentAccountInfo = Boolean(
+    paymentSettings.bank_name ||
+    paymentSettings.bank_code ||
+    paymentSettings.bank_account_name ||
+    paymentSettings.bank_account_number
+  );
 
   return (
     <div style={{ padding: '20px 16px', background: BG, minHeight: '100vh', paddingBottom: 100 }}>
@@ -211,6 +325,7 @@ export default function BookingsPage() {
             const canStartReport = isCoach && (b.status === 'scheduled' || b.status === 'in_progress');
             const isCompleted = b.status === 'completed';
             const isPendingPayment = b.status === 'pending_payment';
+            const hasReceipt = Boolean(b.payment_reference);
             const paymentExpiresAt = b.payment_expires_at ? new Date(b.payment_expires_at) : null;
             return (
               <div key={b.id} style={{
@@ -279,12 +394,51 @@ export default function BookingsPage() {
                   }}>
                     {isCoach
                       ? '此訂單尚未付款確認，請勿視為正式排程。'
-                      : '此時段已暫時保留，付款確認後才會正式排程。'}
+                      : hasReceipt
+                        ? '已收到您的付款資訊，正在確認中（約1-10分鐘）。'
+                        : '為確保預約成功，請依照系統金額轉帳。轉帳後上傳截圖即可完成預約。'}
                     {paymentExpiresAt && (
                       <div style={{ fontWeight: 600, marginTop: 4 }}>
                         保留至：{paymentExpiresAt.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' })}
                       </div>
                     )}
+                    {!isCoach && hasReceipt && (
+                      <a
+                        href={b.payment_reference}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#92400E', fontWeight: 800, textDecoration: 'none' }}
+                      >
+                        <ExternalLink size={14} />
+                        查看已上傳截圖
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {!isCoach && isPendingPayment && (
+                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 12 }}>
+                    <button
+                      onClick={() => openPaymentModal(b)}
+                      style={{
+                        flex: 1,
+                        padding: '11px 14px',
+                        borderRadius: 12,
+                        border: 'none',
+                        background: BLUE,
+                        color: WHITE,
+                        fontWeight: 800,
+                        fontSize: 13,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                      }}
+                    >
+                      <Upload size={15} />
+                      {hasReceipt ? '重新上傳轉帳截圖' : '上傳轉帳截圖'}
+                    </button>
                   </div>
                 )}
 
@@ -392,6 +546,22 @@ export default function BookingsPage() {
                     )}
                   </div>
                 )}
+
+                {!isCoach && b.status === 'scheduled' && (
+                  <div style={{
+                    borderTop: '1px solid #F1F5F9',
+                    paddingTop: 12,
+                    marginTop: 12,
+                    fontSize: 12,
+                    fontWeight: 800,
+                    color: '#047857',
+                    background: '#ECFDF5',
+                    borderRadius: 14,
+                    padding: 12,
+                  }}>
+                    預約成功，教練已收到您的訂單。
+                  </div>
+                )}
               </div>
             );
           })}
@@ -458,6 +628,105 @@ export default function BookingsPage() {
                 }}
               >
                 {submittingReview ? <Loader2 className="animate-spin" size={18} /> : '提交評價'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {paymentModalBooking && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 120, padding: 16,
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 480, background: WHITE, borderRadius: 24, padding: 24,
+            boxShadow: '0 20px 50px rgba(15,23,42,0.2)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
+              <div>
+                <h2 style={{ margin: 0, color: DARK, fontWeight: 900, fontSize: 20, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Wallet size={18} color={BLUE} />
+                  回報匯款截圖
+                </h2>
+                <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 13, lineHeight: 1.6 }}>
+                  請依照下列收款資訊完成轉帳，再上傳截圖。送出後管理員會進行人工對帳。
+                </p>
+              </div>
+              <button
+                onClick={resetPaymentModal}
+                style={{ border: 'none', background: '#F1F5F9', color: MUTED, width: 36, height: 36, borderRadius: 12, cursor: 'pointer', fontWeight: 900 }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div style={{ background: '#F8FAFC', borderRadius: 18, padding: 16, marginBottom: 16, display: 'grid', gap: 10 }}>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>平台收款帳號</div>
+              <div style={{ display: 'grid', gap: 8, color: DARK, fontSize: 14, fontWeight: 700 }}>
+                <div>銀行代碼：{paymentSettings.bank_code || '尚未設定'}</div>
+                <div>帳號：{paymentSettings.bank_account_number || '尚未設定'}</div>
+              </div>
+              {!hasPaymentAccountInfo && (
+                <div style={{ fontSize: 12, color: '#B45309', fontWeight: 700, lineHeight: 1.6 }}>
+                  管理員尚未設定正式收款帳號。請先補齊後台付款設定，再請學員進行匯款。
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ color: DARK, fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
+                訂單金額：NT${paymentModalBooking.final_price?.toLocaleString() ?? '--'}
+              </div>
+              <label style={{
+                display: 'block', border: '1px dashed #93C5FD', borderRadius: 18, padding: 18,
+                background: '#EFF6FF', cursor: 'pointer', textAlign: 'center',
+              }}>
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReceiptChange} />
+                <div style={{ color: BLUE, fontWeight: 800, fontSize: 14 }}>選擇轉帳截圖</div>
+                <div style={{ color: MUTED, fontSize: 12, marginTop: 6 }}>支援 JPG / PNG / WebP，檔案限制 5MB</div>
+              </label>
+            </div>
+
+            {paymentReceiptPreview && (
+              <div style={{ marginBottom: 18 }}>
+                <img
+                  src={paymentReceiptPreview}
+                  alt="付款截圖預覽"
+                  style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 18, border: '1px solid #E2E8F0' }}
+                />
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button
+                onClick={resetPaymentModal}
+                style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#F1F5F9', color: MUTED, fontWeight: 800, cursor: 'pointer' }}
+              >
+                取消
+              </button>
+              <button
+                onClick={handleReportPayment}
+                disabled={!hasPaymentAccountInfo || uploadingReceipt || reportingPayment}
+                style={{
+                  flex: 2,
+                  padding: 14,
+                  borderRadius: 14,
+                  border: 'none',
+                  background: BLUE,
+                  color: WHITE,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  opacity: !hasPaymentAccountInfo || uploadingReceipt || reportingPayment ? 0.65 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                }}
+              >
+                {(uploadingReceipt || reportingPayment) ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                {uploadingReceipt ? '上傳中...' : reportingPayment ? '送出中...' : '送出付款資訊'}
               </button>
             </div>
           </div>

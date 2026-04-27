@@ -5,8 +5,8 @@ import { getAdminSupabase } from '@/lib/supabase';
 
 export async function POST(request) {
   try {
-    // 1. 權限檢查：只有教練與管理員能上傳驗證文件
-    const auth = await requireAuth(['coach', 'admin']);
+    // 1. 權限檢查：允許一般使用者、教練與管理員上傳頭像與文件
+    const auth = await requireAuth(['user', 'coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const formData = await request.formData();
@@ -47,7 +47,12 @@ export async function POST(request) {
       }, { status: 500 });
     }
 
-    const bucketName = fileType === 'avatar' ? 'avatars' : 'verifications';
+    const bucketName =
+      fileType === 'avatar'
+        ? 'avatars'
+        : fileType === 'payment_receipt'
+          ? 'payment_receipts'
+          : 'verifications';
 
     // 併行上傳所有尺寸
     try {
@@ -110,6 +115,26 @@ export async function POST(request) {
         success: true, 
         avatar_url: publicUrl 
       }, { status: 200 });
+    }
+
+    if (fileType === 'payment_receipt') {
+      try {
+        await adminSupabase.from('audit_logs').insert([{
+          action: 'PAYMENT_RECEIPT_UPLOAD',
+          actor_id: auth.user.id,
+          actor_role: auth.user.role,
+          target_id: auth.user.id,
+          details: JSON.stringify({ filename: file.name, url: publicUrl }),
+        }]);
+      } catch (auditErr) {
+        console.warn('[PAYMENT RECEIPT AUDIT LOG FAIL]', auditErr.message);
+      }
+
+      return NextResponse.json({
+        success: true,
+        url: publicUrl,
+        thumbnail: thumbnailLink,
+      }, { status: 201 });
     }
 
     // 6. 審核文件流程：資料庫更新 (或新增)

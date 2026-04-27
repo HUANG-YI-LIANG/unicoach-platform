@@ -57,14 +57,6 @@ export default function Login() {
         </p>
       </div>
 
-      <div className="card" style={{ marginTop: '2rem', background: '#f8fafc' }}>
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          <b>測試帳號提示：</b><br/>
-          Admin: admin@test.com (123456)<br/>
-          Coach: coach@test.com (123456)<br/>
-          User: user@test.com (123456)
-        </p>
-      </div>
     </div>
   );
 }

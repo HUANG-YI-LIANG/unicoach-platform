@@ -29,7 +29,6 @@ function matchesRegion(coach, region) {
 
   const text = [
     coach.location,
-    coach.service_areas,
     coach.university,
   ]
     .filter(Boolean)
@@ -37,6 +36,23 @@ function matchesRegion(coach, region) {
     .toLowerCase();
 
   return text.includes(region.toLowerCase());
+}
+
+function matchesSport(coach, sport) {
+  if (!sport) {
+    return true;
+  }
+
+  const text = [
+    coach.service_areas,
+    coach.philosophy,
+    coach.experience
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  return text.includes(sport.toLowerCase());
 }
 
 function matchesPriceRange(coach, minPrice, maxPrice) {
@@ -124,6 +140,7 @@ export async function GET(request) {
     const selectedDate = searchParams.get('date') || '';
     const selectedTime = searchParams.get('time') || '';
     const region = searchParams.get('region') || '';
+    const sport = searchParams.get('sport') || '';
     const minPriceValue = Number(searchParams.get('minPrice'));
     const maxPriceValue = Number(searchParams.get('maxPrice'));
     const levelFilter = searchParams.get('level') || '';
@@ -258,6 +275,10 @@ export async function GET(request) {
       if (!matchesRegion(coach, region)) {
         return false;
       }
+      
+      if (!matchesSport(coach, sport)) {
+        return false;
+      }
 
       if (!matchesPriceRange(coach, minPrice, maxPrice)) {
         return false;
@@ -306,7 +327,18 @@ export async function GET(request) {
       return (left.base_price || 0) - (right.base_price || 0);
     });
 
-    return NextResponse.json({ coaches: filtered });
+    const allSportsSet = new Set();
+    formatted.forEach((coach) => {
+      if (coach.service_areas) {
+        const parts = coach.service_areas.split(/[、,，\s]+/);
+        parts.forEach((p) => {
+          if (p.trim()) allSportsSet.add(p.trim());
+        });
+      }
+    });
+    const allSports = Array.from(allSportsSet).sort();
+
+    return NextResponse.json({ coaches: filtered, allSports });
   } catch (error) {
     console.error('Coaches fetch error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

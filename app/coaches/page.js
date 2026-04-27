@@ -14,9 +14,9 @@ const LEVEL_OPTIONS = [
 ];
 const PRICE_OPTIONS = [
   { value: '', label: '不限價格' },
-  { value: '1000', label: 'NT$1,000 以上' },
-  { value: '1500', label: 'NT$1,500 以上' },
-  { value: '2000', label: 'NT$2,000 以上' },
+  { value: '1000', label: '1000 以下' },
+  { value: '1500', label: '1500 以下' },
+  { value: '2000', label: '2000 以下' },
 ];
 const TIME_OPTIONS = Array.from({ length: 28 }, (_, index) => {
   const totalMinutes = (8 * 60) + (index * 30);
@@ -74,10 +74,11 @@ function formatNextAvailable(value) {
 
 function buildFiltersFromSearchParams(searchParams) {
   return {
+    sport: searchParams.get('sport') || '',
     date: searchParams.get('date') || '',
     time: searchParams.get('time') || '',
     region: searchParams.get('region') || '',
-    minPrice: searchParams.get('minPrice') || '',
+    maxPrice: searchParams.get('maxPrice') || '',
     level: searchParams.get('level') || '',
   };
 }
@@ -89,21 +90,25 @@ export default function CoachesPage() {
   const { user, loading: authLoading } = useAuth();
 
   const [filters, setFilters] = useState({
+    sport: '',
     date: '',
     time: '',
     region: '',
-    minPrice: '',
+    maxPrice: '',
     level: '',
   });
   const [coaches, setCoaches] = useState([]);
+  const [allSports, setAllSports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [mobileSections, setMobileSections] = useState({
-    availability: true,
+    sport: false,
+    availability: false,
     region: false,
     price: false,
     level: false,
   });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const upcomingDates = useMemo(() => {
     const today = getTodayDateString();
@@ -135,10 +140,11 @@ export default function CoachesPage() {
       if (stored) {
         const parsed = JSON.parse(stored);
         setFilters({
+          sport: parsed.sport || '',
           date: parsed.date || '',
           time: parsed.time || '',
           region: parsed.region || '',
-          minPrice: parsed.minPrice || '',
+          maxPrice: parsed.maxPrice || '',
           level: parsed.level || '',
         });
       }
@@ -191,6 +197,9 @@ export default function CoachesPage() {
           throw new Error(data.error || 'Failed to load coaches');
         }
         setCoaches(data.coaches || []);
+        if (data.allSports) {
+          setAllSports(data.allSports);
+        }
       })
       .catch((error) => {
         console.error('Fetch coaches error:', error);
@@ -253,10 +262,11 @@ export default function CoachesPage() {
 
   function clearAllFilters() {
     setFilters({
+      sport: '',
       date: '',
       time: '',
       region: '',
-      minPrice: '',
+      maxPrice: '',
       level: '',
     });
   }
@@ -638,46 +648,38 @@ export default function CoachesPage() {
 
       <div className="coach-shell">
         
-        {/* AI Matchmaker CTA */}
-        <div style={{
-          background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-          borderRadius: 24, padding: '24px 20px', marginBottom: 24,
-          color: '#ffffff', display: 'flex', flexDirection: 'column', gap: 12,
-          boxShadow: '0 12px 30px rgba(124, 58, 237, 0.25)', position: 'relative', overflow: 'hidden'
-        }}>
-          <div style={{ position: 'relative', zIndex: 10 }}>
-            <h2 style={{ margin: '0 0 6px', fontSize: 20, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
-              ✨ 不知道怎麼選？
-            </h2>
-            <p style={{ margin: '0 0 16px', fontSize: 14, opacity: 0.9, lineHeight: 1.5 }}>
-              讓 AI 教練顧問幫你找！只要用一句話描述你想學什麼，我們為你精準配對最適合的教練。
-            </p>
-            <button 
-              onClick={() => router.push('/match')}
-              style={{
-                background: '#ffffff', color: '#6D28D9', border: 'none', borderRadius: 12,
-                padding: '12px 20px', fontSize: 14, fontWeight: 900, cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', gap: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-              }}
-            >
-              🚀 開始 AI 配對
-            </button>
-          </div>
-          <div style={{ position: 'absolute', right: -20, bottom: -40, fontSize: 120, opacity: 0.1, zIndex: 1 }}>
-            🤖
-          </div>
-        </div>
-
         <section className="hero">
           <div className="eyebrow">
             <CalendarDays size={14} />
-            時間匹配優先
+            尋找理想教練
           </div>
-          <h1>先看時間，再決定教練。</h1>
-          <p>這一版找教練流程把「可預約時段」拉到最前面，先縮小真正能約的教練，再看地區、價格和等級。</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+            <div style={{ flex: '1 1 300px' }}>
+              <h1 style={{ margin: '0 0 12px', fontSize: '28px' }}>探索專屬您的教練</h1>
+              <p style={{ margin: 0, color: '#64748b', fontSize: '16px', lineHeight: 1.5 }}>
+                預設顯示所有優質教練，您也可以透過點擊右側按鈕展開篩選，依據時段、地區與價格快速縮小範圍。
+              </p>
+            </div>
+            <button
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px',
+                background: isFilterOpen ? '#EFF6FF' : '#2563EB',
+                color: isFilterOpen ? '#2563EB' : '#FFFFFF',
+                border: 'none', borderRadius: 24, fontSize: 16, fontWeight: 800,
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                boxShadow: isFilterOpen ? 'none' : '0 4px 12px rgba(37,99,235,0.3)',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              <SlidersHorizontal size={18} />
+              {isFilterOpen ? '收起篩選' : '篩選教練'}
+            </button>
+          </div>
         </section>
 
-        <section className="filter-panel">
+        {isFilterOpen && (
+          <section className="filter-panel" style={{ marginTop: 24, animation: 'fadeIn 0.3s ease-out' }}>
           <div className="filter-header">
             <div className="filter-title">
               <SlidersHorizontal size={16} />
@@ -690,6 +692,33 @@ export default function CoachesPage() {
           </div>
 
           <div className="filters-grid">
+            <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`}>
+              <div className="filter-group-title">
+                <span>運動項目</span>
+                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('sport')}>
+                  {mobileSections.sport ? '收合' : '展開'}
+                </button>
+              </div>
+              <div className="mobile-content">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {allSports.map((sport) => (
+                    <button
+                      key={sport}
+                      type="button"
+                      className={`time-btn ${filters.sport === sport ? 'active' : ''}`}
+                      onClick={() => updateFilter('sport', filters.sport === sport ? '' : sport)}
+                      style={{ padding: '6px 12px', width: 'auto', borderRadius: '16px' }}
+                    >
+                      {sport}
+                    </button>
+                  ))}
+                  {allSports.length === 0 && (
+                    <div style={{ fontSize: 13, color: '#94a3b8' }}>目前沒有可用運動項目</div>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className={`filter-group ${mobileSections.availability ? '' : 'mobile-collapsed'}`}>
               <div className="filter-group-title">
                 <span>可預約時段</span>
@@ -712,28 +741,36 @@ export default function CoachesPage() {
                   ))}
                 </div>
                 <div style={{ height: 12 }} />
-                <div className="time-grid">
-                  {TIME_OPTIONS.map((timeValue) => {
-                    const disabled = !filters.date || !availableTimeSet.has(timeValue);
-                    return (
-                      <button
-                        key={timeValue}
-                        type="button"
-                        className={`time-btn ${filters.time === timeValue ? 'active' : ''} ${disabled || !filters.date ? 'disabled' : ''}`}
-                        onClick={() => !disabled && filters.date && handleTimeSelect(timeValue)}
-                        data-status={disabled ? (filters.date ? '不可約' : '先選日期') : ''}
-                      >
-                        {timeValue}
-                      </button>
-                    );
-                  })}
-                </div>
+                {!filters.date ? (
+                  <div style={{ color: '#64748b', fontSize: 13, padding: '12px', background: '#f8fafc', borderRadius: 12, textAlign: 'center' }}>
+                    請先選擇上方日期，以查看可預約的時間。
+                  </div>
+                ) : (
+                  <div className="time-grid">
+                    {TIME_OPTIONS.filter((timeValue) => availableTimeSet.has(timeValue)).length > 0 ? (
+                      TIME_OPTIONS.filter((timeValue) => availableTimeSet.has(timeValue)).map((timeValue) => (
+                        <button
+                          key={timeValue}
+                          type="button"
+                          className={`time-btn ${filters.time === timeValue ? 'active' : ''}`}
+                          onClick={() => handleTimeSelect(timeValue)}
+                        >
+                          {timeValue}
+                        </button>
+                      ))
+                    ) : (
+                      <div style={{ color: '#64748b', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
+                        該日期目前沒有可預約的時段。
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
             <div className={`filter-group ${mobileSections.region ? '' : 'mobile-collapsed'}`}>
               <div className="filter-group-title">
-                <span>地區</span>
+                <span>想上課的地區</span>
                 <button type="button" className="section-toggle" onClick={() => toggleMobileSection('region')}>
                   {mobileSections.region ? '收合' : '展開'}
                 </button>
@@ -756,7 +793,7 @@ export default function CoachesPage() {
                 </button>
               </div>
               <div className="mobile-content">
-                <select className="select" value={filters.minPrice} onChange={(event) => updateFilter('minPrice', event.target.value)}>
+                <select className="select" value={filters.maxPrice} onChange={(event) => updateFilter('maxPrice', event.target.value)}>
                   {PRICE_OPTIONS.map((option) => (
                     <option key={option.value || 'all'} value={option.value}>
                       {option.label}
@@ -785,6 +822,7 @@ export default function CoachesPage() {
             </div>
           </div>
         </section>
+        )}
 
         <div className="results-bar">
           <div>共找到 {coaches.length} 位教練</div>
@@ -871,10 +909,16 @@ export default function CoachesPage() {
                   </div>
 
                   <div className="card-actions">
-                    <button type="button" className="ghost-btn" onClick={() => router.push(`/coaches/${coach.id}`)}>
+                    <button type="button" className="ghost-btn" onClick={() => {
+                      const params = new URLSearchParams(filters);
+                      router.push(`/coaches/${coach.id}?${params.toString()}`);
+                    }}>
                       查看時段
                     </button>
-                    <button type="button" className="primary-btn" onClick={() => router.push(`/coaches/${coach.id}`)}>
+                    <button type="button" className="primary-btn" onClick={() => {
+                      const params = new URLSearchParams(filters);
+                      router.push(`/coaches/${coach.id}?${params.toString()}`);
+                    }}>
                       查看教練
                     </button>
                   </div>

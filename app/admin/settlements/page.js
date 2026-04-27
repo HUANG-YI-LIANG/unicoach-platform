@@ -94,12 +94,12 @@ export default function AdminSettlementsPage() {
     <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: 24 }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <button onClick={() => router.push('/dashboard/admin')} style={linkButtonStyle}>← 回管理後台</button>
-        <header style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-end', marginBottom: 22 }}>
+        <header style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 22 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, color: '#0F172A', fontWeight: 900 }}>結算管理</h1>
+            <h1 style={{ margin: 0, fontSize: 28, color: '#0F172A', fontWeight: 900, whiteSpace: 'nowrap' }}>結算管理</h1>
             <p style={{ margin: '8px 0 0', color: '#64748B', fontSize: 14 }}>依月份產生教練撥款批次，避免重複納入已結算訂單。</p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={inputStyle} />
             <button onClick={generateSettlements} disabled={generating} style={primaryButtonStyle}>
               {generating ? '產生中...' : '產生結算'}
@@ -107,8 +107,8 @@ export default function AdminSettlementsPage() {
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(360px, 0.9fr)', gap: 18 }}>
-          <section style={cardStyle}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
+          <section style={{ ...cardStyle, flex: '1 1 300px', minWidth: 0 }}>
             <h2 style={sectionTitleStyle}>結算批次</h2>
             {loading ? (
               <p style={mutedStyle}>載入中...</p>
@@ -144,7 +144,7 @@ export default function AdminSettlementsPage() {
             )}
           </section>
 
-          <section style={cardStyle}>
+          <section style={{ ...cardStyle, flex: '1 1 360px', minWidth: 0 }}>
             <h2 style={sectionTitleStyle}>批次明細</h2>
             {!detail ? (
               <p style={mutedStyle}>請選擇左側批次查看明細。</p>
@@ -193,10 +193,10 @@ const cardStyle = {
   boxShadow: '0 2px 12px rgba(15,23,42,0.04)',
 };
 
-const sectionTitleStyle = { margin: '0 0 14px', color: '#0F172A', fontSize: 18, fontWeight: 900 };
+const sectionTitleStyle = { margin: '0 0 14px', color: '#0F172A', fontSize: 18, fontWeight: 900, whiteSpace: 'nowrap' };
 const mutedStyle = { color: '#64748B', fontSize: 14 };
-const pillStyle = { borderRadius: 999, padding: '4px 9px', fontSize: 11, fontWeight: 900 };
-const linkButtonStyle = { border: 'none', background: 'transparent', color: '#2563EB', fontWeight: 800, cursor: 'pointer', marginBottom: 18 };
-const inputStyle = { border: '1px solid #CBD5E1', borderRadius: 12, padding: '11px 12px', color: '#0F172A', fontWeight: 800 };
-const primaryButtonStyle = { border: 'none', background: '#2563EB', color: '#FFFFFF', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer' };
-const dangerButtonStyle = { border: 'none', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer' };
+const pillStyle = { borderRadius: 999, padding: '4px 9px', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap' };
+const linkButtonStyle = { border: 'none', background: 'transparent', color: '#2563EB', fontWeight: 800, cursor: 'pointer', marginBottom: 18, whiteSpace: 'nowrap' };
+const inputStyle = { border: '1px solid #CBD5E1', borderRadius: 12, padding: '11px 12px', color: '#0F172A', fontWeight: 800, width: '100%', maxWidth: '180px' };
+const primaryButtonStyle = { border: 'none', background: '#2563EB', color: '#FFFFFF', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' };
+const dangerButtonStyle = { border: 'none', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' };

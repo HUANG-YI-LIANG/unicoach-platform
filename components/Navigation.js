@@ -27,9 +27,10 @@ export default function Navigation() {
     // Logged in User state
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
+      { name: '找教練', path: '/coaches', icon: Search },
       { name: '探索', path: '/explore', icon: PlaySquare },
       { name: '聊天', path: '/chat', icon: MessageCircle },
-      { name: '個人', path: '/bookings', icon: ShoppingBag }
+      { name: '訂單', path: '/bookings', icon: ShoppingBag }
     ];
   } else if (role === 'coach') {
     // Logged in Coach state

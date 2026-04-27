@@ -6,9 +6,95 @@ import { addWeeks } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { pickDefaultPlanById, normalizePlan } from '@/lib/coachPlans';
 
+const OPTIONAL_BOOKING_COLUMNS = new Set([
+  'grade',
+  'gender',
+  'attendees_count',
+  'learning_status',
+  'coupon_id',
+  'coupon_discount',
+  'series_id',
+  'recurrence_pattern',
+  'session_number',
+  'duration_minutes',
+  'payment_expires_at',
+  'plan_id',
+  'plan_title',
+  'plan_snapshot',
+]);
+
+function getMissingColumnName(error) {
+  const text = [error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(' ');
+
+  return (
+    text.match(/'([^']+)' column/)?.[1] ||
+    text.match(/column "([^"]+)"/)?.[1] ||
+    null
+  );
+}
+
+async function fetchExistingBookings(adminSupabase, coachId, nowIso) {
+  const optionalFields = ['payment_expires_at', 'duration_minutes'];
+  let fields = ['id', 'expected_time', 'status', ...optionalFields];
+
+  for (let attempt = 0; attempt <= optionalFields.length; attempt += 1) {
+    const { data, error } = await adminSupabase
+      .from('bookings')
+      .select(fields.join(', '))
+      .eq('coach_id', coachId)
+      .gte('expected_time', nowIso)
+      .in('status', ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed']);
+
+    if (!error) return data || [];
+
+    const missingColumn = getMissingColumnName(error);
+    if (!missingColumn || !fields.includes(missingColumn)) {
+      throw error;
+    }
+
+    console.warn(`[BOOKING] Missing optional select column "${missingColumn}", retrying without it.`);
+    fields = fields.filter((field) => field !== missingColumn);
+  }
+
+  return [];
+}
+
+async function insertBookingsWithSchemaFallback(adminSupabase, rows) {
+  let currentRows = rows.map((row) => ({ ...row }));
+  const removedColumns = [];
+
+  for (let attempt = 0; attempt <= OPTIONAL_BOOKING_COLUMNS.size; attempt += 1) {
+    const { data, error } = await adminSupabase
+      .from('bookings')
+      .insert(currentRows)
+      .select('id');
+
+    if (!error) {
+      return { data, removedColumns };
+    }
+
+    const missingColumn = getMissingColumnName(error);
+    if (!missingColumn || !OPTIONAL_BOOKING_COLUMNS.has(missingColumn)) {
+      throw error;
+    }
+
+    removedColumns.push(missingColumn);
+    console.warn(`[BOOKING] Missing optional insert column "${missingColumn}", retrying without it.`);
+    currentRows = currentRows.map((row) => {
+      const next = { ...row };
+      delete next[missingColumn];
+      return next;
+    });
+  }
+
+  throw new Error('預約建立失敗，資料庫欄位缺失過多');
+}
+
 export async function POST(request) {
   try {
-    const auth = await requireAuth(['user']);
+    const auth = await requireAuth(['user', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
     
     const adminSupabase = getAdminSupabase();
@@ -41,8 +127,6 @@ export async function POST(request) {
     if (Number.isNaN(normalizedExpectedTime.getTime())) {
       return NextResponse.json({ error: 'Invalid booking time' }, { status: 400 });
     }
-
-    const bookingTimeIso = normalizedExpectedTime.toISOString();
 
     if (coachErr || !coach) return NextResponse.json({ error: '找不到該教練資料' }, { status: 404 });
 
@@ -82,14 +166,7 @@ export async function POST(request) {
 
     // 獲取該教練未來的所有有效預約 (為了在記憶體中進行區間比對)
     const nowIso = new Date().toISOString();
-    const { data: existingBookings, error: fetchErr } = await adminSupabase
-      .from('bookings')
-      .select('id, expected_time, status, payment_expires_at, duration_minutes')
-      .eq('coach_id', coachId)
-      .gte('expected_time', nowIso)
-      .in('status', ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed']);
-
-    if (fetchErr) throw fetchErr;
+    const existingBookings = await fetchExistingBookings(adminSupabase, coachId, nowIso);
 
     for (let i = 0; i < totalSessions; i++) {
       const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
@@ -136,6 +213,22 @@ export async function POST(request) {
     const isFirst = (userBookingsCount || 0) === 0;
     const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
 
+    // Fetch global commission setting from platform key/value store
+    const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'commission_rate')
+      .maybeSingle();
+
+    if (commissionSettingError) {
+      throw commissionSettingError;
+    }
+
+    const parsedGlobalCommission = Number(commissionSetting?.value);
+    const globalCommission = Number.isFinite(parsedGlobalCommission) && parsedGlobalCommission >= 0
+      ? parsedGlobalCommission
+      : 20;
+
     // 3. 累加折扣 (基礎 + 優惠券)
     const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscount);
     const discountAmount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300); // 折扣總額上限 300
@@ -143,7 +236,13 @@ export async function POST(request) {
     // 4. 計算金額拆分
     const finalPrice = basePrice - discountAmount;
     const depositPaid = Math.round(finalPrice * 0.3); // 訂金 3 成
-    const platformFee = Math.round(basePrice * ((coach.commission_rate || 45) / 100)); // 平台服務費
+    
+    // 檢查是否有教練特定抽成比例，否則使用全域設定
+    const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
+      ? coach.commission_rate 
+      : globalCommission;
+      
+    const platformFee = Math.round(basePrice * (coachCommission / 100)); // 平台服務費
     const coachPayout = basePrice - platformFee; // 教練實拿
 
     // 5. 建立預約紀錄
@@ -186,13 +285,14 @@ export async function POST(request) {
       });
     }
 
-    const { data: bookings, error: insertErr } = await adminSupabase
-      .from('bookings')
-      .insert(bookingsToInsert)
-      .select('id');
+    const { data: bookings, removedColumns } = await insertBookingsWithSchemaFallback(adminSupabase, bookingsToInsert);
 
-    if (insertErr || !bookings || bookings.length === 0) {
-      throw insertErr || new Error('預約建立失敗，無回傳資料');
+    if (removedColumns.length) {
+      console.warn(`[BOOKING] Created booking with schema fallback. Missing columns: ${removedColumns.join(', ')}`);
+    }
+
+    if (!bookings || bookings.length === 0) {
+      throw new Error('預約建立失敗，無回傳資料');
     }
 
     const bookingId = bookings[0].id;
@@ -280,8 +380,18 @@ export async function GET(request) {
     const { data: bookings, error } = await query;
     if (error) throw error;
 
-    // 5. 格式化回傳資料（確保安全取值）
-    const formatted = (bookings || []).map(b => ({
+    // 5. 格式化回傳資料（確保安全取值），並過濾掉已過期的待付款訂單
+    const formatted = (bookings || [])
+      .filter(b => {
+        if (b.status === 'pending_payment' && b.payment_expires_at) {
+          const expiresAt = new Date(b.payment_expires_at).getTime();
+          if (Date.now() > expiresAt) {
+            return false; // 過期的待付款訂單直接消失
+          }
+        }
+        return true;
+      })
+      .map(b => ({
       ...b,
       user_name: b.users?.name || '未知使用者',
       coach_name: b.coaches?.name || '未知教練',

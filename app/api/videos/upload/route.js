@@ -3,6 +3,8 @@ import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
+const VIDEO_UPLOAD_MAX_MB = 500;
+const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
 
 export async function POST(request) {
   try {
@@ -26,10 +28,9 @@ export async function POST(request) {
       return NextResponse.json({ error: '無效的分類' }, { status: 400 });
     }
 
-    // 限制檔案大小 (50MB)
-    const MAX_SIZE = 50 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
-      return NextResponse.json({ error: '檔案過大，限制為 50MB' }, { status: 400 });
+    // 舊 API 仍保留給部分頁面使用，限制需與新版直傳流程一致。
+    if (file.size > VIDEO_UPLOAD_MAX_BYTES) {
+      return NextResponse.json({ error: `檔案過大，限制為 ${VIDEO_UPLOAD_MAX_MB}MB` }, { status: 400 });
     }
 
     // 限制支援格式

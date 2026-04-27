@@ -1,8 +1,8 @@
 'use client';
 
 import { use, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, GraduationCap, MapPin, MessageCircle, Star, Video } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, GraduationCap, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, Mail, DollarSign, FileDigit, Shield } from 'lucide-react';
 import VideoGallery from '@/components/VideoGallery';
 import { addDays, buildBookedSlotSet, generateSlotsForCoach, getTodayDateString } from '@/lib/coachAvailability';
 
@@ -129,21 +129,41 @@ function formatNextAvailable(value) {
 export default function CoachDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const initDate = searchParams.get('date') || '';
+  const initTime = searchParams.get('time') || '';
+  const initRegion = searchParams.get('region') || '';
+
   const [coach, setCoach] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [videos, setVideos] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSlot, setSelectedSlot] = useState(() => {
+    if (initDate && initTime) {
+      return {
+        date: initDate,
+        time: initTime,
+        iso: `${initDate}T${initTime}:00+08:00`
+      };
+    }
+    return null;
+  });
   const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [weekStart, setWeekStart] = useState(startOfWeek(getTodayDateString()));
+  const [weekStart, setWeekStart] = useState(() => {
+    if (initDate) {
+      return startOfWeek(initDate);
+    }
+    return startOfWeek(getTodayDateString());
+  });
   const [bookingForm, setBookingForm] = useState({
     age: '',
     gender: '',
     attendeesCount: 1,
     learningStatus: '初學',
     expectedTime: '',
-    address: '',
+    address: initRegion,
     couponId: null,
     couponDiscount: 0,
     isRecurring: false,
@@ -388,7 +408,7 @@ export default function CoachDetailPage({ params }) {
         }
         .hero-stats {
           display: grid;
-          grid-template-columns: repeat(4, 1fr);
+          grid-template-columns: repeat(2, 1fr);
           gap: 12px;
           margin-top: 20px;
         }
@@ -409,9 +429,10 @@ export default function CoachDetailPage({ params }) {
         }
         .content-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.9fr);
+          grid-template-columns: 1fr 380px;
           gap: 18px;
           margin-top: 18px;
+          align-items: start;
         }
         .panel {
           background: rgba(255,255,255,0.92);
@@ -419,6 +440,7 @@ export default function CoachDetailPage({ params }) {
           border-radius: 28px;
           box-shadow: 0 18px 50px rgba(15,23,42,0.08);
           padding: 20px;
+          min-width: 0;
         }
         .panel h2 {
           margin: 0 0 8px;
@@ -567,7 +589,7 @@ export default function CoachDetailPage({ params }) {
         }
         .form-grid {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: 1fr;
           gap: 12px;
         }
         .form-stack {
@@ -600,6 +622,7 @@ export default function CoachDetailPage({ params }) {
         .side-panel {
           display: grid;
           gap: 18px;
+          min-width: 0;
         }
         .review-list {
           display: grid;
@@ -871,13 +894,82 @@ export default function CoachDetailPage({ params }) {
             </div>
 
             <div className="panel">
-              <h2>教學資訊</h2>
-              <p className="lead">{coach.philosophy || '尚未填寫教學理念。'}</p>
-              <div style={{ display: 'grid', gap: 10, color: '#334155', fontSize: 14 }}>
+              <h2>教學資訊與家長須知</h2>
+              
+              {/* Trust Badges */}
+              {coach.trust_badges && coach.trust_badges.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                  {coach.trust_badges.includes('coach_license') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                      <ShieldCheck size={16} /> 特定球類教練認證
+                    </div>
+                  )}
+                  {coach.trust_badges.includes('cpr_aed') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#991B1B', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                      <Shield size={16} /> CPR/AED 急救認證
+                    </div>
+                  )}
+                  {coach.trust_badges.includes('police_check') && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#1E40AF', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                      <ShieldCheck size={16} /> 良民證 (無犯罪紀錄)
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gap: 10, color: '#334155', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
                 <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
                 <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
                 <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
               </div>
+
+              {/* 核心教學理念 */}
+              <div style={{ marginBottom: 32 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
+                  <FileDigit size={18} color="#2563EB" /> 核心教學理念
+                </h3>
+                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
+                  {coach.philosophy || '教練尚未填寫教學理念。'}
+                </p>
+              </div>
+
+              {/* 課程特色與預期成長 */}
+              {(coach.teaching_features) && (
+                <div style={{ marginBottom: 32 }}>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
+                    <BookOpen size={18} color="#2563EB" /> 課程特色與預期成長
+                  </h3>
+                  <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
+                    {coach.teaching_features}
+                  </p>
+                </div>
+              )}
+
+              {/* 家長溝通機制 */}
+              {(coach.communication_style) && (
+                <div style={{ marginBottom: 32 }}>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
+                    <Mail size={18} color="#2563EB" /> 家長溝通機制
+                  </h3>
+                  <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
+                    {coach.communication_style}
+                  </p>
+                </div>
+              )}
+
+              {/* 費用與請假規則 */}
+              {(coach.policy_rules) && (
+                <div style={{ marginBottom: 16 }}>
+                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
+                    <DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則
+                  </h3>
+                  <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                    <p style={{ color: '#475569', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
+                      {coach.policy_rules}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="panel">

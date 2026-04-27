@@ -8,6 +8,7 @@ import {
   Plus, ShieldCheck, ShieldAlert, Shield, X, ExternalLink, CalendarDays, ListChecks
 } from 'lucide-react';
 import VideoUpload from '@/components/VideoUpload';
+import PromotionCard from '@/components/PromotionCard';
 
 // ── Palette & constants (Synced with User Dashboard) ──────────────────────────
 const BLUE   = '#2563EB';
@@ -235,7 +236,12 @@ export default function CoachDashboard() {
         <MetricCard label="本月累計" value={`$${netEarnings.toLocaleString()}`} icon={Wallet} color="#059669" />
       </div>
 
-      {/* ── 4. Action Grid ───────────────────────────────────────── */}
+      {/* ── 4. Promotion Area ──────────────────────────────────────── */}
+      <div style={{ padding: '24px 16px 0' }}>
+        <PromotionCard user={profile} />
+      </div>
+
+      {/* ── 5. Action Grid ───────────────────────────────────────── */}
       <div style={{ padding: '24px 16px 0' }}>
         <SLabel>快速入口</SLabel>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap: 12 }}>

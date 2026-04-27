@@ -13,7 +13,7 @@ const STATUS_TRANSITION_RULES = {
   },
   scheduled: {
     student: ["cancelled"],
-    coach: ["completed", "cancelled"],
+    coach: ["in_progress", "completed", "cancelled"],
   },
   in_progress: {
     coach: ["pending_completion", "completed"],
@@ -93,31 +93,16 @@ export async function POST(request, { params }) {
 
     // 6. 管理員審計日誌
     if (role === 'admin') {
-      await adminSupabase.from('audit_logs').insert([{
-        admin_id: auth.user.id, 
-        action: 'UPDATE_BOOKING_STATUS', 
-        target_id: id, 
-        details: `From ${booking.status} to ${newStatus}`
-      }]);
-    }
-
-    // 7. 教練獎勵邏輯 (如果是完課)
-    if (newStatus === 'completed' && role === 'coach') {
-      const { count: completedCount } = await adminSupabase
-        .from('bookings')
-        .select('id', {count: 'exact', head: true})
-        .eq('coach_id', booking.coach_id)
-        .eq('status', 'completed');
-      
-      let newCommission = 45;
-      if (completedCount >= 10) newCommission = 15;
-      else if (completedCount >= 5) newCommission = 20;
-      else if (completedCount >= 2) newCommission = 25;
-      else if (completedCount >= 1) newCommission = 35;
-
-      const { data: currentCoach } = await adminSupabase.from('coaches').select('commission_rate').eq('user_id', booking.coach_id).single();
-      if (currentCoach && currentCoach.commission_rate !== newCommission) {
-        await adminSupabase.from('coaches').update({ commission_rate: newCommission }).eq('user_id', booking.coach_id);
+      try {
+        await adminSupabase.from('audit_logs').insert([{
+          actor_id: auth.user.id,
+          actor_role: 'admin',
+          action: 'UPDATE_BOOKING_STATUS',
+          target_id: id,
+          details: `From ${booking.status} to ${newStatus}`
+        }]);
+      } catch (auditError) {
+        console.warn('[BOOKING STATUS AUDIT LOG ERROR]', auditError);
       }
     }
 

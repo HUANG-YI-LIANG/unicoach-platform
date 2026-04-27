@@ -12,12 +12,6 @@ const MUTED  = '#94A3B8';
 const DARK   = '#0F172A';
 const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
 
-// ── Local fallback data used before API content is available ─────────────────
-const MOCK_PHILOSOPHIES = [
-  { coach_name: '王牌教練', philosophy: '有教無類，穩定進步。' },
-  { coach_name: '技術大師', philosophy: '細節決定成敗，重複造就卓越。' },
-  { coach_name: '體能顧問', philosophy: '身體是最好的投資。' },
-];
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function timeAgo(dateStr) {
@@ -46,25 +40,29 @@ function Avatar({ name, size = 46 }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ChatPage() {
   const [rooms, setRooms] = useState([]);
-  const [philosophies, setPhilosophies] = useState(MOCK_PHILOSOPHIES);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
   const isCoach = user?.role === 'coach';
 
   useEffect(() => {
-    fetch('/api/chat/rooms')
-      .then(r => r.json())
-      .then(d => {
-        if (d.rooms) setRooms(d.rooms);
-        // Extract philosophies from room data for the story bar
-        const ph = d.rooms
-          ?.filter(r => r.coach_philosophy)
-          .map(r => ({ coach_name: r.other_party_name, philosophy: r.coach_philosophy }));
-        if (ph && ph.length > 0) setPhilosophies(ph);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    const fetchRooms = async () => {
+      try {
+        const r = await fetch('/api/chat/rooms', { cache: 'no-store' });
+        if (r.ok) {
+          const d = await r.json();
+          if (d.rooms) setRooms(d.rooms);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    
+    fetchRooms().finally(() => setLoading(false));
+    
+    // Polling every 4 seconds for real-time updates
+    const pollId = setInterval(fetchRooms, 4000);
+    return () => clearInterval(pollId);
   }, []);
 
   if (loading) return (
@@ -81,30 +79,6 @@ export default function ChatPage() {
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: DARK }}>我的對話</h1>
       </div>
 
-      {/* ── Philosophy Story Bar ───────────────────────────────────── */}
-      <div style={{ padding: '0 16px 16px' }}>
-        <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:MUTED, textTransform:'uppercase', letterSpacing:'0.1em' }}>教練理念</p>
-        <div style={{ display:'flex', gap:12, overflowX:'auto', paddingBottom:4, scrollbarWidth:'none' }}>
-          {philosophies.map((p, i) => (
-            <div key={i} style={{
-              minWidth: 130, flexShrink: 0,
-              background: CARD, borderRadius: 16, boxShadow: SHADOW,
-              padding: '14px 14px 12px', cursor:'pointer',
-              borderTop: `3px solid ${BLUE}`,
-              transition:'transform 0.15s',
-            }}
-              onMouseEnter={e => e.currentTarget.style.transform='translateY(-2px)'}
-              onMouseLeave={e => e.currentTarget.style.transform='translateY(0)'}
-            >
-              <Avatar name={p.coach_name} size={36} />
-              <p style={{ margin:'8px 0 4px', fontSize:12, fontWeight:800, color:DARK }}>{p.coach_name}</p>
-              <p style={{ margin:0, fontSize:11, color:'#475569', lineHeight:1.5, fontStyle:'italic' }}>
-                「{p.philosophy?.substring(0, 30)}{p.philosophy?.length > 30 ? '…' : ''}」
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── Chat List / Empty State ────────────────────────────────── */}
       {rooms.length === 0 ? (

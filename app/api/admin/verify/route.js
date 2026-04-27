@@ -23,7 +23,7 @@ export async function GET(request) {
     if (error) throw error;
     return NextResponse.json({ files });
   } catch (err) {
-    return NextResponse.json({ error: '無法獲取待審核列表' }, { status: 500 });
+    return NextResponse.json({ error: '無法獲取待審核列表', details: err.message }, { status: 500 });
   }
 }
 
@@ -38,7 +38,7 @@ export async function POST(request) {
     const { fileId, coachUserId, action, reason } = await request.json();
     
     // 驗證參數
-    const validActions = ['approve', 'reject', 'suspend'];
+    const validActions = ['approve', 'reject', 'suspend', 'delete_coach'];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: '無效的操作' }, { status: 400 });
     }
@@ -48,6 +48,30 @@ export async function POST(request) {
     const targetStatus = statusMap[action];
 
     let targetUserId = coachUserId;
+
+    // 處理特例：刪除教練資格 (轉回一般使用者)
+    if (action === 'delete_coach') {
+      if (!targetUserId) return NextResponse.json({ error: '缺少教練用戶 ID' }, { status: 400 });
+      
+      // 1. 刪除教練資料 (如果有依賴資料會自動級聯，或需要先手動清理，目前平台設計中只要刪除 coaches 即可)
+      const { error: deleteError } = await adminSupabase.from('coaches').delete().eq('user_id', targetUserId);
+      if (deleteError) throw deleteError;
+
+      // 2. 將用戶身分改回 user
+      const { error: userError } = await adminSupabase.from('users').update({ role: 'user' }).eq('id', targetUserId);
+      if (userError) throw userError;
+
+      // 3. 記錄審計日誌
+      await adminSupabase.from('audit_logs').insert([{
+        action: 'COACH_DELETED',
+        actor_id: auth.user.id,
+        actor_role: auth.user.role,
+        target_id: String(targetUserId),
+        details: JSON.stringify({ reason: reason || 'N/A' })
+      }]);
+
+      return NextResponse.json({ success: true, status: 'deleted' });
+    }
 
     // 1. 如果有 fileId，更新檔案審核狀態
     if (fileId) {

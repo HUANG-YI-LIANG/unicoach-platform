@@ -1,12 +1,15 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Upload, X, Film, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const BLUE = '#2563EB';
 const BG = '#F1F5F9';
 const DARK = '#0F172A';
 const MUTED = '#94A3B8';
 const RADIUS = '20px';
+const VIDEO_UPLOAD_MAX_MB = 500;
+const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
 
 const CATEGORIES = [
   { id: 'teaching', label: '教學示範' },
@@ -51,30 +54,61 @@ export default function VideoUpload() {
     e.preventDefault();
     if (!newVideo.file) return;
 
+    // Direct Supabase upload bypasses server body limits, but we still cap file size for stability.
+    if (newVideo.file.size > VIDEO_UPLOAD_MAX_BYTES) {
+      setError(`單檔上限為 ${VIDEO_UPLOAD_MAX_MB}MB，請壓縮影片或截取精華片段。`);
+      return;
+    }
+
     setUploading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append('file', newVideo.file);
-    formData.append('title', newVideo.title);
-    formData.append('category', newVideo.category);
-
     try {
-      const res = await fetch('/api/videos/upload', {
+      // 1. Get presigned URL
+      const preRes = await fetch('/api/videos/presigned-url', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: newVideo.file.name,
+          contentType: newVideo.file.type || 'video/mp4'
+        })
+      });
+      const preData = await preRes.json();
+      if (!preRes.ok) throw new Error(preData.error || '無法取得上傳憑證');
+
+      // 2. Upload file directly to Supabase Storage using the signed upload token
+      const { error: uploadError } = await supabase.storage
+        .from('coach-videos')
+        .uploadToSignedUrl(preData.path, preData.token, newVideo.file, {
+          cacheControl: '3600',
+          upsert: false,
+          contentType: newVideo.file.type || 'video/mp4',
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message || '影片上傳至儲存空間失敗');
+      }
+
+      // 3. Save metadata
+      const metaRes = await fetch('/api/videos/save-metadata', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newVideo.title,
+          category: newVideo.category,
+          publicUrl: preData.publicUrl
+        })
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        setVideos([data.video, ...videos]);
-        setNewVideo({ file: null, title: '', category: 'teaching' });
-        alert('影片上傳成功！');
-      } else {
-        setError(data.error || '上傳失敗');
-      }
+      const metaData = await metaRes.json();
+      if (!metaRes.ok) throw new Error(metaData.error || '儲存影片資料失敗');
+
+      setVideos([metaData.video, ...videos]);
+      setNewVideo({ file: null, title: '', category: 'teaching' });
+      alert('影片上傳成功！');
+
     } catch (err) {
-      setError('連線失敗，請稍後再試');
+      setError(err.message || '連線失敗，請稍後再試');
     } finally {
       setUploading(false);
     }
@@ -158,7 +192,7 @@ export default function VideoUpload() {
               <div>
                 <Film size={32} color={MUTED} style={{ marginBottom: 8 }} />
                 <p style={{ margin: 0, fontSize: 14, color: MUTED }}>點擊或拖放影片檔案 (MP4 / MOV / WEBM)</p>
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: MUTED }}>單檔上限 50MB</p>
+                <p style={{ margin: '4px 0 0', fontSize: 11, color: MUTED }}>使用直傳儲存空間，單檔上限 {VIDEO_UPLOAD_MAX_MB}MB</p>
               </div>
             )}
           </div>

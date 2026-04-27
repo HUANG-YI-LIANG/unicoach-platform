@@ -5,7 +5,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { 
   User, Mail, BookOpen, FileDigit, 
   MapPin, DollarSign, Save, ArrowLeft, Loader2, Tag,
-  ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock
+  ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
 } from 'lucide-react';
 
 const BLUE   = '#2563EB';
@@ -26,6 +26,10 @@ export default function CoachProfileEdit() {
     service_areas: '',
     experience: '',
     philosophy: '',
+    teaching_features: '',
+    communication_style: '',
+    policy_rules: '',
+    trust_badges: [],
     base_price: 800,
     location: '',
     avatar_url: '' // ✅ 新增頭像 URL
@@ -64,6 +68,10 @@ export default function CoachProfileEdit() {
           service_areas: data.coach?.service_areas || '',
           experience: data.coach?.experience || '',
           philosophy: data.coach?.philosophy || '',
+          teaching_features: data.coach?.teaching_features || '',
+          communication_style: data.coach?.communication_style || '',
+          policy_rules: data.coach?.policy_rules || '',
+          trust_badges: data.coach?.trust_badges || [],
           base_price: data.coach?.base_price || 1000,
           location: data.coach?.location || '',
           avatar_url: data.profile?.avatar_url || ''
@@ -308,17 +316,141 @@ export default function CoachProfileEdit() {
               />
             </div>
 
-            <div>
-              <label style={{ display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: DARK, marginBottom: 8 }}>
-                <FileDigit size={14} color={BLUE} /> 自我介紹 / 教學哲學
-              </label>
+            {/* ── 欄位 A: 教學理念 ── */}
+            <div style={{ background: '#F8FAFC', padding: 20, borderRadius: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: DARK }}>
+                    <FileDigit size={16} color={BLUE} /> 給家長的一段話 (核心教學理念)
+                  </label>
+                  <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>💡 提示：家長最在意「安全」、「教練的耐心」與「品格發展」。請用親切的語氣對家長說話。</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, philosophy: "親愛的家長您好，我是 [您的名字/暱稱] 教練。在我的球場上，比起輸贏，我更在乎孩子是否學會 [請填寫您重視的品格，例如：團隊合作/運動家精神]，以及如何保護自己不輕易受傷。我會用耐心陪伴孩子進步！"}))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', color: BLUE, border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Sparkles size={14} /> 套用家長安心範本
+                </button>
+              </div>
               <textarea 
                 value={formData.philosophy}
                 onChange={e => setFormData({...formData, philosophy: e.target.value})}
-                placeholder="請向學員介紹你自己..."
+                placeholder="例如：親愛的家長您好，我是 OOO 教練。在我的球場上..."
                 rows={4}
-                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, lineHeight: 1.6 }}
+                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #CBD5E1', fontSize: 14, lineHeight: 1.6 }}
               />
+            </div>
+
+            {/* ── 欄位 B: 課程特色 ── */}
+            <div style={{ background: '#F8FAFC', padding: 20, borderRadius: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: DARK }}>
+                    <BookOpen size={16} color={BLUE} /> 課程特色與預期成長
+                  </label>
+                  <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>💡 提示：具體說明孩子在身體素質或心理素質上能獲得什麼改變。</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, teaching_features: "針對初學的孩子，我會先從 [請填寫基礎訓練，例如：基礎球感與協調性] 練起，避免一開始就高強度訓練導致排斥。[請填寫預期時間，例如：三個月] 後，孩子將能掌握 [請填寫具體技巧]，並顯著提升專注力與抗壓性。"}))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', color: BLUE, border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Sparkles size={14} /> 套用家長安心範本
+                </button>
+              </div>
+              <textarea 
+                value={formData.teaching_features}
+                onChange={e => setFormData({...formData, teaching_features: e.target.value})}
+                placeholder="例如：針對初學的孩子，我會先從基礎球感練起..."
+                rows={4}
+                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #CBD5E1', fontSize: 14, lineHeight: 1.6 }}
+              />
+            </div>
+
+            {/* ── 欄位 C: 家長溝通機制 ── */}
+            <div style={{ background: '#F8FAFC', padding: 20, borderRadius: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: DARK }}>
+                    <Mail size={16} color={BLUE} /> 家長溝通機制
+                  </label>
+                  <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>💡 提示：40幾歲的家長非常重視「知情權」，明確的溝通機制能大幅提升信任感。</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, communication_style: "每堂課結束的最後 5 分鐘，我會向您說明今天的練習重點與孩子的狀況；若您無法到場陪同，我也會透過 [請填寫溝通方式，例如：LINE文字 / 短影音] 簡單回報今日進度。"}))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', color: BLUE, border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Sparkles size={14} /> 套用家長安心範本
+                </button>
+              </div>
+              <textarea 
+                value={formData.communication_style}
+                onChange={e => setFormData({...formData, communication_style: e.target.value})}
+                placeholder="例如：每堂課結束的最後 5 分鐘，我會向您說明..."
+                rows={3}
+                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #CBD5E1', fontSize: 14, lineHeight: 1.6 }}
+              />
+            </div>
+
+            {/* ── 欄位 D: 請假與場地費規則 ── */}
+            <div style={{ background: '#F8FAFC', padding: 20, borderRadius: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: DARK }}>
+                    <DollarSign size={16} color={BLUE} /> 請假、補課與場地費規則
+                  </label>
+                  <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>💡 提示：費用與請假規則必須透明，避免日後爭議。</p>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setFormData(prev => ({...prev, policy_rules: "目前報價 [包含 / 不包含] 場地租借費，場地費由 [雙方平攤 / 教練吸收 / 學員自付]。若孩子生病需請假，請盡量於課前 [請填寫時數] 小時通知，以免產生場地取消費用；無故缺席將 [請填寫處理方式，例如：計算一堂課費]。"}))}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', color: BLUE, border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  <Sparkles size={14} /> 套用透明規則範本
+                </button>
+              </div>
+              <textarea 
+                value={formData.policy_rules}
+                onChange={e => setFormData({...formData, policy_rules: e.target.value})}
+                placeholder="例如：費用已包含/不包含場地費。若孩子生病需請假..."
+                rows={3}
+                style={{ width:'100%', padding:'12px 16px', borderRadius: 12, border: '1px solid #CBD5E1', fontSize: 14, lineHeight: 1.6 }}
+              />
+            </div>
+
+            {/* ── 信任徽章 (Trust Badges) ── */}
+            <div style={{ background: '#F8FAFC', padding: 20, borderRadius: 16, border: '1px solid #E2E8F0' }}>
+              <div style={{ marginBottom: 12 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: DARK }}>
+                  <ShieldCheck size={16} color="#059669" /> 安全與專業證照 (建立信任的關鍵！)
+                </label>
+                <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>💡 提示：勾選您已具備的證照，系統會在教練列表顯示特殊徽章，大幅提升家長預約意願。</p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {[
+                  { id: 'coach_license', label: '特定球類教練證 (如中華羽協/籃協 C級教練)' },
+                  { id: 'cpr_aed', label: '運動防護/急救證照 (CPR/AED)' },
+                  { id: 'police_check', label: '良民證 (無犯罪紀錄證明)' }
+                ].map(badge => (
+                  <label key={badge.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: DARK, fontWeight: 700 }}>
+                    <input 
+                      type="checkbox" 
+                      style={{ width: 18, height: 18, accentColor: BLUE }}
+                      checked={formData.trust_badges.includes(badge.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFormData(prev => ({...prev, trust_badges: [...prev.trust_badges, badge.id]}));
+                        } else {
+                          setFormData(prev => ({...prev, trust_badges: prev.trust_badges.filter(id => id !== badge.id)}));
+                        }
+                      }}
+                    />
+                    {badge.label}
+                  </label>
+                ))}
+              </div>
             </div>
 
           </div>

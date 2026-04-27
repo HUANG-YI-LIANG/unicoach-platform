@@ -250,23 +250,6 @@ export default function ReportPage({ params }) {
             onBlur={e => e.target.style.borderColor = '#E2E8F0'}
           />
           
-          <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={handleGenerate}
-              disabled={isGenerating || (!form.observation && !form.suggestions)}
-              style={{
-                background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)',
-                color: WHITE, border: 'none', padding: '10px 16px', borderRadius: 12,
-                fontSize: 13, fontWeight: 700, cursor: (isGenerating || (!form.observation && !form.suggestions)) ? 'not-allowed' : 'pointer',
-                opacity: (isGenerating || (!form.observation && !form.suggestions)) ? 0.6 : 1,
-                display: 'flex', alignItems: 'center', gap: 6,
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.2)'
-              }}
-            >
-              {isGenerating ? '✨ AI 努力撰寫中...' : '✨ 讓 AI 幫我擴寫與潤飾'}
-            </button>
-          </div>
 
           {aiDraft && (
             <div style={{

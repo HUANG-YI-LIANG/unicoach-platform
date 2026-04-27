@@ -2,6 +2,9 @@
 -- 請在 Supabase SQL Editor 執行此腳本
 
 -- 1. 新增課程長度欄位
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS frequent_addresses TEXT;
+
 ALTER TABLE bookings
 ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 60;
 
