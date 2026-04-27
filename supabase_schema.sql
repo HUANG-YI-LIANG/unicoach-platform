@@ -169,6 +169,7 @@ CREATE TABLE chat_messages (
   sender_id UUID NOT NULL REFERENCES users(id),
   message TEXT NOT NULL,
   is_system BOOLEAN DEFAULT false,
+  is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
