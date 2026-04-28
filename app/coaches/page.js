@@ -2,25 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star, Video } from 'lucide-react';
-
-const SPORT_EMOJIS = {
-  '羽球': '🏸',
-  '籃球': '🏀',
-  '網球': '🎾',
-  '健身': '🏋️',
-  '足球': '⚽',
-  '桌球': '🏓',
-  '游泳': '🏊',
-  '瑜珈': '🧘‍♀️',
-  '排球': '🏐',
-};
-function getSportEmoji(sport) {
-  for (const [key, emoji] of Object.entries(SPORT_EMOJIS)) {
-    if (sport.includes(key)) return emoji;
-  }
-  return '🏅';
-}
+import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const STORAGE_KEY = 'coach-search-filters-v1';
@@ -863,14 +845,11 @@ export default function CoachesPage() {
 
               return (
                 <article key={coach.id} className="coach-card">
-              return (
-                <article key={coach.id} className="coach-card">
                   {/* 【頂部信任區】 */}
-                  <div className="coach-card-top" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div className="level-badge" style={{ ...badgeStyle, padding: '4px 8px' }}>
-                          <GraduationCap size={14} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A', background: '#DBEAFE', padding: '4px 8px', borderRadius: 100 }}>
                           {coach.coach_level_label}
                         </div>
                         <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 900, background: '#FEF3C7', padding: '4px 8px', borderRadius: 100 }}>
@@ -894,9 +873,9 @@ export default function CoachesPage() {
                     <div style={{ flex: 1 }}>
                       <h2 className="coach-name" style={{ fontSize: 22 }}>{coach.name}</h2>
                       
-                      {/* 教學球類 (Badge 樣式) */}
+                      {/* 教學項目 (Badge 化) */}
                       {(() => {
-                        const sports = (coach.service_areas || '').split(/[、,，\s]+/).filter(Boolean);
+                        const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
                         if (sports.length === 0) return null;
                         const mainSport = sports[0];
                         const sparringSports = sports.slice(1);
@@ -907,7 +886,7 @@ export default function CoachesPage() {
                             </span>
                             {sparringSports.length > 0 && (
                               <span style={{ background: '#F1F5F9', color: '#475569', fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 6 }}>
-                                可陪練：{sparringSports.map(s => `${getSportEmoji(s)} ${s}`).join(' ｜ ')}
+                                可陪練：{sparringSports.map(s => `${getSportEmoji(s)} ${s}`).join(' 、')}
                               </span>
                             )}
                           </div>
@@ -928,7 +907,7 @@ export default function CoachesPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                     <div style={{ color: '#64748b', fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center', padding: '0 4px' }}>
                       <MapPin size={14} />
-                      {coach.location || '未填地區'} {coach.service_areas?.includes('到府') ? '可到府' : ''}
+                      {coach.location || '未填地區'} {coach.service_areas?.includes('到府') ? '(可到府)' : ''}
                       {coach.university && (
                         <>
                           <span style={{ color: '#cbd5e1' }}>|</span>
