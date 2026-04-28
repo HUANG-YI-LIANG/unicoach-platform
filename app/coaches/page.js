@@ -2,7 +2,25 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star } from 'lucide-react';
+import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star, Video } from 'lucide-react';
+
+const SPORT_EMOJIS = {
+  '羽球': '🏸',
+  '籃球': '🏀',
+  '網球': '🎾',
+  '健身': '🏋️',
+  '足球': '⚽',
+  '桌球': '🏓',
+  '游泳': '🏊',
+  '瑜珈': '🧘‍♀️',
+  '排球': '🏐',
+};
+function getSportEmoji(sport) {
+  for (const [key, emoji] of Object.entries(SPORT_EMOJIS)) {
+    if (sport.includes(key)) return emoji;
+  }
+  return '🏅';
+}
 import { useAuth } from '@/components/AuthProvider';
 
 const STORAGE_KEY = 'coach-search-filters-v1';
@@ -845,81 +863,133 @@ export default function CoachesPage() {
 
               return (
                 <article key={coach.id} className="coach-card">
-                  <div className="coach-card-top">
-                    <div className="level-badge" style={badgeStyle}>
-                      <GraduationCap size={14} />
-                      {coach.coach_level_label}
+              return (
+                <article key={coach.id} className="coach-card">
+                  {/* 【頂部信任區】 */}
+                  <div className="coach-card-top" style={{ alignItems: 'flex-start', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div className="level-badge" style={{ ...badgeStyle, padding: '4px 8px' }}>
+                          <GraduationCap size={14} />
+                          {coach.coach_level_label}
+                        </div>
+                        <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 900, background: '#FEF3C7', padding: '4px 8px', borderRadius: 100 }}>
+                          ⭐ {coach.rating_avg || 0} ({coach.review_count || 0})
+                        </div>
+                      </div>
+                      <div style={{ color: '#2563EB', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', padding: '4px 8px', borderRadius: 100 }}>
+                        <Video size={14} />
+                        30秒快速認識教練
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontWeight: 900 }}>
-                      <Star size={15} fill="#f59e0b" />
-                      {coach.rating_avg || 0} ({coach.review_count || 0})
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '2px 6px', borderRadius: 4 }}>✅ 平台審核通過</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '2px 6px', borderRadius: 4 }}>✅ 已驗證身分證</span>
                     </div>
                   </div>
 
-                  <div className="coach-header" onClick={() => router.push(`/coaches/${coach.id}`)}>
-                    <div className="avatar">{coach.name?.slice(0, 1) || '教'}</div>
-                    <div>
-                      <h2 className="coach-name">{coach.name}</h2>
-                      <div className="coach-meta">
-                        <span>{coach.university || '未填學校'}</span>
-                        <span>•</span>
-                        <span>{coach.location || '未填地區'}</span>
+                  {/* 【核心成交區】 */}
+                  <div className="coach-header" style={{ marginTop: 8, alignItems: 'flex-start' }} onClick={() => router.push(`/coaches/${coach.id}`)}>
+                    <div className="avatar" style={{ width: 64, height: 64, fontSize: 26, borderRadius: 20 }}>{coach.name?.slice(0, 1) || '教'}</div>
+                    <div style={{ flex: 1 }}>
+                      <h2 className="coach-name" style={{ fontSize: 22 }}>{coach.name}</h2>
+                      
+                      {/* 教學球類 (Badge 樣式) */}
+                      {(() => {
+                        const sports = (coach.service_areas || '').split(/[、,，\s]+/).filter(Boolean);
+                        if (sports.length === 0) return null;
+                        const mainSport = sports[0];
+                        const sparringSports = sports.slice(1);
+                        return (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                            <span style={{ background: '#1E3A8A', color: '#fff', fontSize: 12, fontWeight: 800, padding: '4px 8px', borderRadius: 6 }}>
+                              主教：{getSportEmoji(mainSport)} {mainSport}
+                            </span>
+                            {sparringSports.length > 0 && (
+                              <span style={{ background: '#F1F5F9', color: '#475569', fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 6 }}>
+                                可陪練：{sparringSports.map(s => `${getSportEmoji(s)} ${s}`).join(' ｜ ')}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      
+                      {/* 一句話定位 */}
+                      {(coach.philosophy || coach.experience) && (
+                        <div style={{ marginTop: 8, fontSize: 14, fontWeight: 800, color: '#334155' }}>
+                          {coach.philosophy ? coach.philosophy.slice(0, 20) : coach.experience?.slice(0, 20)}
+                          {(coach.philosophy || coach.experience).length > 20 ? '...' : ''}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 【地區與焦慮區】 */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+                    <div style={{ color: '#64748b', fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center', padding: '0 4px' }}>
+                      <MapPin size={14} />
+                      {coach.location || '未填地區'} {coach.service_areas?.includes('到府') ? '可到府' : ''}
+                      {coach.university && (
+                        <>
+                          <span style={{ color: '#cbd5e1' }}>|</span>
+                          <span>{coach.university}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="fastest-slot" style={{ padding: '10px 14px' }}>
+                      <div className="fastest-label">
+                        <Clock3 size={16} />
+                        最近可約時間
+                      </div>
+                      <button type="button" className="fastest-button" onClick={() => syncFromFastest(coach)}>
+                        {formatNextAvailable(coach.next_available_at)}
+                      </button>
+                    </div>
+                    {coach.booked_slot_count > 0 ? (
+                      <div style={{ color: '#E11D48', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, background: '#FFF1F2', padding: '6px 12px', borderRadius: 12 }}>
+                        🔥 最近已被預約 {coach.booked_slot_count} 次
+                      </div>
+                    ) : (
+                      <div style={{ color: '#166534', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', padding: '6px 12px', borderRadius: 12 }}>
+                        ✨ 本週還有時段可約
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 【結果展示區】 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginTop: 8 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '12px 16px', borderRadius: 16 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 800 }}>體驗課</span>
+                        {/* 暫時移除訂金文案，但保留位置與高度 */}
+                        <span style={{ fontSize: 12, minHeight: 18 }}></span>
+                      </div>
+                      <span style={{ fontSize: 18, fontWeight: 900, color: '#0f172a' }}>NT${Number(coach.min_price || 1000).toLocaleString()}</span>
+                    </div>
+                    
+                    <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: 16 }}>
+                      <div style={{ fontSize: 12, color: '#166534', fontWeight: 900, marginBottom: 4 }}>🎯 最近學員成果</div>
+                      <div style={{ fontSize: 14, color: '#15803D', fontWeight: 700, lineHeight: 1.4 }}>
+                        {coach.experience ? 
+                          (coach.experience.length > 30 ? coach.experience.slice(0, 30) + '...' : coach.experience) 
+                          : '持續陪伴初學者建立信心與基礎能力'}
                       </div>
                     </div>
                   </div>
 
-                  <div className="fastest-slot">
-                    <div className="fastest-label">
-                      <Clock3 size={16} />
-                      最近可約時間
-                    </div>
-                    <button type="button" className="fastest-button" onClick={() => syncFromFastest(coach)}>
-                      {formatNextAvailable(coach.next_available_at)}
-                    </button>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <span className="schedule-flag">
-                      <CalendarDays size={14} />
-                      {coach.has_fixed_schedule ? '有固定可約時段' : '尚未設定固定時段'}
-                    </span>
-                    {coach.slot_match ? (
-                      <span className="schedule-flag" style={{ background: '#dbeafe', color: '#1d4ed8', borderColor: '#bfdbfe' }}>
-                        目前條件可約
-                      </span>
-                    ) : null}
-                  </div>
-
-                  <div className="stats-row">
-                    <div className="stat-box">
-                      <div className="stat-label">價格</div>
-                      <div className="stat-value">NT${Number(coach.min_price || 0).toLocaleString()} 起</div>
-                    </div>
-                    <div className="stat-box">
-                      <div className="stat-label">方案數</div>
-                      <div className="stat-value">{coach.plan_count || 1} 種方案</div>
-                    </div>
-                    <div className="stat-box">
-                      <div className="stat-label">地區</div>
-                      <div className="stat-value" style={{ fontSize: 14 }}>
-                        <MapPin size={14} style={{ verticalAlign: 'text-bottom', marginRight: 4 }} />
-                        {coach.location || '待補'}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="card-actions">
-                    <button type="button" className="ghost-btn" onClick={() => {
+                  {/* 【CTA 區】 */}
+                  <div className="card-actions" style={{ marginTop: 12 }}>
+                    <button type="button" className="ghost-btn" style={{ flex: 1 }} onClick={() => {
                       const params = new URLSearchParams(filters);
                       router.push(`/coaches/${coach.id}?${params.toString()}`);
                     }}>
-                      查看時段
+                      👉 先看看教練
                     </button>
-                    <button type="button" className="primary-btn" onClick={() => {
+                    <button type="button" className="primary-btn" style={{ flex: 1.8, background: '#F59E0B', color: '#fff', boxShadow: '0 8px 20px rgba(245,158,11,0.3)' }} onClick={() => {
                       const params = new URLSearchParams(filters);
                       router.push(`/coaches/${coach.id}?${params.toString()}`);
                     }}>
-                      查看教練
+                      👉 預約體驗課
                     </button>
                   </div>
                 </article>

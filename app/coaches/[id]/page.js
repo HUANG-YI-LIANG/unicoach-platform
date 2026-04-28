@@ -712,32 +712,117 @@ export default function CoachDetailPage({ params }) {
           </div>
         </section>
 
-        <section className="content-grid">
+        {/* 1. 最上方：先聊聊 */}
+        <div style={{ marginTop: 20 }}>
+          <button type="button" className="ghost-btn" onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: '#fff', border: '1px solid #cbd5e1', fontSize: 16, color: '#334155' }}>
+            <MessageCircle size={18} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
+            有任何問題？先與教練聊聊
+          </button>
+        </div>
+
+        <section className="content-grid" style={{ gridTemplateColumns: '1fr', gap: 20 }}>
+          
+          {/* 2. 上方區塊：教練資訊與家長須知 */}
+          <div className="panel">
+            <h2>教學資訊與家長須知</h2>
+            {coach.trust_badges && coach.trust_badges.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+                {coach.trust_badges.includes('coach_license') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                    <ShieldCheck size={16} /> 特定球類教練認證
+                  </div>
+                )}
+                {coach.trust_badges.includes('cpr_aed') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#991B1B', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                    <Shield size={16} /> CPR/AED 急救認證
+                  </div>
+                )}
+                {coach.trust_badges.includes('police_check') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#1E40AF', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
+                    <ShieldCheck size={16} /> 良民證 (無犯罪紀錄)
+                  </div>
+                )}
+              </div>
+            )}
+            <div style={{ display: 'grid', gap: 10, color: '#334155', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
+              <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
+              <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
+              <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
+            </div>
+
+            <div style={{ marginBottom: 32 }}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><FileDigit size={18} color="#2563EB" /> 核心教學理念</h3>
+              <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.philosophy || '教練尚未填寫教學理念。'}</p>
+            </div>
+            {coach.teaching_features && (
+              <div style={{ marginBottom: 32 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><BookOpen size={18} color="#2563EB" /> 課程特色與預期成長</h3>
+                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.teaching_features}</p>
+              </div>
+            )}
+            {coach.communication_style && (
+              <div style={{ marginBottom: 32 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><Mail size={18} color="#2563EB" /> 家長溝通機制</h3>
+                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.communication_style}</p>
+              </div>
+            )}
+            {coach.policy_rules && (
+              <div style={{ marginBottom: 16 }}>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則</h3>
+                <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                  <p style={{ color: '#475569', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.policy_rules}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="panel">
+            <h2>影片</h2>
+            <p className="lead">教學與自我介紹影片會顯示在這裡。</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: '#64748b', fontSize: 13 }}>
+              <Video size={15} /> 目前共 {videos.length} 支
+            </div>
+            <VideoGallery videos={videos} />
+          </div>
+
+          <div className="panel">
+            <h2>評價</h2>
+            <p className="lead">先看時段，也要快速確認過往上課回饋。</p>
+            {reviews.length === 0 ? (
+              <div style={{ color: '#64748b', fontSize: 14 }}>目前還沒有評價。</div>
+            ) : (
+              <div className="review-list">
+                {reviews.map((review) => (
+                  <div key={review.id} className="review-card">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                      <div style={{ fontWeight: 900, color: '#0f172a' }}>{review.reviewer_name || '匿名學生'}</div>
+                      <div style={{ color: '#f59e0b', fontWeight: 900 }}>{review.rating} / 5</div>
+                    </div>
+                    <div style={{ color: '#334155', fontSize: 14, lineHeight: 1.7 }}>{review.comment || '這則評價沒有文字內容。'}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 3. 中間區塊：方案與預約 */}
           <div className="panel">
             <h2>每週固定可約時段表</h2>
             <p className="lead">先看完整時段，再決定預約。灰色格位代表目前不可約或已被占用。</p>
-
             <div className="week-header">
               <div className="week-nav">
-                <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))}>
-                  <ChevronLeft size={16} />
-                </button>
+                <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft size={16} /></button>
                 <div className="week-range">{formatWeekRange(weekStart)}</div>
-                <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))}>
-                  <ChevronRight size={16} />
-                </button>
+                <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight size={16} /></button>
               </div>
               <div style={{ color: '#64748b', fontSize: 13 }}>預設顯示本週，可切換前後週</div>
             </div>
-
             <div className="schedule-wrap">
               <table className="schedule-table">
                 <thead>
                   <tr>
                     <th className="schedule-time">時間</th>
-                    {weekSchedule.weekDates.map((date) => (
-                      <th key={date}>{formatWeekdayHeader(date)}</th>
-                    ))}
+                    {weekSchedule.weekDates.map((date) => <th key={date}>{formatWeekdayHeader(date)}</th>)}
                   </tr>
                 </thead>
                 <tbody>
@@ -771,238 +856,122 @@ export default function CoachDetailPage({ params }) {
             </div>
           </div>
 
-          <div className="side-panel">
-            <div className="panel">
-              <h2>方案與預約</h2>
-              <p className="lead">先選時段，再選方案。不可用方案會保留顯示，但以灰色禁用。</p>
-
-              <div className="plan-list">
-                {availablePlansForSlot.length ? availablePlansForSlot.map((plan) => (
-                  <button
-                    key={plan.id}
-                    type="button"
-                    className={`plan-card ${plan.available ? '' : 'disabled'} ${selectedPlanId === plan.id ? 'active' : ''}`}
-                    disabled={!plan.available}
-                    onClick={() => setSelectedPlanId(plan.id)}
-                  >
-                    <div className="plan-top">
-                      <div>
-                        <div className="plan-title">{plan.title}</div>
-                        <div className="plan-meta">{plan.duration_minutes} 分鐘</div>
-                      </div>
-                      <div className="plan-title">NT${Number(plan.price || 0).toLocaleString()}</div>
-                    </div>
-                    {!plan.available ? (
-                      <div className="plan-meta" style={{ color: '#94a3b8', marginTop: 10 }}>這個時段容納不了此方案長度</div>
-                    ) : null}
-                  </button>
-                )) : (
-                  <div style={{ color: '#64748b', fontSize: 14 }}>先在左側時段表點選一個可約時段。</div>
-                )}
-              </div>
-
-              <div className="form-stack" style={{ marginTop: 18 }}>
-                <div className="form-grid">
-                  <div>
-                    <label className="field-label">年級 / 年齡</label>
-                    <input className="field" value={bookingForm.age} onChange={(event) => setBookingForm((current) => ({ ...current, age: event.target.value }))} placeholder="例如：大一 / 國三" />
-                  </div>
-                  <div>
-                    <label className="field-label">性別</label>
-                    <select className="select" value={bookingForm.gender} onChange={(event) => setBookingForm((current) => ({ ...current, gender: event.target.value }))}>
-                      <option value="">請選擇</option>
-                      <option value="男">男</option>
-                      <option value="女">女</option>
-                      <option value="其他">其他</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-grid">
-                  <div>
-                    <label className="field-label">上課人數</label>
-                    <select className="select" value={bookingForm.attendeesCount} onChange={(event) => setBookingForm((current) => ({ ...current, attendeesCount: Number(event.target.value) }))}>
-                      {[1, 2, 3, 4, 5].map((count) => (
-                        <option key={count} value={count}>{count} 人</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="field-label">學習狀態</label>
-                    <select className="select" value={bookingForm.learningStatus} onChange={(event) => setBookingForm((current) => ({ ...current, learningStatus: event.target.value }))}>
-                      <option value="初學">初學</option>
-                      <option value="進階">進階</option>
-                      <option value="穩定訓練">穩定訓練</option>
-                      <option value="比賽準備">比賽準備</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="form-grid">
-                  <div>
-                    <label className="field-label">預約模式</label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
-                      <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: !bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: !bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
-                    </div>
-                  </div>
-                  {bookingForm.isRecurring ? (
+          {/* 4. 下方區塊：購買課程 */}
+          <div className="panel">
+            <h2>選擇方案與填寫資料</h2>
+            <div className="plan-list" style={{ marginBottom: 24 }}>
+              {availablePlansForSlot.length ? availablePlansForSlot.map((plan) => (
+                <button
+                  key={plan.id}
+                  type="button"
+                  className={`plan-card ${plan.available ? '' : 'disabled'} ${selectedPlanId === plan.id ? 'active' : ''}`}
+                  disabled={!plan.available}
+                  onClick={() => setSelectedPlanId(plan.id)}
+                >
+                  <div className="plan-top">
                     <div>
-                      <label className="field-label">總堂數 (每週一堂)</label>
-                      <select className="select" value={bookingForm.recurringWeeks} onChange={(e) => setBookingForm(c => ({...c, recurringWeeks: Number(e.target.value)}))}>
-                        <option value={4}>連續 4 週</option>
-                        <option value={8}>連續 8 週</option>
-                        <option value={12}>連續 12 週</option>
-                      </select>
+                      <div className="plan-title">{plan.title}</div>
+                      <div className="plan-meta">{plan.duration_minutes} 分鐘</div>
                     </div>
-                  ) : (
-                    <div>
-                      <label className="field-label">已選時段</label>
-                      <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選左側時段'} readOnly />
-                    </div>
-                  )}
-                </div>
-
-                {bookingForm.isRecurring && (
-                  <div>
-                    <label className="field-label">首堂課時段 (後續將以每週自動順延)</label>
-                    <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選左側時段'} readOnly />
+                    <div className="plan-title">NT${Number(plan.price || 0).toLocaleString()}</div>
                   </div>
-                )}
+                  {!plan.available && <div className="plan-meta" style={{ color: '#94a3b8', marginTop: 10 }}>這個時段容納不了此方案長度</div>}
+                </button>
+              )) : (
+                <div style={{ color: '#64748b', fontSize: 14 }}>先在上方時段表點選一個可約時段。</div>
+              )}
+            </div>
 
+            <div className="form-stack">
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div>
-                  <label className="field-label">上課地址</label>
-                  <input
-                    className="field"
-                    value={bookingForm.address}
-                    onChange={(event) => setBookingForm((current) => ({ ...current, address: event.target.value }))}
-                    placeholder={userProfile?.address || '請輸入上課地址'}
-                  />
+                  <label className="field-label">年級 / 年齡</label>
+                  <input className="field" value={bookingForm.age} onChange={(event) => setBookingForm((current) => ({ ...current, age: event.target.value }))} placeholder="例如：大一 / 國三" />
+                </div>
+                <div>
+                  <label className="field-label">性別</label>
+                  <select className="select" value={bookingForm.gender} onChange={(event) => setBookingForm((current) => ({ ...current, gender: event.target.value }))}>
+                    <option value="">請選擇</option>
+                    <option value="男">男</option>
+                    <option value="女">女</option>
+                    <option value="其他">其他</option>
+                  </select>
                 </div>
               </div>
 
-              <div className="action-row">
-                <button type="button" className="ghost-btn" onClick={handleChat}>
-                  <MessageCircle size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />
-                  先聊聊
-                </button>
-                <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking}>
-                  <CalendarDays size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />
-                  {submitting ? '建立預約中...' : `送出預約 (一次付清 NT$${((selectedPlan?.price || coach?.base_price || 0) * (bookingForm.isRecurring ? bookingForm.recurringWeeks : 1)).toLocaleString()})`}
-                </button>
-              </div>
-            </div>
-
-            <div className="panel">
-              <h2>教學資訊與家長須知</h2>
-              
-              {/* Trust Badges */}
-              {coach.trust_badges && coach.trust_badges.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                  {coach.trust_badges.includes('coach_license') && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                      <ShieldCheck size={16} /> 特定球類教練認證
-                    </div>
-                  )}
-                  {coach.trust_badges.includes('cpr_aed') && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#991B1B', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                      <Shield size={16} /> CPR/AED 急救認證
-                    </div>
-                  )}
-                  {coach.trust_badges.includes('police_check') && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#1E40AF', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                      <ShieldCheck size={16} /> 良民證 (無犯罪紀錄)
-                    </div>
-                  )}
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div>
+                  <label className="field-label">上課人數</label>
+                  <select className="select" value={bookingForm.attendeesCount} onChange={(event) => setBookingForm((current) => ({ ...current, attendeesCount: Number(event.target.value) }))}>
+                    {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count} 人</option>)}
+                  </select>
                 </div>
-              )}
-
-              <div style={{ display: 'grid', gap: 10, color: '#334155', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
-                <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
-                <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
-                <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
+                <div>
+                  <label className="field-label">學習狀態</label>
+                  <select className="select" value={bookingForm.learningStatus} onChange={(event) => setBookingForm((current) => ({ ...current, learningStatus: event.target.value }))}>
+                    <option value="初學">初學</option>
+                    <option value="進階">進階</option>
+                    <option value="穩定訓練">穩定訓練</option>
+                    <option value="比賽準備">比賽準備</option>
+                  </select>
+                </div>
               </div>
 
-              {/* 核心教學理念 */}
-              <div style={{ marginBottom: 32 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
-                  <FileDigit size={18} color="#2563EB" /> 核心教學理念
-                </h3>
-                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
-                  {coach.philosophy || '教練尚未填寫教學理念。'}
-                </p>
-              </div>
-
-              {/* 課程特色與預期成長 */}
-              {(coach.teaching_features) && (
-                <div style={{ marginBottom: 32 }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
-                    <BookOpen size={18} color="#2563EB" /> 課程特色與預期成長
-                  </h3>
-                  <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
-                    {coach.teaching_features}
-                  </p>
-                </div>
-              )}
-
-              {/* 家長溝通機制 */}
-              {(coach.communication_style) && (
-                <div style={{ marginBottom: 32 }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
-                    <Mail size={18} color="#2563EB" /> 家長溝通機制
-                  </h3>
-                  <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
-                    {coach.communication_style}
-                  </p>
-                </div>
-              )}
-
-              {/* 費用與請假規則 */}
-              {(coach.policy_rules) && (
-                <div style={{ marginBottom: 16 }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}>
-                    <DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則
-                  </h3>
-                  <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                    <p style={{ color: '#475569', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>
-                      {coach.policy_rules}
-                    </p>
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <div>
+                  <label className="field-label">預約模式</label>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: !bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: !bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            <div className="panel">
-              <h2>影片</h2>
-              <p className="lead">教學與自我介紹影片會顯示在這裡。</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: '#64748b', fontSize: 13 }}>
-                <Video size={15} />
-                目前共 {videos.length} 支
+                {bookingForm.isRecurring ? (
+                  <div>
+                    <label className="field-label">總堂數 (每週一堂)</label>
+                    <select className="select" value={bookingForm.recurringWeeks} onChange={(e) => setBookingForm(c => ({...c, recurringWeeks: Number(e.target.value)}))}>
+                      <option value={4}>連續 4 週</option>
+                      <option value={8}>連續 8 週</option>
+                      <option value={12}>連續 12 週</option>
+                    </select>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="field-label">已選時段</label>
+                    <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選上方時段'} readOnly />
+                  </div>
+                )}
               </div>
-              <VideoGallery videos={videos} />
-            </div>
 
-            <div className="panel">
-              <h2>評價</h2>
-              <p className="lead">先看時段，也要快速確認過往上課回饋。</p>
-              {reviews.length === 0 ? (
-                <div style={{ color: '#64748b', fontSize: 14 }}>目前還沒有評價。</div>
-              ) : (
-                <div className="review-list">
-                  {reviews.map((review) => (
-                    <div key={review.id} className="review-card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                        <div style={{ fontWeight: 900, color: '#0f172a' }}>{review.reviewer_name || '匿名學生'}</div>
-                        <div style={{ color: '#f59e0b', fontWeight: 900 }}>{review.rating} / 5</div>
-                      </div>
-                      <div style={{ color: '#334155', fontSize: 14, lineHeight: 1.7 }}>{review.comment || '這則評價沒有文字內容。'}</div>
-                    </div>
-                  ))}
+              {bookingForm.isRecurring && (
+                <div>
+                  <label className="field-label">首堂課時段 (後續將以每週自動順延)</label>
+                  <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選上方時段'} readOnly />
                 </div>
               )}
+
+              <div>
+                <label className="field-label">上課地址</label>
+                <input
+                  className="field"
+                  value={bookingForm.address}
+                  onChange={(event) => setBookingForm((current) => ({ ...current, address: event.target.value }))}
+                  placeholder={userProfile?.address || '請輸入上課地址'}
+                />
+              </div>
             </div>
           </div>
+
         </section>
+
+        {/* 5. 最底端：送出預約 */}
+        <div style={{ position: 'sticky', bottom: 20, zIndex: 50, marginTop: 24, padding: '0 12px' }}>
+          <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', padding: 16, borderRadius: 24, boxShadow: '0 12px 40px rgba(15,23,42,0.15)', border: '1px solid rgba(226,232,240,0.8)' }}>
+            <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: '#F59E0B', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}>
+              <CalendarDays size={18} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
+              {submitting ? '建立預約中...' : `送出預約 (一次付清 NT$${((selectedPlan?.price || coach?.base_price || 0) * (bookingForm.isRecurring ? bookingForm.recurringWeeks : 1)).toLocaleString()})`}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
