@@ -204,7 +204,7 @@ export default function UserDashboard() {
     })();
   }, [router]);
 
-  const levelDiscount = `${(profile.level ?? 1) * 5}%`;
+  const levelDiscount = `${profile.base_discount ?? ((profile.level ?? 1) * 5)}%`;
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
   const handleMarkAsRead = async (id, isGlobal) => {
