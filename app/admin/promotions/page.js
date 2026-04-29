@@ -101,6 +101,10 @@ export default function PromotionsAdmin() {
   };
 
   const handleUpdateUser = async (userId, level, customDiscount) => {
+    const previousUsers = [...usersList];
+    // 先做 Optimistic UI 更新
+    setUsersList(prev => prev.map(u => u.id === userId ? { ...u, level, custom_discount: customDiscount } : u));
+
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: 'PATCH',
@@ -108,13 +112,14 @@ export default function PromotionsAdmin() {
         body: JSON.stringify({ level, custom_discount: customDiscount }),
       });
       if (!response.ok) {
-        const data = await response.json();
+        const data = await response.json().catch(() => ({}));
         throw new Error(data.error || '更新使用者失敗');
       }
       
-      setUsersList(prev => prev.map(u => u.id === userId ? { ...u, level, custom_discount: customDiscount } : u));
       showMessage('success', '使用者設定已更新');
     } catch (err) {
+      // 失敗時還原
+      setUsersList(previousUsers);
       showMessage('error', err.message);
     }
   };
