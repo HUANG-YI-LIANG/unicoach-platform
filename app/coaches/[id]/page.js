@@ -2,38 +2,13 @@
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, GraduationCap, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, Mail, DollarSign, FileDigit, Shield } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Clock3, GraduationCap, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, Mail, DollarSign, FileDigit, Shield, ChevronDown, ChevronUp } from 'lucide-react';
 import VideoGallery from '@/components/VideoGallery';
-import { addDays, buildBookedSlotSet, generateSlotsForCoach, getTodayDateString } from '@/lib/coachAvailability';
+import { addDays as addDaysAvailability, buildBookedSlotSet, generateSlotsForCoach, getTodayDateString } from '@/lib/coachAvailability';
+import { startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, format, isSameMonth, isSameDay, isBefore, startOfDay, getDay, parseISO, addDays, getWeeksInMonth, startOfWeek, endOfWeek } from 'date-fns';
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
 const SLOT_MINUTES = 30;
-
-function startOfWeek(dateString) {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const weekday = date.getUTCDay();
-  date.setUTCDate(date.getUTCDate() - weekday);
-  return date.toISOString().slice(0, 10);
-}
-
-function getWeekDates(weekStart) {
-  return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-}
-
-function formatWeekdayHeader(dateString) {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const weekday = WEEKDAY_LABELS[date.getUTCDay()];
-  return `${month}/${day} (${weekday})`;
-}
-
-function formatWeekRange(weekStart) {
-  const weekEnd = addDays(weekStart, 6);
-  const [startMonth, startDay] = weekStart.split('-').slice(1).map(Number);
-  const [endMonth, endDay] = weekEnd.split('-').slice(1).map(Number);
-  return `${startMonth}/${startDay} - ${endMonth}/${endDay}`;
-}
 
 function toDateTimeKey(value) {
   return new Intl.DateTimeFormat('sv-SE', {
@@ -59,49 +34,25 @@ function normalizeBookingTime(value) {
   return `${value}:00+08:00`;
 }
 
-function buildWeekSchedule(coach, bookings, weekStart) {
-  const weekDates = getWeekDates(weekStart);
+function buildMonthAvailability(coach, bookings, monthStart) {
+  const startDateStr = format(monthStart, 'yyyy-MM-dd');
+  // Fetch a 45 day window to easily cover the current month
   const bookedSlotSet = buildBookedSlotSet(bookings);
   const slots = generateSlotsForCoach(coach, bookedSlotSet, {
-    startDate: weekStart,
-    lookaheadDays: 7,
+    startDate: startDateStr,
+    lookaheadDays: 45,
   });
-  const slotMap = new Map(slots.map((slot) => [`${slot.date}-${slot.time}`, slot]));
-  const timeRows = [];
 
-  for (let cursor = 8 * 60; cursor <= 21 * 60; cursor += SLOT_MINUTES) {
-    const hours = String(Math.floor(cursor / 60)).padStart(2, '0');
-    const minutes = String(cursor % 60).padStart(2, '0');
-    const timeText = `${hours}:${minutes}`;
-
-    timeRows.push({
-      time: timeText,
-      slots: weekDates.map((date) => {
-        const slot = slotMap.get(`${date}-${timeText}`);
-        if (!slot) {
-          return {
-            date,
-            time: timeText,
-            iso: `${date}T${timeText}:00+08:00`,
-            available: false,
-            booked: false,
-          };
-        }
-
-        return {
-          date,
-          time: timeText,
-          iso: slot.iso,
-          available: !slot.booked,
-          booked: slot.booked,
-        };
-      }),
-    });
+  const dateMap = new Map();
+  for (const slot of slots) {
+    if (!slot.booked) {
+      dateMap.set(slot.date, true);
+    }
   }
 
   return {
-    weekDates,
-    timeRows,
+    slots,
+    dateMap
   };
 }
 
@@ -151,11 +102,19 @@ export default function CoachDetailPage({ params }) {
     return null;
   });
   const [selectedPlanId, setSelectedPlanId] = useState('');
-  const [weekStart, setWeekStart] = useState(() => {
+  
+  const [currentMonth, setCurrentMonth] = useState(() => {
     if (initDate) {
-      return startOfWeek(initDate);
+      return startOfMonth(parseISO(initDate));
     }
-    return startOfWeek(getTodayDateString());
+    return startOfMonth(new Date());
+  });
+  
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (initDate) {
+      return initDate;
+    }
+    return null;
   });
   const [bookingForm, setBookingForm] = useState({
     age: '',
@@ -247,12 +206,12 @@ export default function CoachDetailPage({ params }) {
     }));
   }, [availablePlansForSlot, selectedSlot]);
 
-  const weekSchedule = useMemo(() => {
+  const monthAvailability = useMemo(() => {
     if (!coach) {
       return null;
     }
-    return buildWeekSchedule(coach, bookings, weekStart);
-  }, [bookings, coach, weekStart]);
+    return buildMonthAvailability(coach, bookings, currentMonth);
+  }, [bookings, coach, currentMonth]);
 
   async function handleChat() {
     if (!coach) {
@@ -321,7 +280,7 @@ export default function CoachDetailPage({ params }) {
     return <div className="p-10 text-center text-slate-500">載入教練資料中...</div>;
   }
 
-  if (!coach || !weekSchedule) {
+  if (!coach || !monthAvailability) {
     return <div className="p-10 text-center text-slate-500">找不到教練資料</div>;
   }
 
@@ -452,88 +411,103 @@ export default function CoachDetailPage({ params }) {
           color: #64748b;
           font-size: 14px;
         }
-        .week-header {
+        .calendar-nav {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
-        .week-nav {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .week-nav button {
+        .calendar-nav-btn {
           border: none;
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
-          background: #eff6ff;
-          color: #1d4ed8;
+          background: transparent;
+          color: #64748b;
           cursor: pointer;
+          padding: 8px;
         }
-        .week-range {
-          font-size: 14px;
+        .calendar-month-title {
+          font-size: 16px;
           font-weight: 900;
           color: #0f172a;
         }
-        .schedule-wrap {
-          overflow-x: auto;
-        }
-        .schedule-table {
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 6px;
-          min-width: 760px;
-        }
-        .schedule-table th {
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 800;
+        .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 8px;
           text-align: center;
-          padding-bottom: 8px;
         }
-        .schedule-time {
-          width: 72px;
-          color: #64748b;
-          font-size: 12px;
+        .cal-weekday {
+          font-size: 13px;
           font-weight: 800;
-          text-align: right;
-          padding-right: 4px;
-        }
-        .schedule-cell {
-          border: none;
-          width: calc((100% - 72px) / 7);
-          min-width: 92px;
-          border-radius: 16px;
-          padding: 12px 8px;
-          font-size: 12px;
-          font-weight: 900;
-          cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-        .schedule-cell.available {
-          background: #dbeafe;
-          color: #1d4ed8;
-        }
-        .schedule-cell.available:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 10px 22px rgba(37, 99, 235, 0.16);
-        }
-        .schedule-cell.selected {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          color: white;
-        }
-        .schedule-cell.unavailable {
-          background: #e2e8f0;
           color: #94a3b8;
-          cursor: not-allowed;
+          margin-bottom: 8px;
         }
-        .schedule-cell.unavailable .schedule-status {
-          display: block;
-          font-size: 11px;
-          margin-top: 4px;
+        .cal-day-btn {
+          background: transparent;
+          border: 1px solid transparent;
+          border-radius: 8px;
+          padding: 10px 0;
+          font-size: 15px;
+          color: #cbd5e1;
+          font-weight: 700;
+          cursor: default;
+        }
+        .cal-day-btn.outside {
+          visibility: hidden;
+        }
+        .cal-day-btn.bookable {
+          color: #0f172a;
+          cursor: pointer;
+          border: 1px solid #e2e8f0;
+        }
+        .cal-day-btn.selected {
+          background: #f59e0b;
+          color: white;
+          border-color: #f59e0b;
+          font-weight: 900;
+        }
+        .time-slots-container {
+          margin-top: 24px;
+          padding-top: 24px;
+          border-top: 1px solid #e2e8f0;
+        }
+        .slot-group {
+          margin-bottom: 24px;
+        }
+        .slot-group-title {
+          font-size: 14px;
+          font-weight: 900;
+          color: #64748b;
+          margin-bottom: 12px;
+        }
+        .slot-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+          gap: 10px;
+        }
+        .slot-btn {
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 8px;
+          padding: 12px 0;
+          font-size: 15px;
+          font-weight: 700;
+          color: #334155;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .slot-btn:not(.booked):hover {
+          border-color: #cbd5e1;
+          background: #f1f5f9;
+        }
+        .slot-btn.selected {
+          background: #f59e0b;
+          color: white;
+          border-color: #f59e0b;
+        }
+        .slot-btn.booked {
+          opacity: 0.5;
+          cursor: not-allowed;
+          background: #f1f5f9;
         }
         .plan-list {
           display: grid;
@@ -807,53 +781,113 @@ export default function CoachDetailPage({ params }) {
 
           {/* 3. 中間區塊：方案與預約 */}
           <div className="panel">
-            <h2>每週固定可約時段表</h2>
-            <p className="lead">先看完整時段，再決定預約。灰色格位代表目前不可約或已被占用。</p>
-            <div className="week-header">
-              <div className="week-nav">
-                <button type="button" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft size={16} /></button>
-                <div className="week-range">{formatWeekRange(weekStart)}</div>
-                <button type="button" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight size={16} /></button>
-              </div>
-              <div style={{ color: '#64748b', fontSize: 13 }}>預設顯示本週，可切換前後週</div>
+            <h2>預約日期與時段</h2>
+            <p className="lead">請先點選日期，再選擇下方的可用時段。</p>
+            
+            <div className="calendar-nav">
+              <button type="button" className="calendar-nav-btn" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft size={20} /></button>
+              <div className="calendar-month-title">{format(currentMonth, 'yyyy年M月')}</div>
+              <button type="button" className="calendar-nav-btn" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight size={20} /></button>
             </div>
-            <div className="schedule-wrap">
-              <table className="schedule-table">
-                <thead>
-                  <tr>
-                    <th className="schedule-time">時間</th>
-                    {weekSchedule.weekDates.map((date) => <th key={date}>{formatWeekdayHeader(date)}</th>)}
-                  </tr>
-                </thead>
-                <tbody>
-                  {weekSchedule.timeRows.map((row) => (
-                    <tr key={row.time}>
-                      <td className="schedule-time">{row.time}</td>
-                      {row.slots.map((slot) => {
-                        const isSelected = selectedSlot?.date === slot.date && selectedSlot?.time === slot.time;
+            
+            {(() => {
+              const monthStart = startOfMonth(currentMonth);
+              const monthEnd = endOfMonth(monthStart);
+              const startDate = startOfWeek(monthStart);
+              const endDate = endOfWeek(monthEnd);
+              
+              const dayNodes = [];
+              let day = startDate;
+              while (day <= endDate) {
+                const cloneDay = day;
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const hasSlots = monthAvailability.dateMap.get(dateStr);
+                const isCurrentMonth = isSameMonth(day, monthStart);
+                const isSelected = selectedDate === dateStr;
+                const isPast = isBefore(startOfDay(day), startOfDay(new Date()));
+                const clickable = hasSlots && !isPast;
+                
+                dayNodes.push(
+                  <button
+                    key={dateStr}
+                    type="button"
+                    disabled={!clickable}
+                    className={`cal-day-btn ${!isCurrentMonth ? 'outside' : ''} ${clickable ? 'bookable' : ''} ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      if (clickable) {
+                        setSelectedDate(dateStr);
+                        setSelectedSlot(null); // Reset selected slot
+                      }
+                    }}
+                  >
+                    {format(day, 'd')}
+                  </button>
+                );
+                day = addDays(day, 1);
+              }
+              
+              return (
+                <div className="calendar-grid">
+                  {WEEKDAY_LABELS.map(wd => <div key={wd} className="cal-weekday">{wd}</div>)}
+                  {dayNodes}
+                </div>
+              );
+            })()}
+
+            {/* 時段列表 */}
+            {selectedDate ? (() => {
+              const dateSlots = monthAvailability.slots.filter(s => s.date === selectedDate);
+              
+              const morningSlots = dateSlots.filter(s => parseInt(s.time.split(':')[0], 10) < 13);
+              const afternoonSlots = dateSlots.filter(s => {
+                const h = parseInt(s.time.split(':')[0], 10);
+                return h >= 13 && h < 18;
+              });
+              const eveningSlots = dateSlots.filter(s => parseInt(s.time.split(':')[0], 10) >= 18);
+              
+              const renderSlotGroup = (title, slots) => {
+                if (slots.length === 0) return null;
+                return (
+                  <div className="slot-group">
+                    <div className="slot-group-title">{title}</div>
+                    <div className="slot-grid">
+                      {slots.map(slot => {
+                        const isSelected = selectedSlot?.iso === slot.iso;
                         return (
-                          <td key={`${slot.date}-${slot.time}`}>
-                            <button
-                              type="button"
-                              className={`schedule-cell ${slot.available ? 'available' : 'unavailable'} ${isSelected ? 'selected' : ''}`}
-                              disabled={!slot.available}
-                              onClick={() => setSelectedSlot(slot)}
-                            >
-                              <div>{slot.time}</div>
-                              {!slot.available ? (
-                                <span className="schedule-status">{slot.booked ? '已滿' : '不可約'}</span>
-                              ) : isSelected ? (
-                                <span className="schedule-status">已選擇</span>
-                              ) : null}
-                            </button>
-                          </td>
+                          <button
+                            key={slot.iso}
+                            type="button"
+                            disabled={slot.booked}
+                            className={`slot-btn ${slot.booked ? 'booked' : ''} ${isSelected ? 'selected' : ''}`}
+                            onClick={() => setSelectedSlot(slot)}
+                          >
+                            {slot.time}
+                          </button>
                         );
                       })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div className="time-slots-container">
+                  {dateSlots.length === 0 ? (
+                    <div style={{ color: '#64748b', fontSize: 14 }}>這天沒有可預約的時段</div>
+                  ) : (
+                    <>
+                      {renderSlotGroup('中午', morningSlots)}
+                      {renderSlotGroup('下午', afternoonSlots)}
+                      {renderSlotGroup('晚上', eveningSlots)}
+                    </>
+                  )}
+                </div>
+              );
+            })() : (
+              <div className="time-slots-container" style={{ borderTop: 'none', paddingTop: 0 }}>
+                <div style={{ color: '#64748b', fontSize: 14 }}>請先在上方點選有空檔的日期</div>
+              </div>
+            )}
           </div>
 
           {/* 4. 下方區塊：購買課程 */}
