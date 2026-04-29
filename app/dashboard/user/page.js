@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Wallet, X } from 'lucide-react';
+import { Mail, Wallet, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import PromotionCard from '@/components/PromotionCard';
 
@@ -106,9 +106,39 @@ export default function UserDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [showInbox, setShowInbox] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [applyingCode, setApplyingCode] = useState(false);
   const [threshold, setThreshold] = useState('15');
   const router = useRouter();
   const { logout } = useAuth();
+
+  const handleApplyCode = async () => {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) return;
+    
+    setApplyingCode(true);
+    try {
+      const res = await fetch('/api/user/apply-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.error || '套用失敗');
+      } else {
+        alert(data.message || '套用成功！');
+        setPromoCodeInput('');
+        // Reload page to reflect new referrer
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('系統發生錯誤');
+    } finally {
+      setApplyingCode(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -486,6 +516,46 @@ export default function UserDashboard() {
                 </p>
               </>
             )}
+
+            <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="輸入優惠碼或推薦人推廣碼"
+                value={promoCodeInput}
+                onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  outline: 'none',
+                  color: DARK,
+                }}
+              />
+              <button
+                onClick={handleApplyCode}
+                disabled={applyingCode || !promoCodeInput.trim()}
+                style={{
+                  padding: '0 20px',
+                  background: promoCodeInput.trim() ? BLUE : '#cbd5e1',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontWeight: 800,
+                  fontSize: 14,
+                  cursor: promoCodeInput.trim() ? 'pointer' : 'not-allowed',
+                  transition: '0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                {applyingCode ? <Loader2 size={16} className="animate-spin" /> : '套用'}
+              </button>
+            </div>
           </div>
         </div>
       </div>
