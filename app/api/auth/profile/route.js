@@ -35,6 +35,7 @@ export async function GET(request) {
     const { data: authUser } = await adminSupabase.auth.admin.getUserById(auth.user.id);
     const userMetadata = authUser?.user?.user_metadata || {};
     const claimedCoupons = userMetadata.coupons || [];
+    const activeCoupon = userMetadata.active_coupon || null;
 
     // 3. 讀取教練資料 (coaches 表)
     let coachData = null;
@@ -56,9 +57,16 @@ export async function GET(request) {
 
     const isFirst = (bookingsCount || 0) === 0;
     const baseDiscount = calcBaseDiscount(user.level || 1, isFirst);
+    const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
 
     return NextResponse.json({ 
-      profile: { ...user, base_discount: baseDiscount, referred_by_name: referredByName, coupons: claimedCoupons }, 
+      profile: { 
+        ...user, 
+        base_discount: totalDiscount, 
+        referred_by_name: referredByName, 
+        coupons: claimedCoupons,
+        active_coupon: activeCoupon
+      }, 
       coach: coachData 
     });
   } catch (err) {

@@ -108,6 +108,7 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
   const [promoCodeInput, setPromoCodeInput] = useState('');
   const [applyingCode, setApplyingCode] = useState(false);
+  const [usingCouponId, setUsingCouponId] = useState(null);
   const [threshold, setThreshold] = useState('15');
   const router = useRouter();
   const { logout } = useAuth();
@@ -137,6 +138,31 @@ export default function UserDashboard() {
       alert('系統發生錯誤');
     } finally {
       setApplyingCode(false);
+    }
+  };
+
+  const handleUseCoupon = async (couponId) => {
+    if (!couponId) return;
+    setUsingCouponId(couponId);
+    try {
+      const res = await fetch('/api/user/use-coupon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ couponId })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        alert(data.error || '套用失敗');
+      } else {
+        alert(data.message || '套用成功！');
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error using coupon:', error);
+      alert('系統發生錯誤');
+    } finally {
+      setUsingCouponId(null);
     }
   };
 
@@ -528,7 +554,33 @@ export default function UserDashboard() {
                   >
                     <p style={{ margin: 0, fontSize: 26, fontWeight: 900, color: BLUE }}>{coupon.discount}%</p>
                     <p style={{ margin: '4px 0 2px', fontSize: 13, fontWeight: 700, color: DARK }}>{coupon.label}</p>
-                    <p style={{ margin: 0, fontSize: 11, color: MUTED }}>到期日：{coupon.expires}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: MUTED, marginBottom: 12 }}>到期日：{coupon.expires}</p>
+                    
+                    <button
+                      onClick={() => handleUseCoupon(coupon.id)}
+                      disabled={usingCouponId === coupon.id || profile.active_coupon?.id === coupon.id}
+                      style={{
+                        width: '100%',
+                        padding: '8px 0',
+                        background: profile.active_coupon?.id === coupon.id ? '#10B981' : BLUE,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 700,
+                        cursor: profile.active_coupon?.id === coupon.id ? 'default' : 'pointer',
+                        opacity: usingCouponId === coupon.id ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6
+                      }}
+                    >
+                      {usingCouponId === coupon.id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : null}
+                      {profile.active_coupon?.id === coupon.id ? '使用中' : '使用'}
+                    </button>
                   </div>
                 ))}
               </div>
