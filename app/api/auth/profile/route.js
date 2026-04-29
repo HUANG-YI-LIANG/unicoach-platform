@@ -19,6 +19,18 @@ export async function GET(request) {
 
     if (error) throw error;
 
+    let referredByName = null;
+    if (user.referred_by) {
+      const { data: referrer } = await adminSupabase
+        .from('users')
+        .select('name')
+        .eq('id', user.referred_by)
+        .maybeSingle();
+      if (referrer) {
+        referredByName = referrer.name;
+      }
+    }
+
     // 2. 讀取教練資料 (coaches 表)
     let coachData = null;
     if (user.role === 'coach') {
@@ -41,7 +53,7 @@ export async function GET(request) {
     const baseDiscount = calcBaseDiscount(user.level || 1, isFirst);
 
     return NextResponse.json({ 
-      profile: { ...user, base_discount: baseDiscount }, 
+      profile: { ...user, base_discount: baseDiscount, referred_by_name: referredByName }, 
       coach: coachData 
     });
   } catch (err) {

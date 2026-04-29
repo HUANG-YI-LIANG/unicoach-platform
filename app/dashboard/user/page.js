@@ -176,7 +176,10 @@ export default function UserDashboard() {
 
   return (
     <div style={{ background: BG, minHeight: '100vh', paddingBottom: 100, position: 'relative' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 20px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px 0' }}>
+        <div style={{ fontSize: 13, color: MUTED, fontWeight: 700 }}>
+          {profile.referred_by_name ? `(推薦人: ${profile.referred_by_name})` : ''}
+        </div>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowInbox(true)}

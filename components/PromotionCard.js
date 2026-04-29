@@ -115,6 +115,7 @@ export default function PromotionCard({ user }) {
               推廣錢包餘額
             </div>
             <div style={{ fontSize: 24, fontWeight: 900 }}>NT$ {balance.toLocaleString()}</div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>僅用於上課</div>
           </div>
         </div>
       </div>
