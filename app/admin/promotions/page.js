@@ -624,7 +624,7 @@ export default function PromotionsAdmin() {
                         }}>
                           {userItem.custom_discount !== null 
                             ? userItem.custom_discount 
-                            : (levelDiscounts[userItem.level || 1] || 5)}%
+                            : (levelDiscounts[userItem.level || 1] ?? 5)}%
                         </div>
                       </td>
                     </tr>
