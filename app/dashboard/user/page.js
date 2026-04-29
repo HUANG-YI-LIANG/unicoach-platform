@@ -384,6 +384,30 @@ export default function UserDashboard() {
                                 {notification.discount_percent}% OFF
                               </span>
                             )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPromoCodeInput(notification.discount_code);
+                                setShowInbox(false);
+                                setTimeout(() => {
+                                  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                                }, 100);
+                              }}
+                              style={{
+                                background: '#16A34A',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '4px 12px',
+                                fontSize: 13,
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                transition: '0.2s',
+                                marginLeft: 4,
+                              }}
+                            >
+                              使用
+                            </button>
                           </div>
                         )}
                       </div>
