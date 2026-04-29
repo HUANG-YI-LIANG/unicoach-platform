@@ -26,6 +26,9 @@ export default function PromotionsAdmin() {
   const [notiPercent, setNotiPercent] = useState('');
   const [sendingNoti, setSendingNoti] = useState(false);
   const [message, setMessage] = useState(null);
+  
+  const [levelDiscounts, setLevelDiscounts] = useState({ 1: 5, 2: 10, 3: 15, 4: 20 });
+  const [usersList, setUsersList] = useState([]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -44,9 +47,10 @@ export default function PromotionsAdmin() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, coachesRes] = await Promise.all([
+      const [settingsRes, coachesRes, usersRes] = await Promise.all([
         fetch('/api/admin/settings'),
         fetch('/api/admin/coaches'),
+        fetch('/api/admin/users'),
       ]);
 
       if (settingsRes.ok) {
@@ -54,17 +58,64 @@ export default function PromotionsAdmin() {
         if (settingsData.settings?.commission_rate !== undefined) {
           setGlobalCommission(Number(settingsData.settings.commission_rate));
         }
+        
+        setLevelDiscounts({
+          1: settingsData.settings?.level_1_discount !== undefined ? Number(settingsData.settings.level_1_discount) : 5,
+          2: settingsData.settings?.level_2_discount !== undefined ? Number(settingsData.settings.level_2_discount) : 10,
+          3: settingsData.settings?.level_3_discount !== undefined ? Number(settingsData.settings.level_3_discount) : 15,
+          4: settingsData.settings?.level_4_discount !== undefined ? Number(settingsData.settings.level_4_discount) : 20,
+        });
       }
 
       if (coachesRes.ok) {
         const coachesData = await coachesRes.json();
         setCoaches(coachesData.coaches || []);
       }
+      
+      if (usersRes.ok) {
+        const usersData = await usersRes.json();
+        setUsersList(usersData.users || []);
+      }
     } catch (error) {
       console.error('[PROMOTIONS ADMIN FETCH ERROR]', error);
       showMessage('error', '載入推廣設定失敗');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdateLevelDiscount = async (level, discount) => {
+    try {
+      const response = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: `level_${level}_discount`, value: discount }),
+      });
+      if (!response.ok) throw new Error('更新等級折扣失敗');
+      
+      setLevelDiscounts(prev => ({ ...prev, [level]: discount }));
+      showMessage('success', `Lv.${level} 等級折扣已更新`);
+    } catch (err) {
+      showMessage('error', err.message);
+    }
+  };
+
+  const handleUpdateUser = async (userId, level, customDiscount) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level, custom_discount: customDiscount }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || '更新使用者失敗');
+      }
+      
+      setUsersList(prev => prev.map(u => u.id === userId ? { ...u, level, custom_discount: customDiscount } : u));
+      showMessage('success', '使用者設定已更新');
+    } catch (err) {
+      showMessage('error', err.message);
     }
   };
 
@@ -229,6 +280,22 @@ export default function PromotionsAdmin() {
               }}
             >
               通知與折扣
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: 10,
+                border: 'none',
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: 'pointer',
+                background: activeTab === 'users' ? WHITE : 'transparent',
+                color: activeTab === 'users' ? DARK : MUTED,
+                boxShadow: activeTab === 'users' ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
+              }}
+            >
+              使用者折扣
             </button>
           </div>
         </header>
@@ -579,7 +646,160 @@ export default function PromotionsAdmin() {
             </div>
           </div>
         )}
+
+        {activeTab === 'users' && (
+          <div style={{ display: 'grid', gap: 24 }}>
+      {/* 全域等級折扣設定 */}
+      <div
+        style={{
+          background: WHITE,
+          borderRadius: 24,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
+          overflow: 'hidden',
+          padding: 24,
+        }}
+      >
+        <h2 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Percent color={BLUE} size={20} /> 等級折扣預設值
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16 }}>
+          {[1, 2, 3, 4].map((lv) => (
+            <div key={lv} style={{ background: BG, padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: MUTED, marginBottom: 8 }}>
+                Lv.{lv} 折扣 (%)
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  value={levelDiscounts[lv]}
+                  onChange={(e) => setLevelDiscounts(prev => ({ ...prev, [lv]: Number(e.target.value) }))}
+                  onBlur={(e) => handleUpdateLevelDiscount(lv, Number(e.target.value))}
+                  min={0}
+                  max={100}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 10,
+                    border: '1px solid #CBD5E1',
+                    fontSize: 15,
+                    fontWeight: 700,
+                    color: DARK,
+                  }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p style={{ margin: '16px 0 0', fontSize: 13, color: MUTED }}>
+          修改後將自動儲存並套用至全站使用者（若使用者擁有「個別專屬折扣」，則以專屬折扣為主）。
+        </p>
       </div>
+
+      {/* 個別使用者設定 */}
+      <div
+        style={{
+          background: WHITE,
+          borderRadius: 24,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
+          overflow: 'hidden',
+        }}
+      >
+        <div style={{ padding: 24, borderBottom: '1px solid #F1F5F9' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Info color={BLUE} size={20} /> 個別使用者設定
+          </h2>
+          <p style={{ color: MUTED, fontSize: 13, marginTop: 8, margin: 0 }}>
+            可手動調整使用者的等級，或給予專屬的客製化折扣。設定客製化折扣後，將忽略預設等級折扣。
+          </p>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>使用者</th>
+                <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>等級 (Lv)</th>
+                <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>個別專屬折扣 (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usersList.map((u) => (
+                <tr key={u.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>
+                      {u.name || '未命名'}
+                    </div>
+                    <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>{u.email || '-'}</div>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <select
+                      value={u.level || 1}
+                      onChange={(e) => handleUpdateUser(u.id, Number(e.target.value), u.custom_discount)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 10,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: DARK,
+                        background: WHITE,
+                      }}
+                    >
+                      {[1, 2, 3, 4].map(lv => (
+                        <option key={lv} value={lv}>Lv.{lv}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td style={{ padding: '16px 24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input
+                        type="number"
+                        placeholder="無"
+                        defaultValue={u.custom_discount ?? ''}
+                        min={0}
+                        max={100}
+                        onBlur={(e) => {
+                          const val = e.target.value;
+                          const newDiscount = val === '' ? null : Number(val);
+                          if (newDiscount !== u.custom_discount) {
+                            handleUpdateUser(u.id, u.level || 1, newDiscount);
+                          }
+                        }}
+                        style={{
+                          width: 80,
+                          padding: '8px 12px',
+                          borderRadius: 10,
+                          border: '1px solid #CBD5E1',
+                          fontSize: 14,
+                          fontWeight: 800,
+                          color: DARK,
+                          background: u.custom_discount !== null ? '#FEF3C7' : WHITE,
+                        }}
+                      />
+                      {u.custom_discount !== null && (
+                        <span style={{ fontSize: 12, fontWeight: 800, color: '#D97706', background: '#FEF3C7', padding: '4px 8px', borderRadius: 6 }}>
+                          覆蓋預設
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {usersList.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ padding: 40, textAlign: 'center', color: MUTED, fontSize: 14 }}>
+                    尚無使用者資料。
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )}
+</div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { calcBaseDiscount } from '@/lib/discountRules';
 
 export async function GET(request) {
   try {
@@ -49,14 +48,30 @@ export async function GET(request) {
     }
 
 
-    // 4. 計算基礎折扣百分比 (base_discount)
-    const { count: bookingsCount } = await adminSupabase
-      .from('bookings')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', auth.user.id);
+    // 4. 讀取等級折扣設定
+    const { data: settings } = await adminSupabase
+      .from('platform_settings')
+      .select('*')
+      .like('key', 'level_%_discount');
+      
+    const settingsObj = (settings || []).reduce((acc, curr) => {
+      acc[curr.key] = Number(curr.value);
+      return acc;
+    }, {});
 
-    const isFirst = (bookingsCount || 0) === 0;
-    const baseDiscount = calcBaseDiscount(user.level || 1, isFirst);
+    // 5. 計算總折扣
+    let baseDiscount = 5; // 預設 5%
+    const levelKey = `level_${user.level || 1}_discount`;
+    
+    if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
+      baseDiscount = Number(userMetadata.custom_discount);
+    } else if (settingsObj[levelKey] !== undefined) {
+      baseDiscount = settingsObj[levelKey];
+    } else {
+      // 如果還沒有全域設定，使用預設值：Lv1=5, Lv2=10, Lv3=15, Lv4=20
+      baseDiscount = (user.level || 1) * 5;
+    }
+
     const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
 
     return NextResponse.json({ 
