@@ -31,7 +31,12 @@ export async function GET(request) {
       }
     }
 
-    // 2. 讀取教練資料 (coaches 表)
+    // 2. 讀取 Auth metadata (for coupons)
+    const { data: authUser } = await adminSupabase.auth.admin.getUserById(auth.user.id);
+    const userMetadata = authUser?.user?.user_metadata || {};
+    const claimedCoupons = userMetadata.coupons || [];
+
+    // 3. 讀取教練資料 (coaches 表)
     let coachData = null;
     if (user.role === 'coach') {
       const { data: coach } = await adminSupabase
@@ -53,7 +58,7 @@ export async function GET(request) {
     const baseDiscount = calcBaseDiscount(user.level || 1, isFirst);
 
     return NextResponse.json({ 
-      profile: { ...user, base_discount: baseDiscount, referred_by_name: referredByName }, 
+      profile: { ...user, base_discount: baseDiscount, referred_by_name: referredByName, coupons: claimedCoupons }, 
       coach: coachData 
     });
   } catch (err) {
