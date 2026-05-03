@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
-import { getNextAvailableSlot, normalizeAvailabilityRules } from '@/lib/coachAvailability';
-import { buildDefaultPlans, normalizePlan } from '@/lib/coachPlans';
+import { getNextAvailableSlot } from '@/lib/coachAvailability';
+import {
+  getCoachSaleability,
+  getFormalActiveAvailabilityRules,
+  getFormalActivePlans,
+} from '@/lib/salableCoachRules';
 
 const LEVEL_META = {
   1: { key: 'beginner', label: '初階教練' },
@@ -84,9 +88,22 @@ export async function GET(_request, { params }) {
       throw planError;
     }
 
-    const activePlans = (coachPlans || []).map(normalizePlan);
+    const activePlans = getFormalActivePlans(coachPlans || []);
+    const formalAvailabilityRules = getFormalActiveAvailabilityRules(availabilityRules || []);
+    const saleability = getCoachSaleability({
+      coach,
+      plans: activePlans,
+      availabilityRules: formalAvailabilityRules,
+    });
     const coachLevelValue = normalizeLevel(coach.users.level);
-    const planOptions = activePlans.length ? activePlans : buildDefaultPlans(id, coach.base_price);
+    const planOptions = activePlans;
+    const coachWithFormalAvailability = {
+      ...coach,
+      availability_rules: formalAvailabilityRules,
+      availability_exceptions: availabilityExceptions || [],
+      available_times: null,
+    };
+    const nextAvailableSlot = saleability.canSell ? getNextAvailableSlot(coachWithFormalAvailability, bookings || []) : null;
 
     const formattedCoach = {
       id: coach.users.id,
@@ -100,17 +117,16 @@ export async function GET(_request, { params }) {
       coach_level: LEVEL_META[coachLevelValue].key,
       coach_level_label: LEVEL_META[coachLevelValue].label,
       coach_level_value: coachLevelValue,
-      availability_rules: availabilityRules || [],
+      availability_rules: formalAvailabilityRules,
       availability_exceptions: availabilityExceptions || [],
-      has_fixed_schedule: normalizeAvailabilityRules(availabilityRules || [], coach.available_times).length > 0,
-      next_available_at: getNextAvailableSlot({
-        ...coach,
-        availability_rules: availabilityRules || [],
-        availability_exceptions: availabilityExceptions || [],
-      }, bookings || [])?.iso || null,
+      has_fixed_schedule: formalAvailabilityRules.length > 0,
+      can_book: saleability.canSell,
+      saleability_reasons: saleability.reasons,
+      uses_legacy_available_times: !formalAvailabilityRules.length && Boolean(coach.available_times),
+      next_available_at: nextAvailableSlot?.iso || null,
       plan_options: planOptions,
       plan_count: planOptions.length,
-      min_price: Math.min(...planOptions.map((plan) => plan.price)),
+      min_price: planOptions.length ? Math.min(...planOptions.map((plan) => plan.price)) : null,
       ...coach,
       users: undefined,
     };

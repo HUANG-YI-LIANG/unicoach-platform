@@ -7,9 +7,12 @@ import {
   generateSlotsForCoach,
   getNextAvailableSlot,
   getTodayDateString,
-  normalizeAvailabilityRules,
 } from '@/lib/coachAvailability';
-import { buildDefaultPlans, normalizePlan } from '@/lib/coachPlans';
+import {
+  getCoachSaleability,
+  getFormalActiveAvailabilityRules,
+  getFormalActivePlans,
+} from '@/lib/salableCoachRules';
 
 const LEVEL_META = {
   1: { key: 'beginner', label: '初階教練', rank: 1 },
@@ -77,21 +80,31 @@ function matchesLevel(coach, levelFilter) {
 }
 
 function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availabilityExceptions, selectedDate, selectedTime) {
+  const formalAvailabilityRules = getFormalActiveAvailabilityRules(availabilityRules);
+  const activePlans = getFormalActivePlans(coachPlans);
+  const saleability = getCoachSaleability({
+    coach,
+    plans: activePlans,
+    availabilityRules: formalAvailabilityRules,
+  });
   const coachWithAvailability = {
     ...coach,
-    availability_rules: availabilityRules,
+    availability_rules: formalAvailabilityRules,
     availability_exceptions: availabilityExceptions,
+    available_times: null,
   };
   const coachLevelValue = normalizeLevel(coach?.users?.level);
-  const nextAvailableSlot = getNextAvailableSlot(coachWithAvailability, coachBookings, {
-    startDate: getTodayDateString(),
-    lookaheadDays: 14,
-  });
+  const nextAvailableSlot = saleability.canSell
+    ? getNextAvailableSlot(coachWithAvailability, coachBookings, {
+        startDate: getTodayDateString(),
+        lookaheadDays: 14,
+      })
+    : null;
 
-  const hasFixedSchedule = normalizeAvailabilityRules(availabilityRules, coach.available_times).length > 0;
+  const hasFixedSchedule = formalAvailabilityRules.length > 0;
   const bookingSet = buildBookedSlotSet(coachBookings);
-  const slotMatch = doesCoachMatchSlot(coachWithAvailability, coachBookings, selectedDate, selectedTime);
-  const availableTimeOptions = selectedDate
+  const slotMatch = saleability.canSell && doesCoachMatchSlot(coachWithAvailability, coachBookings, selectedDate, selectedTime);
+  const availableTimeOptions = selectedDate && saleability.canSell
     ? generateSlotsForCoach(coachWithAvailability, bookingSet, {
         startDate: selectedDate,
         lookaheadDays: 1,
@@ -99,8 +112,7 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
         .filter((slot) => !slot.booked)
         .map((slot) => slot.time)
     : [];
-  const activePlans = (coachPlans || []).map(normalizePlan).filter((plan) => plan.is_active);
-  const planOptions = activePlans.length ? activePlans : buildDefaultPlans(coach.user_id, coach.base_price);
+  const planOptions = activePlans;
   const prices = planOptions.map((plan) => Number(plan.price || 0)).filter((price) => price > 0);
 
   return {
@@ -118,8 +130,11 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     base_price: coach.base_price,
     commission_rate: coach.commission_rate,
     has_fixed_schedule: hasFixedSchedule,
+    can_book: saleability.canSell,
+    saleability_reasons: saleability.reasons,
+    uses_legacy_available_times: !hasFixedSchedule && Boolean(coach.available_times),
     plan_count: planOptions.length,
-    min_price: prices.length ? Math.min(...prices) : coach.base_price || 1000,
+    min_price: prices.length ? Math.min(...prices) : null,
     coach_level: LEVEL_META[coachLevelValue].key,
     coach_level_label: LEVEL_META[coachLevelValue].label,
     coach_level_value: coachLevelValue,

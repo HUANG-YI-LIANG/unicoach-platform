@@ -17,7 +17,7 @@ BEGIN
   ) THEN
     ALTER TABLE public.bookings
     ADD CONSTRAINT bookings_payment_status_check
-    CHECK (payment_status IN ('pending', 'paid', 'refunded')) NOT VALID;
+    CHECK (payment_status IN ('pending', 'paid', 'refunded', 'expired')) NOT VALID;
   END IF;
 END $$;
 

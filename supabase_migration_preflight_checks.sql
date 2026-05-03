@@ -81,7 +81,27 @@ GROUP BY coach_id, month
 HAVING COUNT(*) > 1
 ORDER BY month DESC, coach_id;
 
--- 5) settlement_total_violations
+-- 5) availability_exception_overlaps
+-- Detect rows that would violate the same-coach/same-date no-overlap exclusion constraint.
+SELECT
+  'availability_exception_overlaps' AS check_name,
+  e1.id AS exception_id,
+  e2.id AS conflicting_exception_id,
+  e1.coach_id,
+  e1.exception_date,
+  e1.start_time,
+  e1.end_time,
+  e2.start_time AS conflicting_start_time,
+  e2.end_time AS conflicting_end_time
+FROM coach_availability_exceptions e1
+JOIN coach_availability_exceptions e2
+  ON e1.coach_id = e2.coach_id
+ AND e1.exception_date = e2.exception_date
+ AND e1.id < e2.id
+ AND timerange(e1.start_time, e1.end_time, '[)') && timerange(e2.start_time, e2.end_time, '[)')
+ORDER BY e1.coach_id, e1.exception_date, e1.start_time;
+
+-- 6) settlement_total_violations
 -- Detect settlement totals that would violate non-negative financial constraints.
 SELECT
   'settlement_total_violations' AS check_name,
@@ -96,7 +116,7 @@ WHERE COALESCE(total_amount, 0) < 0
    OR COALESCE(booking_count, 0) < 0
 ORDER BY created_at DESC NULLS LAST, id;
 
--- 6) report_integrity_violations
+-- 7) report_integrity_violations
 -- Detect reports that do not map to a valid booking/coach relationship used by
 -- the Stage 3 report and completion workflow.
 SELECT
@@ -112,7 +132,7 @@ WHERE b.id IS NULL
    OR lr.coach_id IS DISTINCT FROM b.coach_id
 ORDER BY lr.created_at DESC NULLS LAST, lr.id;
 
--- 7) optional_payment_ready_settlement_preview
+-- 8) optional_payment_ready_settlement_preview
 -- This is not a violation. It previews the rows that Stage 5 settlement should
 -- be able to pick up after the migration guards are applied.
 SELECT

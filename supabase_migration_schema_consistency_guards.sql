@@ -2,6 +2,8 @@
 -- Run after the base schema and previous migrations.
 -- Uses IF NOT EXISTS / guarded DO blocks so it is safe to re-run.
 
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 CREATE TABLE IF NOT EXISTS public.platform_settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL,
@@ -72,6 +74,42 @@ ON public.password_reset_tokens(token);
 
 CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id
 ON public.password_reset_tokens(user_id);
+
+ALTER TABLE public.chat_rooms
+ADD COLUMN IF NOT EXISTS pair_key TEXT;
+
+UPDATE public.chat_rooms
+SET pair_key = user_id::TEXT || ':' || coach_id::TEXT
+WHERE pair_key IS NULL;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'chat_rooms_pair_key_required'
+  ) THEN
+    ALTER TABLE public.chat_rooms
+    ADD CONSTRAINT chat_rooms_pair_key_required
+    CHECK (pair_key IS NOT NULL) NOT VALID;
+  END IF;
+END $$;
+
+CREATE UNIQUE INDEX IF NOT EXISTS chat_rooms_pair_key_unique
+ON public.chat_rooms(pair_key);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'coach_availability_exceptions_no_overlap'
+  ) THEN
+    ALTER TABLE public.coach_availability_exceptions
+    ADD CONSTRAINT coach_availability_exceptions_no_overlap
+    EXCLUDE USING gist (
+      coach_id WITH =,
+      exception_date WITH =,
+      timerange(start_time, end_time, '[)') WITH &&
+    );
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_learning_reports_user_id
 ON public.learning_reports(user_id);

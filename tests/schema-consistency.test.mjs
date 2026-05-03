@@ -28,11 +28,25 @@ test('canonical schema defines API-required settings and reset-token tables', ()
 
 test('bookings schema includes API-written money and workflow fields plus database invariants', () => {
   assertSqlContains(combinedSql, /price_adjustment\s+INTEGER\s+NOT NULL\s+DEFAULT\s+0/i, 'adjust-price API writes bookings.price_adjustment');
-  assertSqlContains(combinedSql, /payment_status\s+TEXT\s+[^,]*CHECK\s*\(\s*payment_status\s+IN\s*\([^)]*'pending'[^)]*'paid'[^)]*'refunded'[^)]*\)/i, 'booking payment_status enum must be constrained');
+  assertSqlContains(combinedSql, /payment_status\s+TEXT\s+[^,]*CHECK\s*\(\s*payment_status\s+IN\s*\([^)]*'pending'[^)]*'paid'[^)]*'refunded'[^)]*'expired'[^)]*\)/i, 'booking payment_status enum must be constrained and include expired pending-payment cleanup state');
   assertSqlContains(combinedSql, /paid_at\s+TIMESTAMPTZ/i, 'confirm-payment API writes paid_at');
   assertSqlContains(combinedSql, /payment_expires_at\s+TIMESTAMPTZ/i, 'booking payment expiry is required');
   assertSqlContains(combinedSql, /bookings_non_negative_money/i, 'bookings need non-negative money CHECK constraint');
   assertSqlContains(combinedSql, /bookings_paid_state_consistency/i, 'paid bookings need DB-level paid_at/status consistency guard');
+});
+
+test('chat rooms schema prevents duplicate user coach rooms', () => {
+  assertSqlContains(combinedSql, /pair_key\s+TEXT\s+NOT\s+NULL/i, 'chat_rooms.pair_key is required for deterministic upsert');
+  assertSqlContains(combinedSql, /UNIQUE\s*\(\s*pair_key\s*\)/i, 'chat_rooms.pair_key must be unique to prevent duplicate rooms');
+});
+
+test('availability exceptions schema prevents overlapping same-day coach exceptions', () => {
+  assertSqlContains(combinedSql, /btree_gist/i, 'availability exception overlap guard needs btree_gist for UUID/date equality in exclusion constraints');
+  assertSqlContains(combinedSql, /coach_availability_exceptions_no_overlap/i, 'availability exceptions need a named no-overlap database guard');
+  assertSqlContains(combinedSql, /EXCLUDE\s+USING\s+gist/i, 'availability exceptions need a GiST exclusion constraint');
+  assertSqlContains(combinedSql, /coach_id\s+WITH\s+=/i, 'availability exception overlap guard must be scoped per coach');
+  assertSqlContains(combinedSql, /exception_date\s+WITH\s+=/i, 'availability exception overlap guard must be scoped per date');
+  assertSqlContains(combinedSql, /timerange\s*\(\s*start_time\s*,\s*end_time\s*,\s*'\[\)'\s*\)\s+WITH\s+&&/i, 'availability exception overlap guard must reject overlapping time ranges while allowing touching boundaries');
 });
 
 test('learning reports schema matches report and AI draft APIs', () => {

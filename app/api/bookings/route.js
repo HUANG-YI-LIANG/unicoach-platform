@@ -4,7 +4,7 @@ import { requireAuth } from '@/lib/auth';
 import { calcBaseDiscount } from '@/lib/discountRules';
 import { addWeeks } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
-import { pickDefaultPlanById, normalizePlan } from '@/lib/coachPlans';
+import { getCoachSaleability, pickFormalPlanForBooking } from '@/lib/salableCoachRules';
 import {
   assertFutureBookingTime,
   calculateBookingPrice,
@@ -148,27 +148,23 @@ export async function POST(request) {
       }, { status: 403 });
     }
 
-    let selectedPlan = null;
-    if (planId && !String(planId).startsWith('default-')) {
-      const { data: plan, error: planError } = await adminSupabase
-        .from('coach_plans')
-        .select('*')
-        .eq('id', planId)
-        .eq('coach_id', coachId)
-        .eq('is_active', true)
-        .maybeSingle();
+    const { data: coachPlans, error: coachPlansError } = await adminSupabase
+      .from('coach_plans')
+      .select('*')
+      .eq('coach_id', coachId)
+      .eq('is_active', true);
 
-      if (planError) throw planError;
-      selectedPlan = normalizePlan(plan);
-      if (!selectedPlan) {
-        return NextResponse.json({ error: '找不到可預約的教練方案' }, { status: 400 });
-      }
-    } else {
-      selectedPlan = pickDefaultPlanById(coachId, coach.base_price, planId);
+    if (coachPlansError) throw coachPlansError;
+
+    const planPick = pickFormalPlanForBooking({
+      requestedPlanId: planId,
+      plans: coachPlans || [],
+    });
+    if (!planPick.ok) {
+      return NextResponse.json({ error: planPick.error }, { status: planPick.status });
     }
 
-    const durationMinutes = selectedPlan.duration_minutes;
-    const planPrice = selectedPlan.price;
+    const selectedPlan = planPick.plan;
 
     const [{ data: availabilityRules, error: availabilityRulesError }, { data: availabilityExceptions, error: availabilityExceptionsError }] = await Promise.all([
       adminSupabase
@@ -183,6 +179,21 @@ export async function POST(request) {
 
     if (availabilityRulesError) throw availabilityRulesError;
     if (availabilityExceptionsError) throw availabilityExceptionsError;
+
+    const saleability = getCoachSaleability({
+      coach,
+      plans: coachPlans || [],
+      availabilityRules: availabilityRules || [],
+    });
+    if (!saleability.canSell) {
+      return NextResponse.json({
+        error: '該教練尚未完成正式課程方案或固定可預約時段設定，暫不開放預約',
+        reasons: saleability.reasons,
+      }, { status: 400 });
+    }
+
+    const durationMinutes = selectedPlan.duration_minutes;
+    const planPrice = selectedPlan.price;
 
     const totalSessions = isRecurring ? parseInt(recurringWeeks) : 1;
     const seriesId = isRecurring ? uuidv4() : null;
@@ -199,7 +210,7 @@ export async function POST(request) {
         durationMinutes,
         rules: availabilityRules || [],
         exceptions: availabilityExceptions || [],
-        legacyAvailableTimes: coach.available_times,
+        legacyAvailableTimes: null,
       });
       if (!availabilityCheck.ok) {
         return NextResponse.json({ error: `第 ${i + 1} 堂課無法預約：${availabilityCheck.error}` }, { status: 400 });

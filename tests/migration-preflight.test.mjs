@@ -28,6 +28,9 @@ test('migration preflight SQL covers every high-risk guard before applying migra
   assert.doesNotMatch(sql, /deposit_amount/i, 'booking money checks must not use obsolete bookings.deposit_amount');
   assert.match(sql, /booking_paid_state_violations/i, 'must detect status/payment_status/paid_at inconsistencies');
   assert.match(sql, /settlement_duplicate_active_batches/i, 'must detect duplicate active settlement batches before unique partial index');
+  assert.match(sql, /availability_exception_overlaps/i, 'must detect same-coach same-date overlapping availability exceptions before exclusion constraints');
+  assert.match(sql, /coach_availability_exceptions/i, 'availability exception preflight must inspect coach_availability_exceptions');
+  assert.match(sql, /timerange\s*\(\s*(?:\w+\.)?start_time\s*,\s*(?:\w+\.)?end_time\s*,\s*'\[\)'\s*\)\s*&&\s*timerange/i, 'availability exception preflight must use half-open timerange overlap checks');
   assert.match(sql, /settlement_total_violations/i, 'must detect invalid settlement totals before CHECK constraints');
   assert.match(sql, /report_integrity_violations/i, 'must detect report records that cannot satisfy workflow expectations');
 });

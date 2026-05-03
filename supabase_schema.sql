@@ -1,6 +1,8 @@
 -- Supabase Schema for College Sports Coaching Platform
 -- Please run this script in the Supabase SQL Editor
 
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- 1. Create Users
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -111,7 +113,13 @@ CREATE TABLE coach_availability_exceptions (
   reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CHECK(end_time > start_time)
+  CHECK(end_time > start_time),
+  CONSTRAINT coach_availability_exceptions_no_overlap
+    EXCLUDE USING gist (
+      coach_id WITH =,
+      exception_date WITH =,
+      timerange(start_time, end_time, '[)') WITH &&
+    )
 );
 
 CREATE INDEX idx_coach_availability_exceptions_coach_id_date ON coach_availability_exceptions(coach_id, exception_date);
@@ -129,7 +137,7 @@ CREATE TABLE bookings (
   deposit_paid INTEGER DEFAULT 0,
   platform_fee INTEGER NOT NULL,
   coach_payout INTEGER NOT NULL,
-  payment_status TEXT CHECK(payment_status IN ('pending', 'paid', 'refunded')) DEFAULT 'pending',
+  payment_status TEXT CHECK(payment_status IN ('pending', 'paid', 'refunded', 'expired')) DEFAULT 'pending',
   payment_method TEXT,
   payment_reference TEXT,
   paid_at TIMESTAMPTZ,
@@ -182,7 +190,9 @@ CREATE TABLE chat_rooms (
   booking_id UUID REFERENCES bookings(id),
   user_id UUID NOT NULL REFERENCES users(id),
   coach_id UUID NOT NULL REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  pair_key TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chat_rooms_pair_key_unique UNIQUE (pair_key)
 );
 
 CREATE TABLE chat_messages (
