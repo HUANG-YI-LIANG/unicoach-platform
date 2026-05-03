@@ -318,8 +318,8 @@ export default function CoachesPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         .coach-page {
           min-height: 100vh;
-          background: #F6F9FF;
-          color: #0F172A;
+          background: #0B1120;
+          color: #F8FAFC;
           padding-bottom: 96px;
         }
         .coach-shell {
@@ -335,17 +335,17 @@ export default function CoachesPage() {
           font-size: 22px;
           line-height: 1.2;
           font-weight: 900;
-          color: #1E3A8A;
+          color: #FFFFFF;
         }
         .hero p {
           margin: 0;
-          color: #64748B;
+          color: #94A3B8;
           font-size: 13px;
         }
         .filter-panel {
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
-          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+          background: rgba(30, 41, 59, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          backdrop-filter: blur(10px);
           border-radius: 16px;
           padding: 16px;
           position: sticky;
@@ -365,12 +365,12 @@ export default function CoachesPage() {
           gap: 8px;
           font-size: 14px;
           font-weight: 900;
-          color: #1E3A8A;
+          color: #FFFFFF;
         }
         .clear-btn {
           border: none;
           background: transparent;
-          color: #64748B;
+          color: #94A3B8;
           font-size: 12px;
           font-weight: 700;
           cursor: pointer;
@@ -381,8 +381,8 @@ export default function CoachesPage() {
           gap: 12px;
         }
         .filter-group {
-          background: #F8FAFC;
-          border: 1px solid #E2E8F0;
+          background: rgba(15, 23, 42, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.05);
           border-radius: 12px;
           padding: 12px;
         }
@@ -393,10 +393,10 @@ export default function CoachesPage() {
           margin-bottom: 8px;
           font-size: 12px;
           font-weight: 800;
-          color: #475569;
+          color: #CBD5E1;
         }
         .filter-helper {
-          color: #94A3B8;
+          color: #64748B;
           font-size: 11px;
           margin-bottom: 8px;
         }
@@ -404,7 +404,7 @@ export default function CoachesPage() {
           display: none;
           border: none;
           background: transparent;
-          color: #1E3A8A;
+          color: #38BDF8;
           font-weight: 800;
           font-size: 12px;
           cursor: pointer;
@@ -420,9 +420,9 @@ export default function CoachesPage() {
           display: none;
         }
         .date-btn, .time-btn {
-          border: 1px solid #E2E8F0;
-          background: #FFFFFF;
-          color: #334155;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.05);
+          color: #F1F5F9;
           border-radius: 8px;
           padding: 8px 10px;
           font-size: 12px;
@@ -431,13 +431,13 @@ export default function CoachesPage() {
           cursor: pointer;
         }
         .date-btn.active, .time-btn.active {
-          background: #1E3A8A;
-          color: #FFFFFF;
-          border-color: #1E3A8A;
+          background: #38BDF8;
+          color: #0F172A;
+          border-color: #38BDF8;
         }
         .time-btn.disabled {
-          background: #F1F5F9;
-          color: #94A3B8;
+          background: rgba(255, 255, 255, 0.02);
+          color: #475569;
           border-color: transparent;
           cursor: not-allowed;
         }
@@ -448,10 +448,11 @@ export default function CoachesPage() {
         }
         .field, .select {
           width: 100%;
-          border: 1px solid #CBD5E1;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 8px;
           padding: 8px 10px;
-          background: #FFFFFF;
+          background: rgba(15, 23, 42, 0.5);
+          color: #F8FAFC;
           font-size: 13px;
           outline: none;
         }
@@ -460,7 +461,7 @@ export default function CoachesPage() {
           justify-content: space-between;
           align-items: center;
           margin: 12px 0;
-          color: #475569;
+          color: #94A3B8;
           font-size: 12px;
           font-weight: 700;
         }
@@ -470,11 +471,11 @@ export default function CoachesPage() {
           gap: 12px;
         }
         .coach-card {
-          background: #FFFFFF;
-          border: 1px solid #E2E8F0;
+          background: rgba(30, 41, 59, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 12px;
           padding: 16px;
-          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
+          backdrop-filter: blur(10px);
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -483,8 +484,8 @@ export default function CoachesPage() {
           width: 56px;
           height: 56px;
           border-radius: 12px;
-          background: #F1F5F9;
-          color: #1E3A8A;
+          background: rgba(56, 189, 248, 0.1);
+          color: #38BDF8;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -506,9 +507,9 @@ export default function CoachesPage() {
           cursor: pointer;
         }
         .ghost-btn {
-          background: #FFFFFF;
-          border: 1px solid #CBD5E1;
-          color: #334155;
+          background: transparent;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          color: #E2E8F0;
         }
         .primary-btn {
           background: #F59E0B;
@@ -517,10 +518,10 @@ export default function CoachesPage() {
         .empty-state, .loading-state {
           padding: 40px 20px;
           text-align: center;
-          color: #64748B;
-          background: #FFFFFF;
+          color: #94A3B8;
+          background: rgba(30, 41, 59, 0.5);
           border-radius: 16px;
-          border: 1px solid #E2E8F0;
+          border: 1px solid rgba(255, 255, 255, 0.1);
           font-size: 13px;
         }
         @media (max-width: 900px) {
@@ -560,9 +561,9 @@ export default function CoachesPage() {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-                background: isFilterOpen ? '#1E3A8A' : '#FFFFFF',
-                color: isFilterOpen ? '#FFFFFF' : '#1E3A8A',
-                border: '1px solid #1E3A8A', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                background: isFilterOpen ? '#38BDF8' : 'rgba(255, 255, 255, 0.05)',
+                color: isFilterOpen ? '#0F172A' : '#38BDF8',
+                border: '1px solid #38BDF8', borderRadius: 8, fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >
@@ -636,7 +637,7 @@ export default function CoachesPage() {
                 </div>
                 <div style={{ height: 12 }} />
                 {!filters.date ? (
-                  <div style={{ color: '#64748b', fontSize: 13, padding: '12px', background: '#f8fafc', borderRadius: 12, textAlign: 'center' }}>
+                  <div style={{ color: '#94a3b8', fontSize: 13, padding: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: 12, textAlign: 'center' }}>
                     請先選擇上方日期，以查看可預約的時間。
                   </div>
                 ) : (
@@ -653,7 +654,7 @@ export default function CoachesPage() {
                         </button>
                       ))
                     ) : (
-                      <div style={{ color: '#64748b', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
+                      <div style={{ color: '#94a3b8', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
                         該日期目前沒有可預約的時段。
                       </div>
                     )}
@@ -733,15 +734,15 @@ export default function CoachesPage() {
               <article key={coach.id} className="coach-card">
                 {/* 1. 狀態與評價 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', fontWeight: 800 }}>
-                  <span style={{ color: '#1E3A8A', background: '#DBEAFE', padding: '2px 6px', borderRadius: '4px' }}>
+                  <span style={{ color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                     {coach.coach_level_label || '初階教練'}
                   </span>
                   {coach.rating_avg > 0 ? (
                     <span style={{ color: '#F59E0B' }}>⭐ {coach.rating_avg} ({coach.review_count})</span>
                   ) : (
-                    <span style={{ color: '#64748B' }}>新教練</span>
+                    <span style={{ color: '#94A3B8' }}>新教練</span>
                   )}
-                  <span style={{ color: '#16A34A', background: '#DCFCE7', padding: '2px 6px', borderRadius: '4px' }}>
+                  <span style={{ color: '#4ADE80', background: 'rgba(74, 222, 128, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                     已驗證
                   </span>
                 </div>
@@ -753,15 +754,15 @@ export default function CoachesPage() {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0F172A' }}>{coach.name}</h2>
+                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#F8FAFC' }}>{coach.name}</h2>
                       {coach.has_video && (
-                        <span style={{ color: '#2563EB', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
+                        <span style={{ color: '#38BDF8', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
                           <Video size={12}/> 看30秒介紹
                         </span>
                       )}
                     </div>
                     {(coach.philosophy || coach.experience) && (
-                      <div style={{ color: '#475569', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {coach.philosophy || coach.experience}
                       </div>
                     )}
@@ -769,15 +770,15 @@ export default function CoachesPage() {
                 </div>
 
                 {/* 3. 主教項目與地區 */}
-                <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#475569', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#94A3B8', flexWrap: 'wrap', alignItems: 'center' }}>
                   {(() => {
                     const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
                     if (sports.length === 0) return null;
                     return (
-                      <span style={{ fontWeight: 800, color: '#1E3A8A' }}>主教：{getSportEmoji(sports[0])} {sports[0]}</span>
+                      <span style={{ fontWeight: 800, color: '#38BDF8' }}>主教：{getSportEmoji(sports[0])} {sports[0]}</span>
                     );
                   })()}
-                  <span style={{ color: '#CBD5E1' }}>|</span>
+                  <span style={{ color: '#64748B' }}>|</span>
                   <span>地區：{coach.location || '未填寫'}</span>
                   {(() => {
                     const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
@@ -785,7 +786,7 @@ export default function CoachesPage() {
                     if (sparringSports.length > 0) {
                       return (
                         <>
-                          <span style={{ color: '#CBD5E1' }}>|</span>
+                          <span style={{ color: '#64748B' }}>|</span>
                           <span>可陪練：{sparringSports.join('、')}</span>
                         </>
                       );
@@ -795,25 +796,25 @@ export default function CoachesPage() {
                 </div>
 
                 {/* 4. 時間與價格 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '10px 12px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ color: '#1E3A8A', fontSize: '13px', fontWeight: 800 }}>
+                    <span style={{ color: '#38BDF8', fontSize: '13px', fontWeight: 800 }}>
                       {coach.next_available_at ? formatNextAvailable(coach.next_available_at) : '可先聊聊確認時間'}
                     </span>
                     {coach.booked_slot_count > 0 ? (
                       <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 800 }}>🔥 最近被預約 {coach.booked_slot_count} 次</span>
                     ) : (
-                      <span style={{ color: '#16A34A', fontSize: '11px', fontWeight: 700 }}>本週還有時段可約</span>
+                      <span style={{ color: '#4ADE80', fontSize: '11px', fontWeight: 700 }}>本週還有時段可約</span>
                     )}
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 900, color: '#0F172A', fontSize: '14px' }}>體驗課 NT${Number(coach.min_price || 1000).toLocaleString()}</div>
-                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>訂金 NT$300</div>
+                    <div style={{ fontWeight: 900, color: '#F8FAFC', fontSize: '14px' }}>體驗課 NT${Number(coach.min_price || 1000).toLocaleString()}</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>訂金 NT$300</div>
                   </div>
                 </div>
 
                 {/* 5. 成果 / 風格 */}
-                <div style={{ fontSize: '12px', color: '#16A34A', fontWeight: 800 }}>
+                <div style={{ fontSize: '12px', color: '#4ADE80', fontWeight: 800 }}>
                   🎯 {coach.experience ? `學員成果：${coach.experience.length > 20 ? coach.experience.slice(0, 20) + '...' : coach.experience}` : '教學風格：耐心陪練、適合初學者'}
                 </div>
 
