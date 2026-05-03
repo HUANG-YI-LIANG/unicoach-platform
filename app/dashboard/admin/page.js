@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import {
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut
 } from 'lucide-react';
 
 const BLUE = '#2563EB';
@@ -37,6 +37,31 @@ export default function AdminDashboard() {
 
   return (
     <div style={{ padding: '16px', marginTop: '-16px', position: 'relative', zIndex: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: DARK }}>管理員中心</h1>
+        <button
+          onClick={logout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            background: '#FEE2E2',
+            color: '#DC2626',
+            border: 'none',
+            borderRadius: '8px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={e => e.currentTarget.style.background = '#FECACA'}
+          onMouseOut={e => e.currentTarget.style.background = '#FEE2E2'}
+        >
+          <LogOut size={18} />
+          登出
+        </button>
+      </div>
+
       {/* -- Admin Management Center -- */}
       <div style={{ 
         display: 'grid', 

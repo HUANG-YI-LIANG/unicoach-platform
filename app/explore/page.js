@@ -6,9 +6,5 @@ export const metadata = {
 };
 
 export default function ExplorePage() {
-  return (
-    <main style={{ height: '100vh', width: '100vw', backgroundColor: '#000', overflow: 'hidden' }}>
-      <VideoFeed />
-    </main>
-  );
+  return <VideoFeed />;
 }

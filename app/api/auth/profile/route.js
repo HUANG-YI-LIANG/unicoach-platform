@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { SAFE_USER_PROFILE_FIELDS, sanitizeUserProfile } from '@/lib/securityRules';
 
 export async function GET(request) {
   try {
@@ -12,7 +13,7 @@ export async function GET(request) {
     // 1. 讀取用戶資料 (users 表)
     const { data: user, error } = await adminSupabase
       .from('users')
-      .select('*')
+      .select(SAFE_USER_PROFILE_FIELDS.join(', '))
       .eq('id', auth.user.id)
       .single();
 
@@ -76,7 +77,7 @@ export async function GET(request) {
 
     return NextResponse.json({ 
       profile: { 
-        ...user, 
+        ...sanitizeUserProfile(user), 
         base_discount: totalDiscount, 
         referred_by_name: referredByName, 
         coupons: claimedCoupons,

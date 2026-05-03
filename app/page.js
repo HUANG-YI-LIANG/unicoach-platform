@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileText, MapPin, Video, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, MapPin, User, ChevronRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const SPORT_IMAGES = {
@@ -92,14 +92,14 @@ export default function Home() {
         <div className="premium-hero-content">
           <div className="premium-brand">UniCoach</div>
           <h1 className="premium-title">找附近最適合你的<br />大學生教練</h1>
-          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練習</p>
+          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練</p>
           
           <div className="premium-cta-group">
             <Link href="/register?role=user" className="premium-btn-primary">
               我要找教練
             </Link>
             <Link href="/register?role=coach" className="premium-btn-text">
-              我要當教練
+              我是教練，想接案
             </Link>
           </div>
         </div>
@@ -108,16 +108,25 @@ export default function Home() {
       {/* 2. 三個信任點 */}
       <section className="premium-trust-section">
         <div className="premium-trust-card">
-          <div className="trust-icon-wrapper"><FileText size={20} /></div>
-          <div className="trust-text">每堂課都有學習紀錄</div>
+          <div className="trust-title">
+            <div className="trust-icon-wrapper"><FileText size={20} /></div>
+            每堂課都有學習紀錄
+          </div>
+          <div className="trust-desc">完整追蹤你的進步旅程</div>
         </div>
         <div className="premium-trust-card">
-          <div className="trust-icon-wrapper"><MapPin size={20} /></div>
-          <div className="trust-text">可到府教學 / 球場陪練</div>
+          <div className="trust-title">
+            <div className="trust-icon-wrapper"><MapPin size={20} /></div>
+            可到府教學 / 球場陪練
+          </div>
+          <div className="trust-desc">地點彈性，教練隨時就緒</div>
         </div>
         <div className="premium-trust-card">
-          <div className="trust-icon-wrapper"><Video size={20} /></div>
-          <div className="trust-text">真實教練資料與影片介紹</div>
+          <div className="trust-title">
+            <div className="trust-icon-wrapper"><User size={20} /></div>
+            真實教練資料與評價
+          </div>
+          <div className="trust-desc">全部通過審核與身分驗證</div>
         </div>
       </section>
 
@@ -156,6 +165,13 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {/* 4. Footer */}
+      <footer className="premium-footer">
+        <span className="premium-footer-brand">UniCoach</span>
+        <p className="premium-footer-copy">© UniCoach</p>
+      </footer>
+
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes spin {
           from { transform: rotate(0deg); }

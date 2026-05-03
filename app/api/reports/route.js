@@ -1,6 +1,7 @@
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { canSubmitLearningReport } from "@/lib/bookingWorkflow";
 
 // ============================================================
 // POST：提交學習報告
@@ -37,10 +38,13 @@ export async function POST(request) {
       return NextResponse.json({ error: '找不到該預約記錄。' }, { status: 404 });
     }
 
-    // ✅ 核心防護：非管理員必須是該預約的教練
-    if (auth.user.role !== 'admin' && booking.coach_id !== auth.user.id) {
-      console.warn(`[SECURITY ALERT] 越權報告提交嘗試: UserID: ${auth.user.id}, BookingID: ${bookingId}`);
-      return NextResponse.json({ error: '您不是此預約的負責教練，無法提交報告。' }, { status: 403 });
+    // ✅ 核心防護：驗證負責教練/管理員與報告建立時機
+    const reportPermission = canSubmitLearningReport(booking, auth.user);
+    if (!reportPermission.ok) {
+      if (reportPermission.status === 403) {
+        console.warn(`[SECURITY ALERT] 越權報告提交嘗試: UserID: ${auth.user.id}, BookingID: ${bookingId}`);
+      }
+      return NextResponse.json({ error: reportPermission.error }, { status: reportPermission.status });
     }
 
     // 2. 檢查是否已存在報告（防止重複提交）

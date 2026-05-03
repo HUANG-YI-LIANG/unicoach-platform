@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import {
+  buildSettlementBatchInsert,
+  buildSettlementBookingUpdate,
+  groupSettleableBookingsByCoach,
+  isDuplicateActiveSettlementError,
+} from '@/lib/settlementRules';
 
 /**
  * GET /api/admin/settlements
@@ -48,23 +54,16 @@ export async function POST(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    const { data: existingBatches, error: existingError } = await adminSupabase
-      .from('settlement_batches')
-      .select('id')
-      .eq('month', month)
-      .neq('status', 'cancelled')
-      .limit(1);
+    // 由 DB 的 settlement_batches_unique_active_coach_month partial unique index
+    // 防止同一教練、同一月份產生重複未取消批次。
 
-    if (existingError) throw existingError;
-    if (existingBatches?.length) {
-      return NextResponse.json({ error: '此月份已有未取消的結算批次，請勿重複產生。' }, { status: 409 });
-    }
-
-    // 1. 尋找該月份「已完課」且「尚未結算」的預約
+    // 1. 尋找該月份「已完課、已付款、尚未結算」的預約
     const { data: bookings, error: bError } = await adminSupabase
       .from('bookings')
-      .select('id, coach_id, coach_payout, completed_at, settlement_id')
+      .select('id, coach_id, coach_payout, completed_at, settlement_id, status, payment_status, paid_at')
       .eq('status', 'completed')
+      .eq('payment_status', 'paid')
+      .not('paid_at', 'is', null)
       .is('settlement_id', null)
       .gte('completed_at', `${month}-01T00:00:00.000Z`)
       .lt('completed_at', nextMonthStart(month));
@@ -81,54 +80,58 @@ export async function POST(request) {
     }
 
     // 2. 按教練分組彙整金額
-    const coachGroups = {};
-    bookings.forEach(b => {
-      if (!coachGroups[b.coach_id]) {
-        coachGroups[b.coach_id] = { total: 0, bookingIds: [] };
-      }
-      coachGroups[b.coach_id].total += Number(b.coach_payout || 0);
-      coachGroups[b.coach_id].bookingIds.push(b.id);
-    });
+    const coachGroups = groupSettleableBookingsByCoach(bookings);
 
     let createdCount = 0;
     const createdBatches = [];
+    const skippedCoaches = [];
 
     // 3. 為每個教練建立結算批次並更新訂單
     // 採兩階段補償：若訂單關聯失敗，立即將批次標記 cancelled，避免誤撥款。
-    for (const coachId in coachGroups) {
-      const { total, bookingIds } = coachGroups[coachId];
+    for (const group of coachGroups) {
+      const { coachId, total, bookingIds } = group;
       if (total <= 0 || bookingIds.length === 0) continue;
 
-      // A. 建立批次
+      // A. 建立批次；DB partial unique index 會阻擋同教練同月份重複未取消批次。
       const { data: batch, error: batchErr } = await adminSupabase
         .from('settlement_batches')
-        .insert([{
-          month,
-          coach_id: coachId,
-          total_amount: total,
-          booking_count: bookingIds.length,
-          status: 'pending'
-        }])
+        .insert([buildSettlementBatchInsert({ month, coachId, total, bookingIds })])
         .select('id, month, coach_id, total_amount, booking_count, status')
         .single();
 
       if (batchErr) {
+        if (isDuplicateActiveSettlementError(batchErr)) {
+          skippedCoaches.push({ coachId, reason: 'duplicate_active_batch' });
+          continue;
+        }
         console.error(`Coach ${coachId} settlement failed:`, batchErr);
+        skippedCoaches.push({ coachId, reason: 'batch_insert_failed' });
         continue;
       }
 
-      // B. 更新訂單關聯
-      const { error: updateErr } = await adminSupabase
+      // B. 更新訂單關聯時再次加上付款/完課/未結算條件，避免產生批次後被併發改動。
+      const { data: linkedBookings, error: updateErr } = await adminSupabase
         .from('bookings')
-        .update({ settlement_id: batch.id })
-        .in('id', bookingIds);
+        .update(buildSettlementBookingUpdate(batch.id))
+        .in('id', bookingIds)
+        .eq('coach_id', coachId)
+        .eq('status', 'completed')
+        .eq('payment_status', 'paid')
+        .not('paid_at', 'is', null)
+        .is('settlement_id', null)
+        .select('id');
 
-      if (updateErr) {
-        console.error(`Booking linkage failed for batch ${batch.id}:`, updateErr);
+      if (updateErr || linkedBookings?.length !== bookingIds.length) {
+        console.error(`Booking linkage failed for batch ${batch.id}:`, updateErr || 'linked booking count mismatch');
         await adminSupabase
           .from('settlement_batches')
           .update({ status: 'cancelled' })
           .eq('id', batch.id);
+        await adminSupabase
+          .from('bookings')
+          .update({ settlement_id: null })
+          .eq('settlement_id', batch.id);
+        skippedCoaches.push({ coachId, reason: 'booking_linkage_failed' });
       } else {
         createdCount++;
         createdBatches.push(batch);
@@ -140,7 +143,11 @@ export async function POST(request) {
       actor_role: auth.user.role,
       action: 'GENERATE_SETTLEMENT_BATCHES',
       target_id: month,
-      details: JSON.stringify({ createdCount, batchIds: createdBatches.map((batch) => batch.id) }),
+      details: JSON.stringify({
+        createdCount,
+        batchIds: createdBatches.map((batch) => batch.id),
+        skippedCoaches,
+      }),
     }]);
 
     return NextResponse.json({ 
@@ -148,6 +155,7 @@ export async function POST(request) {
       message: `成功為 ${createdCount} 位教練產生結算批次。`,
       createdCount,
       batches: createdBatches,
+      skippedCoaches,
     });
 
   } catch (err) {

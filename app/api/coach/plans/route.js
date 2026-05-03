@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth, requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { buildDefaultPlans, normalizePlan } from '@/lib/coachPlans';
 
@@ -67,7 +67,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();

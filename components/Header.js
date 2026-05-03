@@ -1,5 +1,6 @@
 'use client';
 import { useAuth } from './AuthProvider';
+import Link from 'next/link';
 
 export default function Header() {
   const { user, loading } = useAuth();
@@ -22,7 +23,7 @@ export default function Header() {
             <span className="status-badge">已登入</span>
           </>
         ) : (
-          <span className="status-badge">未登入</span>
+          <Link href="/login" style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', background: '#F1F5F9', padding: '6px 14px', borderRadius: '100px', textDecoration: 'none' }}>登入 / 註冊</Link>
         )}
       </div>
     </header>

@@ -1,6 +1,7 @@
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { buildConfirmPaymentUpdate } from "@/lib/bookingWorkflow";
 
 export async function POST(request, { params }) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request, { params }) {
     const { data: booking, error: bookingError } = await adminSupabase
       .from("bookings")
       .select(`
-        id, status, payment_expires_at, payment_reference, user_id,
+        id, status, payment_status, payment_expires_at, payment_reference, user_id,
         users!bookings_user_id_fkey ( referred_by )
       `)
       .eq("id", id)
@@ -40,10 +41,7 @@ export async function POST(request, { params }) {
 
     const { error: updateError } = await adminSupabase
       .from("bookings")
-      .update({
-        status: "scheduled",
-        payment_expires_at: null,
-      })
+      .update(buildConfirmPaymentUpdate())
       .eq("id", id);
 
     if (updateError) throw updateError;
@@ -54,7 +52,7 @@ export async function POST(request, { params }) {
         actor_role: "admin",
         action: "CONFIRM_BOOKING_PAYMENT",
         target_id: id,
-        details: "Confirmed pending_payment booking as scheduled",
+        details: "Confirmed pending_payment booking as scheduled and marked payment paid",
       }]);
     } catch (auditError) {
       console.warn("[CONFIRM PAYMENT AUDIT WARNING]", auditError);

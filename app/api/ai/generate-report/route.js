@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { canGenerateAiReportDraft, canUpsertAiDraft } from '@/lib/bookingWorkflow';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const AI_MODEL = 'gemini-2.5-flash';
@@ -27,7 +28,7 @@ export async function POST(request) {
     const adminSupabase = getAdminSupabase();
     const { data: booking, error: bookingError } = await adminSupabase
       .from('bookings')
-      .select('id, coach_id')
+      .select('id, coach_id, status')
       .eq('id', bookingId)
       .single();
 
@@ -35,8 +36,22 @@ export async function POST(request) {
       return NextResponse.json({ error: '找不到該預約記錄。' }, { status: 404 });
     }
 
-    if (auth.user.role !== 'admin' && booking.coach_id !== auth.user.id) {
-      return NextResponse.json({ error: '您不是此預約的負責教練，無法使用 AI 產生報告。' }, { status: 403 });
+    const draftPermission = canGenerateAiReportDraft(booking, auth.user);
+    if (!draftPermission.ok) {
+      return NextResponse.json({ error: draftPermission.error }, { status: draftPermission.status });
+    }
+
+    const { data: existingReport, error: existingReportError } = await adminSupabase
+      .from('learning_reports')
+      .select('id, completed_items')
+      .eq('booking_id', bookingId)
+      .maybeSingle();
+
+    if (existingReportError) throw existingReportError;
+
+    const draftUpsertPermission = canUpsertAiDraft(existingReport);
+    if (!draftUpsertPermission.ok) {
+      return NextResponse.json({ error: draftUpsertPermission.error }, { status: draftUpsertPermission.status });
     }
 
     const prompt = `

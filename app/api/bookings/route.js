@@ -5,6 +5,12 @@ import { calcBaseDiscount } from '@/lib/discountRules';
 import { addWeeks } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { pickDefaultPlanById, normalizePlan } from '@/lib/coachPlans';
+import {
+  assertFutureBookingTime,
+  calculateBookingPrice,
+  getServerCouponDiscount,
+  isBookingTimeAllowed,
+} from '@/lib/bookingSecurity';
 
 const OPTIONAL_BOOKING_COLUMNS = new Set([
   'grade',
@@ -108,7 +114,6 @@ export async function POST(request) {
       attendeesCount, 
       learningStatus,
       couponId = null,
-      couponDiscount = 0,
       isRecurring = false,
       recurringWeeks = 1,
       planId
@@ -119,13 +124,18 @@ export async function POST(request) {
     // 1. 獲取教練當前價格、抽成比例與審核狀態
     const { data: coach, error: coachErr } = await adminSupabase
       .from('coaches')
-      .select('base_price, commission_rate, approval_status')
+      .select('base_price, commission_rate, approval_status, available_times')
       .eq('user_id', coachId)
       .single();
 
     const normalizedExpectedTime = new Date(expectedTime);
     if (Number.isNaN(normalizedExpectedTime.getTime())) {
       return NextResponse.json({ error: 'Invalid booking time' }, { status: 400 });
+    }
+
+    const futureTimeCheck = assertFutureBookingTime(normalizedExpectedTime);
+    if (!futureTimeCheck.ok) {
+      return NextResponse.json({ error: futureTimeCheck.error }, { status: futureTimeCheck.status });
     }
 
     if (coachErr || !coach) return NextResponse.json({ error: '找不到該教練資料' }, { status: 404 });
@@ -160,6 +170,20 @@ export async function POST(request) {
     const durationMinutes = selectedPlan.duration_minutes;
     const planPrice = selectedPlan.price;
 
+    const [{ data: availabilityRules, error: availabilityRulesError }, { data: availabilityExceptions, error: availabilityExceptionsError }] = await Promise.all([
+      adminSupabase
+        .from('coach_availability_rules')
+        .select('weekday, start_time, end_time, slot_minutes, is_active')
+        .eq('coach_id', coachId),
+      adminSupabase
+        .from('coach_availability_exceptions')
+        .select('exception_date, exception_type, start_time, end_time')
+        .eq('coach_id', coachId),
+    ]);
+
+    if (availabilityRulesError) throw availabilityRulesError;
+    if (availabilityExceptionsError) throw availabilityExceptionsError;
+
     const totalSessions = isRecurring ? parseInt(recurringWeeks) : 1;
     const seriesId = isRecurring ? uuidv4() : null;
     const recurrencePattern = isRecurring ? 'weekly' : null;
@@ -170,6 +194,17 @@ export async function POST(request) {
 
     for (let i = 0; i < totalSessions; i++) {
       const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
+      const availabilityCheck = isBookingTimeAllowed({
+        expectedTime: sessionTime,
+        durationMinutes,
+        rules: availabilityRules || [],
+        exceptions: availabilityExceptions || [],
+        legacyAvailableTimes: coach.available_times,
+      });
+      if (!availabilityCheck.ok) {
+        return NextResponse.json({ error: `第 ${i + 1} 堂課無法預約：${availabilityCheck.error}` }, { status: 400 });
+      }
+
       const newStart = sessionTime.getTime();
       const newEnd = newStart + durationMinutes * 60 * 1000;
 
@@ -209,6 +244,19 @@ export async function POST(request) {
       .maybeSingle();
 
     if (userDataErr) throw userDataErr;
+
+    let couponResult;
+    try {
+      const { data: authUser, error: authUserError } = await adminSupabase.auth.admin.getUserById(userId);
+      if (authUserError) throw authUserError;
+      const metadata = authUser?.user?.user_metadata || {};
+      couponResult = getServerCouponDiscount({
+        requestedCouponId: couponId,
+        claimedCoupons: metadata.coupons || [],
+      });
+    } catch (couponError) {
+      return NextResponse.json({ error: couponError.message || '優惠券驗證失敗' }, { status: 400 });
+    }
     
     const isFirst = (userBookingsCount || 0) === 0;
     const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
@@ -228,22 +276,25 @@ export async function POST(request) {
     const globalCommission = Number.isFinite(parsedGlobalCommission) && parsedGlobalCommission >= 0
       ? parsedGlobalCommission
       : 20;
-
-    // 3. 累加折扣 (基礎 + 優惠券)
-    const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscount);
-    const discountAmount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300); // 折扣總額上限 300
-
-    // 4. 計算金額拆分
-    const finalPrice = basePrice - discountAmount;
-    const depositPaid = Math.round(finalPrice * 0.3); // 訂金 3 成
-    
-    // 檢查是否有教練特定抽成比例，否則使用全域設定
     const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
       ? coach.commission_rate 
       : globalCommission;
-      
-    const platformFee = Math.round(basePrice * (coachCommission / 100)); // 平台服務費
-    const coachPayout = basePrice - platformFee; // 教練實拿
+
+    // 3. 累加折扣 (基礎 + server 驗證後的優惠券)
+    const couponDiscountPercent = couponResult.percent;
+    const pricing = calculateBookingPrice({
+      basePrice,
+      baseDiscountPercent,
+      couponDiscountPercent,
+      coachCommission,
+    });
+    const discountAmount = pricing.discountAmount;
+
+    // 4. 計算金額拆分
+    const finalPrice = pricing.finalPrice;
+    const depositPaid = pricing.depositPaid;
+    const platformFee = pricing.platformFee;
+    const coachPayout = pricing.coachPayout;
 
     // 5. 建立預約紀錄
     const bookingsToInsert = [];
@@ -264,8 +315,8 @@ export async function POST(request) {
         gender: gender,
         attendees_count: attendeesCount,
         learning_status: learningStatus,
-        coupon_id: couponId,
-        coupon_discount: couponDiscount,
+        coupon_id: couponResult.couponId,
+        coupon_discount: couponDiscountPercent,
         status: 'pending_payment',
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,

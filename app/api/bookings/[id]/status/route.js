@@ -1,6 +1,7 @@
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { canTransitionBookingStatus } from "@/lib/bookingWorkflow";
 
 // ============================================================
 // 預約狀態機：精確定義每個角色可執行的轉換
@@ -45,42 +46,35 @@ export async function POST(request, { params }) {
 
     if (bError || !booking) return NextResponse.json({ error: '找不到該預約記錄' }, { status: 404 });
 
-    // 2. 角色判定與權限檢查
-    let role = null;
-    if (auth.user.role === 'admin') role = 'admin';
-    else if (auth.user.id === booking.coach_id) role = 'coach';
-    else if (auth.user.id === booking.user_id) role = 'student';
-
-    if (!role) {
-      console.warn(`[SECURITY ALERT] 越權預約更新嘗試: UserID: ${auth.user.id}, BookingID: ${id}`);
-      return NextResponse.json({ error: "您無權操作此預約。" }, { status: 403 });
-    }
-
-    // 3. 狀態機驗證 (Admin 排除在狀態機限制外)
-    if (role !== 'admin') {
-      const allowedTransitions = STATUS_TRANSITION_RULES[booking.status]?.[role] || [];
-      if (!allowedTransitions.includes(newStatus)) {
-        return NextResponse.json({ 
-          error: `非法的操作：暫時不允許從 ${booking.status} 轉換為 ${newStatus}。`,
-          role 
-        }, { status: 400 });
-      }
-    }
-
-    // 4. 特殊邏輯：完課前檢查學習報告
+    // 2. 角色判定與狀態機驗證
+    let hasFinalReport = false;
     if (newStatus === 'completed') {
       const { data: report } = await adminSupabase
         .from('learning_reports')
         .select('id')
         .eq('booking_id', id)
         .neq('completed_items', '__AI_DRAFT__')
-        .single();
-      if (!report) {
-        return NextResponse.json({ error: '必須先填寫學習報告，才能將課程標記為完成。' }, { status: 400 });
-      }
+        .maybeSingle();
+      hasFinalReport = Boolean(report);
     }
 
-    // 5. 執行更新
+    const transition = canTransitionBookingStatus({
+      actor: auth.user,
+      booking,
+      newStatus,
+      hasFinalReport,
+    });
+
+    if (!transition.ok) {
+      return NextResponse.json({
+        error: transition.error,
+        role: transition.role,
+      }, { status: transition.status });
+    }
+
+    const role = transition.role;
+
+    // 3. 執行更新
     const updateData = { status: newStatus };
     if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
 

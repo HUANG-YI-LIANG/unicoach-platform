@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabase, getAdminSupabase } from '@/lib/supabase';
 import { encrypt } from '@/lib/auth';
+import { normalizeRegistrationRole } from '@/lib/securityRules';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
@@ -10,7 +11,7 @@ export async function POST(request) {
       email, 
       password, 
       name, 
-      role = 'user',
+      role: requestedRole = 'user',
       // ✅ 法律合規性欄位
       acceptedTerms,
       acceptedPrivacy,
@@ -20,6 +21,8 @@ export async function POST(request) {
       age,
       referralCode = null
     } = await request.json();
+
+    const role = normalizeRegistrationRole(requestedRole);
 
     // 1. 基本驗證
     if (!email || !password || !name) {

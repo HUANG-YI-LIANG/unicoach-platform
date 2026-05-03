@@ -16,28 +16,27 @@ export default function Navigation() {
   let navItems = [];
 
   if (!user) {
-    // Unlogged state
     navItems = [
       { name: '首頁', path: '/', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '教練列表', path: '/coaches', icon: Search },
-      { name: '登入', path: '/login', icon: LogIn }
+      { name: '找教練', path: '/coaches', icon: Search },
+      { name: '我的', path: '/login', icon: User }
     ];
   } else if (role === 'user') {
-    // Logged in User state
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
-      { name: '找教練', path: '/coaches', icon: Search },
       { name: '探索', path: '/explore', icon: PlaySquare },
+      { name: '找教練', path: '/coaches', icon: Search },
       { name: '聊天', path: '/chat', icon: MessageCircle },
-      { name: '訂單', path: '/bookings', icon: ShoppingBag }
+      { name: '我的', path: '/dashboard/user/edit', icon: User }
     ];
   } else if (role === 'coach') {
-    // Logged in Coach state
     navItems = [
       { name: '後台', path: '/dashboard/coach', icon: PieChart },
-      { name: '訂單', path: '/bookings', icon: ShoppingBag }, // Assuming /bookings exists or is the name
-      { name: '聊天', path: '/chat', icon: MessageCircle }
+      { name: '探索', path: '/explore', icon: PlaySquare },
+      { name: '訂單', path: '/bookings', icon: ShoppingBag },
+      { name: '聊天', path: '/chat', icon: MessageCircle },
+      { name: '我的', path: '/coach/profile/edit', icon: User }
     ];
   } else if (role === 'admin') {
     navItems = [

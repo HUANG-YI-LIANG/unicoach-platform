@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star } from 'lucide-react';
+import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star, Video } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const STORAGE_KEY = 'coach-search-filters-v1';
@@ -69,7 +69,7 @@ function formatNextAvailable(value) {
   const day = parts.find((part) => part.type === 'day')?.value || '--';
   const hour = parts.find((part) => part.type === 'hour')?.value || '--';
   const minute = parts.find((part) => part.type === 'minute')?.value || '--';
-  return `最快可約：${month}/${day} ${hour}:${minute}`;
+  return `${month}/${day} ${hour}:${minute}`;
 }
 
 function buildFiltersFromSearchParams(searchParams) {
@@ -81,6 +81,23 @@ function buildFiltersFromSearchParams(searchParams) {
     maxPrice: searchParams.get('maxPrice') || '',
     level: searchParams.get('level') || '',
   };
+}
+
+function getSportEmoji(sport) {
+  const value = String(sport || '').toLowerCase();
+
+  if (value.includes('籃')) return '🏀';
+  if (value.includes('棒')) return '⚾';
+  if (value.includes('羽')) return '🏸';
+  if (value.includes('網')) return '🎾';
+  if (value.includes('桌')) return '🏓';
+  if (value.includes('排')) return '🏐';
+  if (value.includes('足') || value.includes('soccer')) return '⚽';
+  if (value.includes('游')) return '🏊';
+  if (value.includes('跑') || value.includes('田徑')) return '🏃';
+  if (value.includes('健身') || value.includes('重訓')) return '🏋️';
+
+  return '🎯';
 }
 
 export default function CoachesPage() {
@@ -301,52 +318,36 @@ export default function CoachesPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         .coach-page {
           min-height: 100vh;
-          background:
-            radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 32%),
-            linear-gradient(180deg, #f7fbff 0%, #eef4ff 100%);
-          color: #0f172a;
+          background: #F6F9FF;
+          color: #0F172A;
           padding-bottom: 96px;
         }
         .coach-shell {
           width: min(1120px, calc(100vw - 24px));
           margin: 0 auto;
-          padding: 20px 0 40px;
+          padding: 16px 0 32px;
         }
         .hero {
-          padding: 8px 0 20px;
-        }
-        .eyebrow {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.8);
-          color: #1d4ed8;
-          font-weight: 800;
-          font-size: 12px;
-          border: 1px solid rgba(37, 99, 235, 0.12);
+          padding: 0 0 16px;
         }
         .hero h1 {
-          margin: 16px 0 8px;
-          font-size: clamp(28px, 5vw, 44px);
-          line-height: 1.05;
+          margin: 0 0 4px;
+          font-size: 22px;
+          line-height: 1.2;
           font-weight: 900;
-          letter-spacing: -0.04em;
+          color: #1E3A8A;
         }
         .hero p {
           margin: 0;
-          color: #475569;
-          font-size: 15px;
-          max-width: 720px;
+          color: #64748B;
+          font-size: 13px;
         }
         .filter-panel {
-          background: rgba(255, 255, 255, 0.84);
-          border: 1px solid rgba(148, 163, 184, 0.2);
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-          border-radius: 28px;
-          padding: 20px;
-          backdrop-filter: blur(16px);
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+          border-radius: 16px;
+          padding: 16px;
           position: sticky;
           top: 12px;
           z-index: 20;
@@ -356,58 +357,61 @@ export default function CoachesPage() {
           justify-content: space-between;
           align-items: center;
           gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 12px;
         }
         .filter-title {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-size: 15px;
+          gap: 8px;
+          font-size: 14px;
           font-weight: 900;
+          color: #1E3A8A;
         }
         .clear-btn {
           border: none;
           background: transparent;
-          color: #2563eb;
-          font-size: 13px;
-          font-weight: 800;
+          color: #64748B;
+          font-size: 12px;
+          font-weight: 700;
           cursor: pointer;
         }
         .filters-grid {
           display: grid;
           grid-template-columns: 1.7fr 1fr 1fr 1fr;
-          gap: 14px;
+          gap: 12px;
         }
         .filter-group {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 20px;
-          padding: 14px;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          padding: 12px;
         }
         .filter-group-title {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 12px;
-          font-size: 13px;
-          font-weight: 900;
+          margin-bottom: 8px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #475569;
         }
         .filter-helper {
-          color: #64748b;
-          font-size: 12px;
-          margin-bottom: 12px;
+          color: #94A3B8;
+          font-size: 11px;
+          margin-bottom: 8px;
         }
         .section-toggle {
           display: none;
           border: none;
           background: transparent;
-          color: #2563eb;
+          color: #1E3A8A;
           font-weight: 800;
+          font-size: 12px;
           cursor: pointer;
         }
         .date-row, .time-row {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           overflow-x: auto;
           scrollbar-width: none;
           padding-bottom: 4px;
@@ -416,204 +420,108 @@ export default function CoachesPage() {
           display: none;
         }
         .date-btn, .time-btn {
-          border: 1px solid #dbeafe;
-          background: #ffffff;
-          color: #1e3a8a;
-          border-radius: 14px;
-          padding: 10px 12px;
+          border: 1px solid #E2E8F0;
+          background: #FFFFFF;
+          color: #334155;
+          border-radius: 8px;
+          padding: 8px 10px;
           font-size: 12px;
-          font-weight: 800;
+          font-weight: 700;
           white-space: nowrap;
           cursor: pointer;
         }
         .date-btn.active, .time-btn.active {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          color: #ffffff;
-          border-color: transparent;
+          background: #1E3A8A;
+          color: #FFFFFF;
+          border-color: #1E3A8A;
         }
         .time-btn.disabled {
-          background: #e2e8f0;
-          color: #94a3b8;
+          background: #F1F5F9;
+          color: #94A3B8;
           border-color: transparent;
           cursor: not-allowed;
-          position: relative;
-        }
-        .time-btn.disabled::after {
-          content: attr(data-status);
-          margin-left: 6px;
-          font-size: 11px;
         }
         .time-grid {
           display: flex;
           flex-wrap: wrap;
-          gap: 8px;
+          gap: 6px;
         }
         .field, .select {
           width: 100%;
-          border: 1px solid #cbd5e1;
-          border-radius: 14px;
-          padding: 12px 14px;
-          background: #ffffff;
-          font-size: 14px;
+          border: 1px solid #CBD5E1;
+          border-radius: 8px;
+          padding: 8px 10px;
+          background: #FFFFFF;
+          font-size: 13px;
           outline: none;
         }
         .results-bar {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin: 18px 0 14px;
+          margin: 12px 0;
           color: #475569;
-          font-size: 14px;
+          font-size: 12px;
+          font-weight: 700;
         }
         .card-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 16px;
-        }
-        .coach-card {
-          background: rgba(255, 255, 255, 0.94);
-          border: 1px solid rgba(148, 163, 184, 0.18);
-          border-radius: 26px;
-          padding: 18px;
-          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-        .coach-card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
           gap: 12px;
         }
-        .level-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 900;
-        }
-        .coach-header {
+        .coach-card {
+          background: #FFFFFF;
+          border: 1px solid #E2E8F0;
+          border-radius: 12px;
+          padding: 16px;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.02);
           display: flex;
-          gap: 14px;
-          cursor: pointer;
+          flex-direction: column;
+          gap: 10px;
         }
         .avatar {
           width: 56px;
           height: 56px;
-          border-radius: 18px;
-          background: linear-gradient(135deg, #0f172a, #2563eb);
-          color: #fff;
+          border-radius: 12px;
+          background: #F1F5F9;
+          color: #1E3A8A;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
+          font-size: 20px;
           font-weight: 900;
           flex-shrink: 0;
         }
-        .coach-name {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 900;
-        }
-        .coach-meta {
-          margin-top: 4px;
-          color: #64748b;
-          font-size: 13px;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-        .fastest-slot {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          background: #eff6ff;
-          border: 1px solid #bfdbfe;
-          border-radius: 18px;
-          padding: 12px 14px;
-        }
-        .fastest-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 900;
-          color: #1d4ed8;
-        }
-        .fastest-button {
-          border: none;
-          background: transparent;
-          color: #0f172a;
-          font-size: 13px;
-          font-weight: 900;
-          cursor: pointer;
-          text-align: left;
-          padding: 0;
-        }
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-        }
-        .stat-box {
-          border-radius: 18px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          padding: 12px;
-        }
-        .stat-label {
-          color: #64748b;
-          font-size: 12px;
-          margin-bottom: 8px;
-        }
-        .stat-value {
-          font-size: 16px;
-          font-weight: 900;
-        }
-        .schedule-flag {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          color: #334155;
-          font-size: 12px;
-          font-weight: 800;
-        }
         .card-actions {
           display: flex;
-          gap: 10px;
+          gap: 8px;
         }
         .ghost-btn, .primary-btn {
           flex: 1;
           border: none;
-          border-radius: 16px;
-          padding: 14px;
-          font-size: 14px;
-          font-weight: 900;
+          border-radius: 8px;
+          padding: 10px;
+          font-size: 13px;
+          font-weight: 800;
           cursor: pointer;
         }
         .ghost-btn {
-          background: #e2e8f0;
-          color: #0f172a;
+          background: #FFFFFF;
+          border: 1px solid #CBD5E1;
+          color: #334155;
         }
         .primary-btn {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          color: #ffffff;
+          background: #F59E0B;
+          color: #FFFFFF;
         }
         .empty-state, .loading-state {
-          padding: 60px 20px;
+          padding: 40px 20px;
           text-align: center;
-          color: #64748b;
-          background: rgba(255,255,255,0.8);
-          border-radius: 24px;
-          border: 1px solid rgba(148, 163, 184, 0.18);
+          color: #64748B;
+          background: #FFFFFF;
+          border-radius: 16px;
+          border: 1px solid #E2E8F0;
+          font-size: 13px;
         }
         @media (max-width: 900px) {
           .filters-grid {
@@ -628,20 +536,14 @@ export default function CoachesPage() {
         }
         @media (max-width: 640px) {
           .coach-shell {
-            width: calc(100vw - 16px);
+            width: calc(100vw - 24px);
           }
           .filter-panel {
-            border-radius: 24px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 12px;
           }
           .card-grid {
             grid-template-columns: 1fr;
-          }
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
-          .card-actions {
-            flex-direction: column;
           }
         }
       ` }} />
@@ -649,30 +551,22 @@ export default function CoachesPage() {
       <div className="coach-shell">
         
         <section className="hero">
-          <div className="eyebrow">
-            <CalendarDays size={14} />
-            尋找理想教練
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ flex: '1 1 300px' }}>
-              <h1 style={{ margin: '0 0 12px', fontSize: '28px' }}>探索專屬您的教練</h1>
-              <p style={{ margin: 0, color: '#64748b', fontSize: '16px', lineHeight: 1.5 }}>
-                預設顯示所有優質教練，您也可以透過點擊右側按鈕展開篩選，依據時段、地區與價格快速縮小範圍。
-              </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ flex: '1 1 240px' }}>
+              <h1>找適合你的教練</h1>
+              <p>依照地區、時段與教學項目，快速找到可預約的教練。</p>
             </div>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px',
-                background: isFilterOpen ? '#EFF6FF' : '#2563EB',
-                color: isFilterOpen ? '#2563EB' : '#FFFFFF',
-                border: 'none', borderRadius: 24, fontSize: 16, fontWeight: 800,
-                cursor: 'pointer', transition: 'all 0.2s ease',
-                boxShadow: isFilterOpen ? 'none' : '0 4px 12px rgba(37,99,235,0.3)',
-                whiteSpace: 'nowrap'
+                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
+                background: isFilterOpen ? '#1E3A8A' : '#FFFFFF',
+                color: isFilterOpen ? '#FFFFFF' : '#1E3A8A',
+                border: '1px solid #1E3A8A', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >
-              <SlidersHorizontal size={18} />
+              <SlidersHorizontal size={14} />
               {isFilterOpen ? '收起篩選' : '篩選教練'}
             </button>
           </div>
@@ -826,154 +720,120 @@ export default function CoachesPage() {
 
         <div className="results-bar">
           <div>共找到 {coaches.length} 位教練</div>
-          <div>排序：時段匹配優先，其次固定時段與等級加權</div>
+          <div>排序：最快可約優先</div>
         </div>
 
         {loading ? (
           <div className="loading-state">載入教練資料中...</div>
         ) : coaches.length === 0 ? (
-          <div className="empty-state">目前沒有符合這組條件的教練，可以調整日期、時間或其他篩選。</div>
+          <div className="empty-state">目前沒有符合條件的教練，請嘗試調整篩選條件。</div>
         ) : (
           <div className="card-grid">
-            {coaches.map((coach) => {
-              const levelColors = {
-                beginner: { background: '#dbeafe', color: '#1d4ed8' },
-                advanced: { background: '#dcfce7', color: '#15803d' },
-                professional: { background: '#fef3c7', color: '#b45309' },
-              };
-              const badgeStyle = levelColors[coach.coach_level] || levelColors.beginner;
+            {coaches.map((coach) => (
+              <article key={coach.id} className="coach-card">
+                {/* 1. 狀態與評價 */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', fontWeight: 800 }}>
+                  <span style={{ color: '#1E3A8A', background: '#DBEAFE', padding: '2px 6px', borderRadius: '4px' }}>
+                    {coach.coach_level_label || '初階教練'}
+                  </span>
+                  {coach.rating_avg > 0 ? (
+                    <span style={{ color: '#F59E0B' }}>⭐ {coach.rating_avg} ({coach.review_count})</span>
+                  ) : (
+                    <span style={{ color: '#64748B' }}>新教練</span>
+                  )}
+                  <span style={{ color: '#16A34A', background: '#DCFCE7', padding: '2px 6px', borderRadius: '4px' }}>
+                    已驗證
+                  </span>
+                </div>
 
-              return (
-                <article key={coach.id} className="coach-card">
-                  {/* 【頂部信任區】 */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#1E3A8A', background: '#DBEAFE', padding: '4px 8px', borderRadius: 100 }}>
-                          {coach.coach_level_label}
-                        </div>
-                        <div style={{ fontSize: 13, color: '#f59e0b', fontWeight: 900, background: '#FEF3C7', padding: '4px 8px', borderRadius: 100 }}>
-                          ⭐ {coach.rating_avg || 0} ({coach.review_count || 0})
-                        </div>
-                      </div>
-                      <div style={{ color: '#2563EB', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 4, background: '#EFF6FF', padding: '4px 8px', borderRadius: 100 }}>
-                        <Video size={14} />
-                        30秒快速認識教練
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '2px 6px', borderRadius: 4 }}>✅ 平台審核通過</span>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#059669', background: '#D1FAE5', padding: '2px 6px', borderRadius: 4 }}>✅ 已驗證身分證</span>
-                    </div>
+                {/* 2. 頭像、姓名、一句話定位 */}
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer' }} onClick={() => router.push(`/coaches/${coach.id}`)}>
+                  <div className="avatar">
+                    {coach.name?.slice(0, 1) || '教'}
                   </div>
-
-                  {/* 【核心成交區】 */}
-                  <div className="coach-header" style={{ marginTop: 8, alignItems: 'flex-start' }} onClick={() => router.push(`/coaches/${coach.id}`)}>
-                    <div className="avatar" style={{ width: 64, height: 64, fontSize: 26, borderRadius: 20 }}>{coach.name?.slice(0, 1) || '教'}</div>
-                    <div style={{ flex: 1 }}>
-                      <h2 className="coach-name" style={{ fontSize: 22 }}>{coach.name}</h2>
-                      
-                      {/* 教學項目 (Badge 化) */}
-                      {(() => {
-                        const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
-                        if (sports.length === 0) return null;
-                        const mainSport = sports[0];
-                        const sparringSports = sports.slice(1);
-                        return (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                            <span style={{ background: '#1E3A8A', color: '#fff', fontSize: 12, fontWeight: 800, padding: '4px 8px', borderRadius: 6 }}>
-                              主教：{getSportEmoji(mainSport)} {mainSport}
-                            </span>
-                            {sparringSports.length > 0 && (
-                              <span style={{ background: '#F1F5F9', color: '#475569', fontSize: 12, fontWeight: 700, padding: '4px 8px', borderRadius: 6 }}>
-                                可陪練：{sparringSports.map(s => `${getSportEmoji(s)} ${s}`).join(' 、')}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      
-                      {/* 一句話定位 */}
-                      {(coach.philosophy || coach.experience) && (
-                        <div style={{ marginTop: 8, fontSize: 14, fontWeight: 800, color: '#334155' }}>
-                          {coach.philosophy ? coach.philosophy.slice(0, 20) : coach.experience?.slice(0, 20)}
-                          {(coach.philosophy || coach.experience).length > 20 ? '...' : ''}
-                        </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#0F172A' }}>{coach.name}</h2>
+                      {coach.has_video && (
+                        <span style={{ color: '#2563EB', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
+                          <Video size={12}/> 看30秒介紹
+                        </span>
                       )}
                     </div>
-                  </div>
-
-                  {/* 【地區與焦慮區】 */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-                    <div style={{ color: '#64748b', fontSize: 13, fontWeight: 600, display: 'flex', gap: 6, alignItems: 'center', padding: '0 4px' }}>
-                      <MapPin size={14} />
-                      {coach.location || '未填地區'} {coach.service_areas?.includes('到府') ? '(可到府)' : ''}
-                      {coach.university && (
-                        <>
-                          <span style={{ color: '#cbd5e1' }}>|</span>
-                          <span>{coach.university}</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="fastest-slot" style={{ padding: '10px 14px' }}>
-                      <div className="fastest-label">
-                        <Clock3 size={16} />
-                        最近可約時間
-                      </div>
-                      <button type="button" className="fastest-button" onClick={() => syncFromFastest(coach)}>
-                        {formatNextAvailable(coach.next_available_at)}
-                      </button>
-                    </div>
-                    {coach.booked_slot_count > 0 ? (
-                      <div style={{ color: '#E11D48', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, background: '#FFF1F2', padding: '6px 12px', borderRadius: 12 }}>
-                        🔥 最近已被預約 {coach.booked_slot_count} 次
-                      </div>
-                    ) : (
-                      <div style={{ color: '#166534', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', padding: '6px 12px', borderRadius: 12 }}>
-                        ✨ 本週還有時段可約
+                    {(coach.philosophy || coach.experience) && (
+                      <div style={{ color: '#475569', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {coach.philosophy || coach.experience}
                       </div>
                     )}
                   </div>
+                </div>
 
-                  {/* 【結果展示區】 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 8, marginTop: 8 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '12px 16px', borderRadius: 16 }}>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 800 }}>體驗課</span>
-                        {/* 暫時移除訂金文案，但保留位置與高度 */}
-                        <span style={{ fontSize: 12, minHeight: 18 }}></span>
-                      </div>
-                      <span style={{ fontSize: 18, fontWeight: 900, color: '#0f172a' }}>NT${Number(coach.min_price || 1000).toLocaleString()}</span>
-                    </div>
-                    
-                    <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', padding: '12px 16px', borderRadius: 16 }}>
-                      <div style={{ fontSize: 12, color: '#166534', fontWeight: 900, marginBottom: 4 }}>🎯 最近學員成果</div>
-                      <div style={{ fontSize: 14, color: '#15803D', fontWeight: 700, lineHeight: 1.4 }}>
-                        {coach.experience ? 
-                          (coach.experience.length > 30 ? coach.experience.slice(0, 30) + '...' : coach.experience) 
-                          : '持續陪伴初學者建立信心與基礎能力'}
-                      </div>
-                    </div>
-                  </div>
+                {/* 3. 主教項目與地區 */}
+                <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#475569', flexWrap: 'wrap', alignItems: 'center' }}>
+                  {(() => {
+                    const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
+                    if (sports.length === 0) return null;
+                    return (
+                      <span style={{ fontWeight: 800, color: '#1E3A8A' }}>主教：{getSportEmoji(sports[0])} {sports[0]}</span>
+                    );
+                  })()}
+                  <span style={{ color: '#CBD5E1' }}>|</span>
+                  <span>地區：{coach.location || '未填寫'}</span>
+                  {(() => {
+                    const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
+                    const sparringSports = sports.slice(1);
+                    if (sparringSports.length > 0) {
+                      return (
+                        <>
+                          <span style={{ color: '#CBD5E1' }}>|</span>
+                          <span>可陪練：{sparringSports.join('、')}</span>
+                        </>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
 
-                  {/* 【CTA 區】 */}
-                  <div className="card-actions" style={{ marginTop: 12 }}>
-                    <button type="button" className="ghost-btn" style={{ flex: 1 }} onClick={() => {
-                      const params = new URLSearchParams(filters);
-                      router.push(`/coaches/${coach.id}?${params.toString()}`);
-                    }}>
-                      👉 先看看教練
-                    </button>
-                    <button type="button" className="primary-btn" style={{ flex: 1.8, background: '#F59E0B', color: '#fff', boxShadow: '0 8px 20px rgba(245,158,11,0.3)' }} onClick={() => {
-                      const params = new URLSearchParams(filters);
-                      router.push(`/coaches/${coach.id}?${params.toString()}`);
-                    }}>
-                      👉 預約體驗課
-                    </button>
+                {/* 4. 時間與價格 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F8FAFC', padding: '10px 12px', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ color: '#1E3A8A', fontSize: '13px', fontWeight: 800 }}>
+                      {coach.next_available_at ? formatNextAvailable(coach.next_available_at) : '可先聊聊確認時間'}
+                    </span>
+                    {coach.booked_slot_count > 0 ? (
+                      <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 800 }}>🔥 最近被預約 {coach.booked_slot_count} 次</span>
+                    ) : (
+                      <span style={{ color: '#16A34A', fontSize: '11px', fontWeight: 700 }}>本週還有時段可約</span>
+                    )}
                   </div>
-                </article>
-              );
-            })}
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 900, color: '#0F172A', fontSize: '14px' }}>體驗課 NT${Number(coach.min_price || 1000).toLocaleString()}</div>
+                    <div style={{ fontSize: '11px', color: '#64748B', marginTop: '2px' }}>訂金 NT$300</div>
+                  </div>
+                </div>
+
+                {/* 5. 成果 / 風格 */}
+                <div style={{ fontSize: '12px', color: '#16A34A', fontWeight: 800 }}>
+                  🎯 {coach.experience ? `學員成果：${coach.experience.length > 20 ? coach.experience.slice(0, 20) + '...' : coach.experience}` : '教學風格：耐心陪練、適合初學者'}
+                </div>
+
+                {/* 6. 按鈕 */}
+                <div className="card-actions">
+                  <button type="button" className="ghost-btn" onClick={() => {
+                    const params = new URLSearchParams(filters);
+                    router.push(`/coaches/${coach.id}?${params.toString()}`);
+                  }}>
+                    看教練資料
+                  </button>
+                  <button type="button" className="primary-btn" onClick={() => {
+                    const params = new URLSearchParams(filters);
+                    router.push(`/coaches/${coach.id}?${params.toString()}`);
+                  }}>
+                    預約體驗課
+                  </button>
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </div>
