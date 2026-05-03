@@ -24,12 +24,8 @@ export default function Home() {
   const [isLoadingSports, setIsLoadingSports] = useState(true);
 
   useEffect(() => {
-    if (!loading && user) {
-      if (user.role === 'coach') router.replace('/dashboard/coach');
-      else if (user.role === 'admin') router.replace('/dashboard/admin');
-      else router.replace('/dashboard/user');
-    }
-  }, [user, loading, router]);
+    // 移除自動跳轉邏輯，讓使用者（包含登入狀態）可以停留在首頁
+  }, []);
 
   useEffect(() => {
     async function fetchSports() {
@@ -76,13 +72,7 @@ export default function Home() {
     );
   }
 
-  if (user) {
-    return (
-      <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
-        正在進入專屬畫面...
-      </div>
-    );
-  }
+  // 移除 logged-in user 強制顯示「正在進入專屬畫面」的阻擋畫面，讓他們可以直接看到首頁內容
 
   return (
     <div className="premium-landing">
