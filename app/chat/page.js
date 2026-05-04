@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
-const ORANGE = '#F97316';
-const BG = '#090E17';
-const CARD = '#121826';
-const BORDER = 'rgba(255,255,255,0.05)';
-const MUTED = '#94A3B8';
-const TEXT_LIGHT = '#F8FAFC';
-const SHADOW = '0 8px 30px rgba(0,0,0,0.5)';
+const ORANGE = 'var(--cta, #F97316)';
+const BG = 'var(--bg-page)';
+const CARD = 'var(--bg-surface)';
+const BORDER = 'var(--border-main)';
+const MUTED = 'var(--text-muted)';
+const TEXT_LIGHT = 'var(--text-main)';
+const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
