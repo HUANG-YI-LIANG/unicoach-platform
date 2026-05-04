@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileText, MapPin, User, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, MapPin, User, ChevronRight, Loader2, Search, PlaySquare, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const SPORT_IMAGES = {
@@ -22,18 +22,29 @@ export default function Home() {
   const router = useRouter();
   const [sports, setSports] = useState([]);
   const [isLoadingSports, setIsLoadingSports] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isQRUser, setIsQRUser] = useState(false);
 
   useEffect(() => {
-    // 移除自動跳轉邏輯，讓使用者（包含登入狀態）可以停留在首頁
-  }, []);
-
-  useEffect(() => {
+    // Check if user came from a QR code (e.g. ?ref=XYZ or ?qrcode=1)
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasQRParam = urlParams.has('ref') || urlParams.has('promo') || urlParams.has('qrcode');
+      
+      if (hasQRParam) {
+        setIsQRUser(true);
+        const seen = localStorage.getItem('has_seen_onboarding');
+        if (!seen) {
+          setShowOnboarding(true);
+        }
+      }
+    }
+    
     async function fetchSports() {
       try {
         const res = await fetch('/api/coaches');
         if (res.ok) {
           const data = await res.json();
-          // 只統計 approved 的教練（/api/coaches 已經預設過濾）
           const sportCounts = {};
           data.coaches.forEach(coach => {
             if (coach.service_areas) {
@@ -47,7 +58,6 @@ export default function Home() {
             }
           });
           
-          // 依教練數量排序，最多取前 6 個
           const sortedSports = Object.entries(sportCounts)
             .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
             .slice(0, 6)
@@ -64,18 +74,70 @@ export default function Home() {
     fetchSports();
   }, []);
 
-  if (loading && user) {
+  const handleOnboardingSelect = (sport) => {
+    localStorage.setItem('has_seen_onboarding', 'true');
+    setShowOnboarding(false);
+    if (sport === '幫我選') {
+      router.push('/coaches');
+    } else {
+      router.push(`/coaches?sport=${encodeURIComponent(sport)}`);
+    }
+  };
+
+  if (loading) {
     return (
-      <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+      <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
         <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={32} />
       </div>
     );
   }
 
-  // 移除 logged-in user 強制顯示「正在進入專屬畫面」的阻擋畫面，讓他們可以直接看到首頁內容
-
   return (
     <div className="premium-landing">
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 24
+        }}>
+          <div style={{
+            background: 'var(--bg-surface)', padding: 32, borderRadius: 24,
+            width: '100%', maxWidth: 400, textAlign: 'center',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+          }}>
+            <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 24, color: 'var(--text-main)' }}>
+              你想學什麼運動？
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              {['籃球', '羽球', '健身', '網球'].map(s => (
+                <button
+                  key={s}
+                  onClick={() => handleOnboardingSelect(s)}
+                  style={{
+                    background: 'var(--bg-page)', color: 'var(--text-main)', border: '1px solid var(--border-main)',
+                    padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 800, transition: '0.2s'
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => handleOnboardingSelect('幫我選')}
+              style={{
+                width: '100%', background: 'var(--color-accent)', color: 'white', border: 'none',
+                padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 800,
+                marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              }}
+            >
+              🤔 幫我選
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. 第一屏 (Hero 成交區) */}
       <section className="premium-hero">
         <div className="premium-hero-bg"></div>
@@ -85,40 +147,42 @@ export default function Home() {
           <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練</p>
           
           <div className="premium-cta-group">
-            <Link href="/register?role=user" className="premium-btn-primary">
-              我要找教練
-            </Link>
-            <Link href="/register?role=coach" className="premium-btn-text">
-              我是教練，想接案
-            </Link>
+            <button onClick={() => router.push('/coaches')} style={{
+              width: '100%', height: '64px', background: 'var(--color-accent)', color: 'white',
+              borderRadius: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
+              border: 'none', cursor: 'pointer', gap: 8
+            }}>
+              👉 我要找教練
+            </button>
           </div>
         </div>
       </section>
 
-      {/* 2. 三個信任點 */}
-      <section className="premium-trust-section">
-        <div className="premium-trust-card">
-          <div className="trust-title">
-            <div className="trust-icon-wrapper"><FileText size={20} /></div>
-            每堂課都有學習紀錄
-          </div>
-          <div className="trust-desc">完整追蹤你的進步旅程</div>
-        </div>
-        <div className="premium-trust-card">
-          <div className="trust-title">
-            <div className="trust-icon-wrapper"><MapPin size={20} /></div>
-            可到府教學 / 球場陪練
-          </div>
-          <div className="trust-desc">地點彈性，教練隨時就緒</div>
-        </div>
-        <div className="premium-trust-card">
-          <div className="trust-title">
-            <div className="trust-icon-wrapper"><User size={20} /></div>
-            真實教練資料與評價
-          </div>
-          <div className="trust-desc">全部通過審核與身分驗證</div>
+      {/* 2. 4步驟卡片 (QR Code 用戶專屬) */}
+      {isQRUser && (
+        <section style={{ padding: '32px 24px', marginTop: '-30px', position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+          {[
+            { icon: <Search size={24} color="var(--color-accent)" />, title: '1. 找教練', desc: '馬上找到附近教練' },
+            { icon: <PlaySquare size={24} color="var(--color-accent)" />, title: '2. 看影片', desc: '30秒快速判斷合不合' },
+            { icon: <MessageCircle size={24} color="var(--color-accent)" />, title: '3. 先問教練', desc: '不確定先問清楚' },
+            { icon: <User size={24} color="var(--color-accent)" />, title: '4. 預約課程', desc: '選時間直接上課' },
+          ].map((step, idx) => (
+            <div key={idx} onClick={() => router.push('/coaches')} style={{
+              minWidth: 160, background: 'var(--bg-surface)', padding: 20, borderRadius: 20,
+              boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-main)', cursor: 'pointer'
+            }}>
+              <div style={{ background: 'rgba(245, 158, 11, 0.1)', width: 48, height: 48, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                {step.icon}
+              </div>
+              <h3 style={{ fontSize: 16, fontWeight: 900, margin: '0 0 8px', color: 'var(--text-main)' }}>{step.title}</h3>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, fontWeight: 600 }}>{step.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
+      )}
 
       {/* 3. 運動分類入口 */}
       <section className="premium-sports-section">
@@ -128,7 +192,7 @@ export default function Home() {
         </div>
         
         {isLoadingSports ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', color: '#94A3B8' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
             <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={24} />
           </div>
         ) : sports.length > 0 ? (
@@ -150,8 +214,9 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748B', fontSize: '14px' }}>
-            目前尚無開放的教練專長
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 600 }}>
+            目前尚無開放的教練專長 👉 
+            <Link href="/coaches" style={{ color: 'var(--color-accent)', fontWeight: 800 }}>去找教練</Link>
           </div>
         )}
       </section>
@@ -167,6 +232,7 @@ export default function Home() {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        ::-webkit-scrollbar { display: none; }
       `}} />
     </div>
   );

@@ -20,21 +20,16 @@ import {
   Wallet,
   Clock,
   MessageCircle,
-  FileText,
-  Check
+  FileText
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
 import VideoUpload from '@/components/VideoUpload';
 
-const BG = 'var(--color-bg)';
-const CARD = 'var(--color-surface)';
-const ORANGE = 'var(--color-accent)';
-const MUTED = 'var(--color-text-muted)';
-const DARK_ORANGE = 'var(--color-warning)';
-const TEXT_LIGHT = 'var(--color-text)';
-const RADIUS = '20px';
-const SHADOW = 'var(--shadow-card)';
-const BORDER = 'var(--color-border)';
+const BG = '#090E17';
+const CARD = '#121826';
+const ORANGE = '#F97316';
+const MUTED = '#94A3B8';
+const DARK_ORANGE = '#9A3412';
+const TEXT_LIGHT = '#F8FAFC';
 
 export default function CoachDashboard() {
   const [profile, setProfile] = useState(null);
@@ -42,7 +37,6 @@ export default function CoachDashboard() {
   const [bookings, setBookings] = useState([]);
   const [chatRooms, setChatRooms] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState(false);
   const router = useRouter();
   const { logout } = useAuth();
 
@@ -100,18 +94,6 @@ export default function CoachDashboard() {
   );
   
   const referralCode = `UNICOACH-${profile?.name?.toUpperCase() || 'COACH'}`;
-
-  const handleCopyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(referralCode);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-    } catch (error) {
-      console.error('[COPY ERROR]', error);
-    }
-  };
-
-  const promotionUrl = typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${referralCode}` : '';
 
   return (
     <div style={{
@@ -242,58 +224,40 @@ export default function CoachDashboard() {
         </div>
 
         {/* Refer a Fellow Coach */}
-        <div style={{ padding: '0 0 32px 0' }}>
-          <div style={{ background: CARD, borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #1E293B, #0F172A)', padding: '16px 20px', borderRadius: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wallet size={20} color={ORANGE} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, letterSpacing: '0.05em' }}>推廣獎勵 (待發放)</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: TEXT_LIGHT }}>NT$ 0</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>每邀請一位教練可獲得 $500</div>
-                </div>
-              </div>
+        <div style={{
+          background: `linear-gradient(180deg, #1A1108 0%, ${CARD} 100%)`,
+          borderRadius: 16, padding: '24px 20px', border: `1px solid ${DARK_ORANGE}`, marginBottom: 32,
+          position: 'relative', overflow: 'hidden'
+        }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: '#FFEDD5' }}>Refer a Fellow Coach</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 12, color: '#FDBA74', lineHeight: 1.5, maxWidth: '80%' }}>
+              Earn $50 for every coach who joins the Elite Circle using your link.
+            </p>
+            
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: BG, padding: '12px 16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: ORANGE, letterSpacing: '0.1em' }}>{referralCode}</span>
+              <button style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer' }} onClick={() => navigator.clipboard.writeText(referralCode)}>
+                <Copy size={18} />
+              </button>
             </div>
-
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 8, display: 'block' }}>我的推廣碼</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  readOnly
-                  value={referralCode}
-                  style={{ flex: 1, padding: '12px 16px', background: '#1E293B', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
-                />
-                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? '#10B981' : 'rgba(249, 115, 22, 0.1)', color: copiedCode ? '#fff' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
-                  {copiedCode ? <Check size={18} /> : <Copy size={18} />}
-                </button>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#334155', border: `2px solid ${CARD}`, marginLeft: 0, zIndex: 3 }} />
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#475569', border: `2px solid ${CARD}`, marginLeft: -10, zIndex: 2 }} />
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#64748B', border: `2px solid ${CARD}`, marginLeft: -10, zIndex: 1 }} />
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1E293B', border: `2px solid ${CARD}`, marginLeft: -10, zIndex: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, color: MUTED }}>
+                  +12
+                </div>
               </div>
-              <p style={{ fontSize: 12, color: MUTED, marginTop: 8, lineHeight: 1.5 }}>
-                分享這個代碼或下方 QR Code 給其他教練。他們註冊並完成驗證後，系統會自動發放推廣獎勵！
-              </p>
+              <button style={{
+                background: ORANGE, color: TEXT_LIGHT, border: 'none', padding: '8px 16px', borderRadius: 8,
+                fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer'
+              }}>
+                <QrCode size={14} /> QR CODE
+              </button>
             </div>
-
-            {promotionUrl && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: '#1E293B', borderRadius: 16, border: `1px dashed ${MUTED}` }}>
-                <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 16 }}>推廣 QR Code</label>
-                <div style={{ background: '#FFF', padding: 12, borderRadius: 16, boxShadow: `0 0 20px rgba(249, 115, 22, 0.2)` }}>
-                  <QRCodeSVG
-                    value={promotionUrl}
-                    size={160}
-                    level="H"
-                    imageSettings={{
-                      src: '/apple-touch-icon.png',
-                      x: undefined, y: undefined, height: 32, width: 32, excavate: true,
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: 12, color: MUTED, marginTop: 12, fontWeight: 700 }}>
-                  可直接讓對方掃碼註冊成為教練
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

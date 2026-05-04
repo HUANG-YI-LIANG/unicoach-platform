@@ -56,6 +56,10 @@ function formatNextAvailable(value) {
   }
 
   const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return '尚未設定固定時段';
+  }
+
   const parts = new Intl.DateTimeFormat('zh-TW', {
     timeZone: 'Asia/Taipei',
     month: 'numeric',
@@ -318,8 +322,8 @@ export default function CoachesPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         .coach-page {
           min-height: 100vh;
-          background: #0B1120;
-          color: #F8FAFC;
+          background: transparent;
+          color: var(--text-main);
           padding-bottom: 96px;
         }
         .coach-shell {
@@ -335,17 +339,17 @@ export default function CoachesPage() {
           font-size: 22px;
           line-height: 1.2;
           font-weight: 900;
-          color: #FFFFFF;
+          color: var(--primary);
         }
         .hero p {
           margin: 0;
-          color: #94A3B8;
+          color: var(--text-muted);
           font-size: 13px;
         }
         .filter-panel {
-          background: rgba(30, 41, 59, 0.7);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-main);
+          box-shadow: var(--shadow-md);
           border-radius: 16px;
           padding: 16px;
           position: sticky;
@@ -365,12 +369,12 @@ export default function CoachesPage() {
           gap: 8px;
           font-size: 14px;
           font-weight: 900;
-          color: #FFFFFF;
+          color: var(--primary);
         }
         .clear-btn {
           border: none;
           background: transparent;
-          color: #94A3B8;
+          color: var(--text-muted);
           font-size: 12px;
           font-weight: 700;
           cursor: pointer;
@@ -381,8 +385,8 @@ export default function CoachesPage() {
           gap: 12px;
         }
         .filter-group {
-          background: rgba(15, 23, 42, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.05);
+          background: var(--bg-input);
+          border: 1px solid var(--border-main);
           border-radius: 12px;
           padding: 12px;
         }
@@ -393,10 +397,10 @@ export default function CoachesPage() {
           margin-bottom: 8px;
           font-size: 12px;
           font-weight: 800;
-          color: #CBD5E1;
+          color: var(--text-main);
         }
         .filter-helper {
-          color: #64748B;
+          color: var(--text-muted);
           font-size: 11px;
           margin-bottom: 8px;
         }
@@ -404,7 +408,7 @@ export default function CoachesPage() {
           display: none;
           border: none;
           background: transparent;
-          color: #38BDF8;
+          color: var(--primary);
           font-weight: 800;
           font-size: 12px;
           cursor: pointer;
@@ -420,9 +424,9 @@ export default function CoachesPage() {
           display: none;
         }
         .date-btn, .time-btn {
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          background: rgba(255, 255, 255, 0.05);
-          color: #F1F5F9;
+          border: 1px solid var(--border-input);
+          background: transparent;
+          color: var(--text-main);
           border-radius: 8px;
           padding: 8px 10px;
           font-size: 12px;
@@ -431,13 +435,13 @@ export default function CoachesPage() {
           cursor: pointer;
         }
         .date-btn.active, .time-btn.active {
-          background: #38BDF8;
-          color: #0F172A;
-          border-color: #38BDF8;
+          background: var(--primary);
+          color: #FFFFFF;
+          border-color: var(--primary);
         }
         .time-btn.disabled {
-          background: rgba(255, 255, 255, 0.02);
-          color: #475569;
+          background: var(--bg-input);
+          color: var(--text-muted);
           border-color: transparent;
           cursor: not-allowed;
         }
@@ -448,11 +452,11 @@ export default function CoachesPage() {
         }
         .field, .select {
           width: 100%;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border-input);
           border-radius: 8px;
           padding: 8px 10px;
-          background: rgba(15, 23, 42, 0.5);
-          color: #F8FAFC;
+          background: var(--bg-input);
+          color: var(--text-main);
           font-size: 13px;
           outline: none;
         }
@@ -461,7 +465,7 @@ export default function CoachesPage() {
           justify-content: space-between;
           align-items: center;
           margin: 12px 0;
-          color: #94A3B8;
+          color: var(--text-muted);
           font-size: 12px;
           font-weight: 700;
         }
@@ -471,11 +475,11 @@ export default function CoachesPage() {
           gap: 12px;
         }
         .coach-card {
-          background: rgba(30, 41, 59, 0.5);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-main);
           border-radius: 12px;
           padding: 16px;
-          backdrop-filter: blur(10px);
+          box-shadow: var(--shadow-sm);
           display: flex;
           flex-direction: column;
           gap: 10px;
@@ -484,8 +488,8 @@ export default function CoachesPage() {
           width: 56px;
           height: 56px;
           border-radius: 12px;
-          background: rgba(56, 189, 248, 0.1);
-          color: #38BDF8;
+          background: var(--primary-bg);
+          color: var(--primary);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -508,20 +512,20 @@ export default function CoachesPage() {
         }
         .ghost-btn {
           background: transparent;
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          color: #E2E8F0;
+          border: 1px solid var(--border-input);
+          color: var(--text-main);
         }
         .primary-btn {
-          background: #F59E0B;
+          background: var(--primary);
           color: #FFFFFF;
         }
         .empty-state, .loading-state {
           padding: 40px 20px;
           text-align: center;
-          color: #94A3B8;
-          background: rgba(30, 41, 59, 0.5);
+          color: var(--text-muted);
+          background: var(--bg-surface);
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1px solid var(--border-main);
           font-size: 13px;
         }
         @media (max-width: 900px) {
@@ -561,9 +565,9 @@ export default function CoachesPage() {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-                background: isFilterOpen ? '#38BDF8' : 'rgba(255, 255, 255, 0.05)',
-                color: isFilterOpen ? '#0F172A' : '#38BDF8',
-                border: '1px solid #38BDF8', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                background: isFilterOpen ? 'var(--color-accent)' : 'transparent',
+                color: isFilterOpen ? 'white' : 'var(--color-accent)',
+                border: '1px solid var(--color-accent)', borderRadius: 8, fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >
@@ -608,7 +612,7 @@ export default function CoachesPage() {
                     </button>
                   ))}
                   {allSports.length === 0 && (
-                    <div style={{ fontSize: 13, color: '#94a3b8' }}>目前沒有可用運動項目</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>目前沒有可用運動項目</div>
                   )}
                 </div>
               </div>
@@ -637,7 +641,7 @@ export default function CoachesPage() {
                 </div>
                 <div style={{ height: 12 }} />
                 {!filters.date ? (
-                  <div style={{ color: '#94a3b8', fontSize: 13, padding: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: 12, textAlign: 'center' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px', background: 'var(--bg-input)', borderRadius: 12, textAlign: 'center' }}>
                     請先選擇上方日期，以查看可預約的時間。
                   </div>
                 ) : (
@@ -654,7 +658,7 @@ export default function CoachesPage() {
                         </button>
                       ))
                     ) : (
-                      <div style={{ color: '#94a3b8', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
                         該日期目前沒有可預約的時段。
                       </div>
                     )}
@@ -723,6 +727,16 @@ export default function CoachesPage() {
           <div>共找到 {coaches.length} 位教練</div>
           <div>排序：最快可約優先</div>
         </div>
+        
+        {/* Top Tip */}
+        <div style={{ background: 'var(--primary-bg)', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid var(--border-active)' }}>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>不知道怎麼選？</div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <span>👉 先看最快可約時間</span>
+            <span>👉 再看最近被預約</span>
+            <span>👉 最後看教學風格</span>
+          </div>
+        </div>
 
         {loading ? (
           <div className="loading-state">載入教練資料中...</div>
@@ -734,97 +748,71 @@ export default function CoachesPage() {
               <article key={coach.id} className="coach-card">
                 {/* 1. 狀態與評價 */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', fontWeight: 800 }}>
-                  <span style={{ color: '#38BDF8', background: 'rgba(56, 189, 248, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                  <span style={{ color: 'var(--primary)', background: 'var(--primary-bg)', padding: '2px 6px', borderRadius: '4px' }}>
                     {coach.coach_level_label || '初階教練'}
                   </span>
                   {coach.rating_avg > 0 ? (
-                    <span style={{ color: '#F59E0B' }}>⭐ {coach.rating_avg} ({coach.review_count})</span>
-                  ) : (
-                    <span style={{ color: '#94A3B8' }}>新教練</span>
-                  )}
-                  <span style={{ color: '#4ADE80', background: 'rgba(74, 222, 128, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                    <span style={{ color: 'var(--cta)' }}>⭐ {coach.rating_avg}</span>
+                  ) : null}
+                  <span style={{ color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                     已驗證
                   </span>
                 </div>
 
-                {/* 2. 頭像、姓名、一句話定位 */}
+                {/* 2. 頭像、姓名、項目 */}
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer' }} onClick={() => router.push(`/coaches/${coach.id}`)}>
                   <div className="avatar">
                     {coach.name?.slice(0, 1) || '教'}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: '#F8FAFC' }}>{coach.name}</h2>
+                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'var(--text-main)' }}>{coach.name}</h2>
                       {coach.has_video && (
-                        <span style={{ color: '#38BDF8', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
-                          <Video size={12}/> 看30秒介紹
+                        <span style={{ color: 'var(--cta)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
+                          <Video size={12}/> 看影片
                         </span>
                       )}
                     </div>
-                    {(coach.philosophy || coach.experience) && (
-                      <div style={{ color: '#94A3B8', fontSize: '12px', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {coach.philosophy || coach.experience}
-                      </div>
-                    )}
+                    {/* 主教項目與地區 */}
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      {(() => {
+                        const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
+                        if (sports.length === 0) return '未填寫項目';
+                        return <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{getSportEmoji(sports[0])} {sports[0]}</span>;
+                      })()}
+                      <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>|</span>
+                      <span>{coach.location || '未填寫地區'}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* 3. 主教項目與地區 */}
-                <div style={{ display: 'flex', gap: '6px', fontSize: '12px', color: '#94A3B8', flexWrap: 'wrap', alignItems: 'center' }}>
-                  {(() => {
-                    const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
-                    if (sports.length === 0) return null;
-                    return (
-                      <span style={{ fontWeight: 800, color: '#38BDF8' }}>主教：{getSportEmoji(sports[0])} {sports[0]}</span>
-                    );
-                  })()}
-                  <span style={{ color: '#64748B' }}>|</span>
-                  <span>地區：{coach.location || '未填寫'}</span>
-                  {(() => {
-                    const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
-                    const sparringSports = sports.slice(1);
-                    if (sparringSports.length > 0) {
-                      return (
-                        <>
-                          <span style={{ color: '#64748B' }}>|</span>
-                          <span>可陪練：{sparringSports.join('、')}</span>
-                        </>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-
-                {/* 4. 時間與價格 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.5)', padding: '10px 12px', borderRadius: '8px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ color: '#38BDF8', fontSize: '13px', fontWeight: 800 }}>
-                      {coach.next_available_at ? formatNextAvailable(coach.next_available_at) : '可先聊聊確認時間'}
-                    </span>
-                    {coach.booked_slot_count > 0 ? (
-                      <span style={{ color: '#EF4444', fontSize: '11px', fontWeight: 800 }}>🔥 最近被預約 {coach.booked_slot_count} 次</span>
-                    ) : (
-                      <span style={{ color: '#4ADE80', fontSize: '11px', fontWeight: 700 }}>本週還有時段可約</span>
-                    )}
+                {/* 3. 時間與價格 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: 800 }}>
+                    {coach.next_available_at ? formatNextAvailable(coach.next_available_at) : '預約請先聊聊'}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 900, color: '#F8FAFC', fontSize: '14px' }}>體驗課 NT${Number(coach.min_price || 1000).toLocaleString()}</div>
-                    <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>訂金 NT$300</div>
+                  <div style={{ fontWeight: 900, color: 'var(--text-main)', fontSize: '14px' }}>
+                    NT${Number(coach.min_price || 1000).toLocaleString()}
                   </div>
                 </div>
 
-                {/* 5. 成果 / 風格 */}
-                <div style={{ fontSize: '12px', color: '#4ADE80', fontWeight: 800 }}>
-                  🎯 {coach.experience ? `學員成果：${coach.experience.length > 20 ? coach.experience.slice(0, 20) + '...' : coach.experience}` : '教學風格：耐心陪練、適合初學者'}
+                {/* 4. 熱度 & 風格標籤 */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {coach.booked_slot_count > 0 && (
+                    <span style={{ color: '#E11D48', fontSize: '11px', fontWeight: 800 }}>🔥 最近被預約 {coach.booked_slot_count} 次</span>
+                  )}
+                  <div style={{ fontSize: '12px', color: '#10B981', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {coach.experience ? `🎯 ${coach.experience.length > 25 ? coach.experience.slice(0, 25) + '...' : coach.experience}` : '🎯 適合初學者｜耐心陪練'}
+                  </div>
                 </div>
 
-                {/* 6. 按鈕 */}
-                <div className="card-actions">
+                {/* 5. 按鈕 */}
+                <div className="card-actions" style={{ marginTop: '4px' }}>
                   <button type="button" className="ghost-btn" onClick={() => {
                     const params = new URLSearchParams(filters);
                     router.push(`/coaches/${coach.id}?${params.toString()}`);
                   }}>
-                    看教練資料
+                    看教練
                   </button>
                   <button type="button" className="primary-btn" onClick={() => {
                     const params = new URLSearchParams(filters);

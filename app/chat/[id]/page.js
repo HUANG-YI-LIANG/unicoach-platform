@@ -3,12 +3,15 @@
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const BLUE = '#2563EB';
-const BLUE_BG = '#EFF6FF';
-const BG = '#F1F5F9';
-const DARK = '#0F172A';
+const ORANGE = '#F97316';
+const ORANGE_BG = 'rgba(249, 115, 22, 0.1)';
+const BG = '#090E17';
+const CARD = '#121826';
+const TEXT_LIGHT = '#F8FAFC';
 const MUTED = '#94A3B8';
-const WHITE = '#FFFFFF';
+const INPUT_BG = '#1E293B';
+const BORDER = 'rgba(255,255,255,0.05)';
+const SECONDARY_BUBBLE = '#334155';
 
 const QUICK_REPLIES = [
   '你好，我想先了解課程安排。',
@@ -31,13 +34,14 @@ function Avatar({ name, size = 36 }) {
         height: size,
         borderRadius: '50%',
         flexShrink: 0,
-        background: `linear-gradient(135deg, ${BLUE}, #60A5FA)`,
-        color: WHITE,
+        background: `linear-gradient(135deg, ${ORANGE}, #FDBA74)`,
+        color: '#FFF',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontSize: Math.round(size * 0.38),
         fontWeight: 900,
+        boxShadow: `0 0 10px rgba(249, 115, 22, 0.3)`
       }}
     >
       {name?.charAt(0) ?? '?'}
@@ -172,8 +176,8 @@ export default function ChatRoomPage({ params }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <p style={{ color: MUTED, fontWeight: 600 }}>載入聊天室中...</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: BG }}>
+        <p style={{ color: ORANGE, fontWeight: 800 }}>載入聊天室中...</p>
       </div>
     );
   }
@@ -181,19 +185,19 @@ export default function ChatRoomPage({ params }) {
   const isCoach = currentUser?.role === 'coach';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: TEXT_LIGHT }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
           padding: '10px 16px',
-          background: WHITE,
-          borderBottom: '1px solid #E2E8F0',
+          background: CARD,
+          borderBottom: `1px solid ${BORDER}`,
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
         }}
       >
         <button
@@ -204,7 +208,7 @@ export default function ChatRoomPage({ params }) {
             padding: '4px 8px 4px 0',
             cursor: 'pointer',
             fontSize: 20,
-            color: BLUE,
+            color: ORANGE,
             lineHeight: 1,
           }}
         >
@@ -215,7 +219,7 @@ export default function ChatRoomPage({ params }) {
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: DARK }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: TEXT_LIGHT }}>
               {room?.other_name ?? '聊天室'}
             </p>
             <span
@@ -224,8 +228,8 @@ export default function ChatRoomPage({ params }) {
                 fontWeight: 800,
                 padding: '2px 6px',
                 borderRadius: 4,
-                background: room?.other_is_coach ? `${BLUE}15` : '#F1F5F9',
-                color: room?.other_is_coach ? BLUE : MUTED,
+                background: room?.other_is_coach ? ORANGE_BG : INPUT_BG,
+                color: room?.other_is_coach ? ORANGE : MUTED,
               }}
             >
               {room?.other_is_coach ? '教練' : '學員'}
@@ -261,13 +265,13 @@ export default function ChatRoomPage({ params }) {
               setPhiText(room?.coach_philosophy || '');
             }}
             style={{
-              background: BG,
+              background: INPUT_BG,
               border: 'none',
               borderRadius: 8,
               padding: '6px 10px',
               fontSize: 11,
               fontWeight: 700,
-              color: BLUE,
+              color: ORANGE,
               cursor: 'pointer',
             }}
           >
@@ -277,8 +281,8 @@ export default function ChatRoomPage({ params }) {
       </div>
 
       {isCoach && editingPhilosophy && (
-        <div style={{ background: '#F8FAFC', padding: 12, borderBottom: '1px solid #E2E8F0' }}>
-          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: DARK }}>編輯教學理念</p>
+        <div style={{ background: CARD, padding: 12, borderBottom: `1px solid ${BORDER}` }}>
+          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: TEXT_LIGHT }}>編輯教學理念</p>
           <textarea
             value={phiText}
             onChange={(event) => setPhiText(event.target.value)}
@@ -286,7 +290,9 @@ export default function ChatRoomPage({ params }) {
               width: '100%',
               padding: 10,
               borderRadius: 8,
-              border: '1px solid #E2E8F0',
+              border: `1px solid ${BORDER}`,
+              background: INPUT_BG,
+              color: TEXT_LIGHT,
               fontSize: 13,
               marginBottom: 8,
             }}
@@ -297,8 +303,8 @@ export default function ChatRoomPage({ params }) {
             onClick={savePhilosophy}
             style={{
               width: '100%',
-              background: BLUE,
-              color: WHITE,
+              background: ORANGE,
+              color: '#FFF',
               border: 'none',
               padding: '8px',
               borderRadius: 8,
@@ -327,29 +333,29 @@ export default function ChatRoomPage({ params }) {
             {room?.coach_name && (
               <div
                 style={{
-                  background: WHITE,
+                  background: CARD,
                   borderRadius: 20,
-                  boxShadow: '0 2px 16px rgba(0,0,0,0.07)',
+                  boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
                   padding: '20px 22px',
                   marginBottom: 24,
                   textAlign: 'left',
-                  borderTop: `3px solid ${BLUE}`,
+                  borderTop: `3px solid ${ORANGE}`,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
                   <Avatar name={room.coach_name} size={44} />
                   <div>
-                    <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: DARK }}>{room.coach_name}</p>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: TEXT_LIGHT }}>{room.coach_name}</p>
                     <p style={{ margin: '2px 0 0', fontSize: 11, color: MUTED }}>教練介紹</p>
                   </div>
                 </div>
-                <p style={{ margin: 0, fontSize: 14, color: '#334155', lineHeight: 1.6, fontStyle: 'italic' }}>
+                <p style={{ margin: 0, fontSize: 14, color: MUTED, lineHeight: 1.6, fontStyle: 'italic' }}>
                   {room.coach_philosophy || '這位教練尚未填寫教學理念。'}
                 </p>
               </div>
             )}
 
-            <p style={{ fontSize: 15, fontWeight: 700, color: DARK, marginBottom: 6 }}>開始第一則訊息吧</p>
+            <p style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 6 }}>開始第一則訊息吧</p>
             <p style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>你可以直接選擇常用問題，快速開啟對話。</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -360,20 +366,20 @@ export default function ChatRoomPage({ params }) {
                   style={{
                     width: '100%',
                     padding: '12px 20px',
-                    background: WHITE,
-                    border: `1.5px solid ${BLUE}`,
+                    background: CARD,
+                    border: `1.5px solid ${ORANGE}`,
                     borderRadius: 100,
                     fontSize: 14,
                     fontWeight: 600,
-                    color: BLUE,
+                    color: ORANGE,
                     cursor: 'pointer',
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(event) => {
-                    event.currentTarget.style.background = BLUE_BG;
+                    event.currentTarget.style.background = ORANGE_BG;
                   }}
                   onMouseLeave={(event) => {
-                    event.currentTarget.style.background = WHITE;
+                    event.currentTarget.style.background = CARD;
                   }}
                 >
                   {reply}
@@ -391,8 +397,8 @@ export default function ChatRoomPage({ params }) {
                   <span
                     style={{
                       fontSize: 11,
-                      color: '#EF4444',
-                      background: '#FEE2E2',
+                      color: '#FCA5A5',
+                      background: 'rgba(239, 68, 68, 0.2)',
                       padding: '4px 12px',
                       borderRadius: 100,
                     }}
@@ -426,11 +432,11 @@ export default function ChatRoomPage({ params }) {
                     style={{
                       padding: '12px 14px',
                       borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                      background: isMe ? BLUE : '#E5E7EB',
-                      color: isMe ? WHITE : DARK,
+                      background: isMe ? ORANGE : SECONDARY_BUBBLE,
+                      color: '#FFF',
                       fontSize: 14,
                       lineHeight: 1.5,
-                      boxShadow: isMe ? '0 2px 8px rgba(37,99,235,0.2)' : '0 2px 8px rgba(0,0,0,0.06)',
+                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : '0 4px 12px rgba(0,0,0,0.3)',
                     }}
                   >
                     {message.message}
@@ -454,8 +460,8 @@ export default function ChatRoomPage({ params }) {
           alignItems: 'center',
           gap: 10,
           padding: '10px 14px 14px',
-          background: WHITE,
-          borderTop: '1px solid #E2E8F0',
+          background: CARD,
+          borderTop: `1px solid ${BORDER}`,
           position: 'sticky',
           bottom: 0,
           zIndex: 100,
@@ -476,12 +482,12 @@ export default function ChatRoomPage({ params }) {
           style={{
             flex: 1,
             padding: '10px 16px',
-            border: '1.5px solid #E2E8F0',
+            border: `1.5px solid ${BORDER}`,
             borderRadius: 100,
             fontSize: 14,
             outline: 'none',
-            background: '#F8FAFC',
-            color: DARK,
+            background: INPUT_BG,
+            color: TEXT_LIGHT,
             fontFamily: 'inherit',
           }}
         />
@@ -493,18 +499,19 @@ export default function ChatRoomPage({ params }) {
             height: 42,
             borderRadius: '50%',
             flexShrink: 0,
-            background: text.trim() ? BLUE : '#CBD5E1',
+            background: text.trim() ? ORANGE : INPUT_BG,
             border: 'none',
             cursor: text.trim() ? 'pointer' : 'default',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 18,
+            boxShadow: text.trim() ? `0 4px 12px rgba(249, 115, 22, 0.4)` : 'none'
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 2L11 13" stroke={text.trim() ? '#FFF' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={text.trim() ? '#FFF' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut
 } from 'lucide-react';
@@ -27,13 +26,8 @@ export default function AdminDashboard() {
     ]).then(async ([profRes, bookRes]) => {
       if (!profRes.ok) return router.push('/login');
       const pData = await profRes.json();
-      if (!pData.profile) return router.replace('/login');
-      if (pData.profile.role !== 'admin') {
-        router.replace(getDashboardPathForRole(pData.profile.role));
-        return;
-      }
       const bData = await bookRes.json();
-      setProfile(pData.profile);
+      if (pData.profile) setProfile(pData.profile);
       if (bData.bookings) setBookings(bData.bookings);
       setLoading(false);
     });

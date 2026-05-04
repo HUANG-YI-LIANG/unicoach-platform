@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX } from 'lucide-react';
+import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX, X } from 'lucide-react';
 
 function formatCount(value) {
   const count = Number(value || 0);
@@ -55,7 +55,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
       height: '100%',
       width: '100%',
       scrollSnapAlign: 'start',
-      backgroundColor: '#000',
+      backgroundColor: 'var(--color-bg)',
       overflow: 'hidden'
     }}>
       {/* Back button */}
@@ -137,31 +137,53 @@ function VideoItem({ video, isVisible, onLike, onView }) {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           zIndex: 40,
-          background: 'rgba(255,255,255,0.95)',
+          background: 'rgba(15, 23, 42, 0.95)',
           backdropFilter: 'blur(10px)',
           padding: '24px',
           borderRadius: '24px',
-          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           gap: '16px',
           animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
           width: '80%',
-          maxWidth: '320px'
+          maxWidth: '320px',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <div style={{ fontSize: '48px' }}>🔥</div>
-          <h3 style={{ margin: 0, color: '#0F172A', fontSize: '20px', fontWeight: '900', textAlign: 'center' }}>
+          <button
+            onClick={() => setShowPopCta(false)}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              cursor: 'pointer'
+            }}
+          >
+            <X size={18} />
+          </button>
+          
+          <div style={{ fontSize: '48px', marginTop: '12px' }}>🔥</div>
+          <h3 style={{ margin: 0, color: '#FFFFFF', fontSize: '20px', fontWeight: '900', textAlign: 'center' }}>
             這位教練非常搶手！
           </h3>
-          <p style={{ margin: 0, color: '#64748B', fontSize: '14px', textAlign: 'center' }}>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
             趕快查看他的詳細資料與可預約時段
           </p>
           <button 
             onClick={() => router.push(`/coaches/${video.coach_id}`)}
             style={{
               width: '100%',
-              background: '#F59E0B',
+              background: 'var(--primary)',
               color: 'white',
               border: 'none',
               padding: '16px',
@@ -169,7 +191,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
               fontWeight: '900',
               fontSize: '16px',
               cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(245, 158, 11, 0.4)',
+              boxShadow: 'var(--shadow-md)',
               marginTop: '8px'
             }}
           >
@@ -193,7 +215,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
           <div 
             onClick={() => router.push(`/coaches/${video.coach_id}`)}
             style={{ 
-              width: 48, height: 48, borderRadius: '50%', backgroundColor: '#333', 
+              width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--color-surface)', 
               border: '2px solid white', overflow: 'hidden', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
@@ -276,7 +298,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
         <button 
           onClick={() => router.push(`/coaches/${video.coach_id}`)}
           style={{
-            background: '#F59E0B',
+            background: 'var(--color-primary)',
             color: 'white', border: 'none', padding: '14px 20px', borderRadius: '100px',
             fontWeight: 900, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
             boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
@@ -311,7 +333,11 @@ export default function VideoFeed() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [seenIndices, setSeenIndices] = useState(new Set([0]));
+  const [showConversion, setShowConversion] = useState(false);
+  const [showAntiAddiction, setShowAntiAddiction] = useState(false);
   const containerRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/videos/feed')
@@ -394,14 +420,29 @@ export default function VideoFeed() {
     const scrollPosition = containerRef.current.scrollTop;
     const windowHeight = window.innerHeight;
     const index = Math.round(scrollPosition / windowHeight);
+    
     if (index !== currentIndex) {
       setCurrentIndex(index);
+      
+      setSeenIndices(prev => {
+        const next = new Set(prev);
+        next.add(index);
+        
+        // Conversion logic
+        if (next.size === 4 && !showConversion) {
+          setShowConversion(true);
+        } else if (next.size === 11 && !showAntiAddiction) {
+          setShowAntiAddiction(true);
+        }
+        
+        return next;
+      });
     }
   };
 
   if (loading) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: 'white' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
         <Loader2 className="animate-spin" size={28} />
       </div>
     );
@@ -409,17 +450,19 @@ export default function VideoFeed() {
 
   if (error || videos.length === 0) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center', justifyContent: 'center', background: '#0B1120', color: 'white', padding: 24, textAlign: 'center' }}>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)', color: 'var(--text-main)', padding: 24, textAlign: 'center' }}>
         <div>
           <p style={{ fontSize: 20, fontWeight: 900, margin: '0 0 8px 0' }}>{error ? '影音載入失敗' : '目前尚無教練影片'}</p>
-          <p style={{ color: 'rgba(255,255,255,0.68)', margin: 0, fontSize: 14 }}>{error || '等教練上傳影片後，這裡會出現探索內容。'}</p>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: 14 }}>{error || '等教練上傳影片後，這裡會出現探索內容。'}</p>
         </div>
-        <Link href="/coaches" style={{ background: '#F59E0B', color: '#FFF', padding: '14px 32px', borderRadius: '100px', fontWeight: 800, textDecoration: 'none' }}>
+        <Link href="/coaches" style={{ background: 'var(--primary)', color: '#FFF', padding: '14px 32px', borderRadius: '100px', fontWeight: 800, textDecoration: 'none' }}>
           去找教練
         </Link>
       </div>
     );
   }
+
+  const currentVideo = videos[currentIndex];
 
   return (
     <div 
@@ -433,7 +476,7 @@ export default function VideoFeed() {
         bottom: 72, /* BottomNav height */
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
-        background: '#0B1120',
+        background: 'var(--color-bg)',
         zIndex: 10, /* Below header/nav but above main content */
         msOverflowStyle: 'none', /* IE and Edge */
         scrollbarWidth: 'none', /* Firefox */
@@ -450,12 +493,66 @@ export default function VideoFeed() {
         <VideoItem 
           key={video.id} 
           video={video} 
-          isVisible={index === currentIndex} 
+          isVisible={index === currentIndex && !showConversion && !showAntiAddiction} 
           onLike={handleLike}
           onShare={handleShare}
           onView={handleView}
         />
       ))}
+
+      {/* Conversion CTA (After 3 videos) */}
+      {showConversion && currentVideo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+          <h2 style={{ color: 'white', margin: '0 0 12px', fontSize: 24, fontWeight: 900 }}>喜歡這位教練嗎？</h2>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 32px', textAlign: 'center', fontSize: 15 }}>
+            你已經看了幾支影片，現在是預約的好時機！<br/>{currentVideo.coach_name} 教練還有空檔喔。
+          </p>
+          <button 
+            onClick={() => router.push(`/coaches/${currentVideo.coach_id}`)}
+            style={{ width: '100%', maxWidth: 320, background: 'var(--color-accent)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)' }}
+          >
+            👉 立即預約 {currentVideo.coach_name}
+          </button>
+          <button 
+            onClick={() => setShowConversion(false)}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 100, fontSize: 14, cursor: 'pointer' }}
+          >
+            晚點再說，繼續滑
+          </button>
+        </div>
+      )}
+
+      {/* Anti-Addiction CTA (After 10 videos) */}
+      {showAntiAddiction && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ color: 'white', margin: '0 0 12px', fontSize: 24, fontWeight: 900 }}>看了很多影片囉！</h2>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 32px', textAlign: 'center', fontSize: 15, lineHeight: 1.6 }}>
+            與其一直看影片，不如直接找教練聊聊！<br/>許多學員都是聊過後才發現最適合的教練。
+          </p>
+          <button 
+            onClick={() => router.push('/coaches')}
+            style={{ width: '100%', maxWidth: 320, background: 'var(--primary)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(37, 99, 235, 0.4)' }}
+          >
+            💬 去教練列表聊聊
+          </button>
+          <button 
+            onClick={() => setShowAntiAddiction(false)}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 100, fontSize: 14, cursor: 'pointer' }}
+          >
+            我還想再看幾支
+          </button>
+        </div>
+      )}
     </div>
   );
 }
