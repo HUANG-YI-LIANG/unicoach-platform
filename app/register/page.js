@@ -1,5 +1,5 @@
 'use client';
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -68,23 +68,23 @@ function RegisterForm() {
   };
 
   return (
-    <div style={{ maxWidth: 440, margin: '0 auto', padding: '40px 16px' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontWeight: 900, color: '#1E293B' }}>註冊 UniCoach 帳號</h2>
+    <div style={{ maxWidth: 440, margin: '0 auto', padding: '40px 16px', color: 'var(--text-main)' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontWeight: 900, color: 'var(--text-main)' }}>註冊 UniCoach 帳號</h2>
 
-      <div className="card" style={{ background: '#fff', padding: '24px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+      <div className="card" style={{ background: 'var(--bg-surface)', padding: '24px', borderRadius: '24px', boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-main)' }}>
         {error && (
-          <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', color: '#B91C1C', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '13px' }}>
+          <div style={{ background: 'var(--danger-bg)', border: '1px solid var(--error)', color: 'var(--error)', padding: '12px', borderRadius: '12px', marginBottom: '16px', fontSize: '13px' }}>
             {error}
           </div>
         )}
 
         <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>註冊身分</label>
+            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>註冊身分</label>
             <select
               value={form.role}
               onChange={e => setForm({ ...form, role: e.target.value })}
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)', outline: 'none' }}
             >
               <option value="user">學員 / 家長 (尋找教練)</option>
               <option value="coach">大學生教練 (提供教學)</option>
@@ -93,17 +93,17 @@ function RegisterForm() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>真實姓名</label>
+              <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>真實姓名</label>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm({ ...form, name: e.target.value })}
                 required
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)' }}
               />
             </div>
             <div>
-              <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>年齡</label>
+              <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>年齡</label>
               <input
                 type="number"
                 min="0"
@@ -113,75 +113,75 @@ function RegisterForm() {
                   setForm({ ...form, age: parseInt(val) || 0 });
                 }}
                 required
-                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0', outline: 'none' }}
+                style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)', outline: 'none' }}
               />
             </div>
           </div>
 
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>信箱 Email</label>
+            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>信箱 Email</label>
             <input
               type="email"
               value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })}
               required
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)' }}
             />
           </div>
 
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: '6px' }}>密碼</label>
+            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>密碼</label>
             <input
               type="password"
               value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
               required
               minLength={8}
-              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid #E2E8F0' }}
+              style={{ width: '100%', padding: '12px', borderRadius: '12px', border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)' }}
             />
           </div>
 
           {/* ── 法律合規區 ── */}
-          <div style={{ marginTop: '4px', padding: '16px', background: '#F8FAFC', borderRadius: '16px', border: '1px solid #F1F5F9' }}>
-            <h4 style={{ margin: '0 0 12px', fontSize: '12px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>法律條款同意</h4>
+          <div style={{ marginTop: '4px', padding: '16px', background: 'var(--bg-page)', borderRadius: '16px', border: '1px solid var(--border-main)' }}>
+            <h4 style={{ margin: '0 0 12px', fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>法律條款同意</h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)} style={{ width: 16, height: 16 }} />
-                <span>我同意 <span style={{ color: '#2563EB', textDecoration: 'underline' }}>服務使用條款</span></span>
+                <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)} style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }} />
+                <span style={{ lineHeight: 1.5 }}>我同意 <span style={{ color: 'var(--primary)', textDecoration: 'underline' }}>服務使用條款</span></span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={form.privacyConsent} onChange={e => setForm({ ...form, privacyConsent: e.target.checked })} style={{ width: 16, height: 16 }} />
-                <span>我同意 <span style={{ color: '#2563EB', textDecoration: 'underline' }}>隱私權保護政策</span></span>
+                <input type="checkbox" checked={form.privacyConsent} onChange={e => setForm({ ...form, privacyConsent: e.target.checked })} style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }} />
+                <span style={{ lineHeight: 1.5 }}>我同意 <span style={{ color: 'var(--primary)', textDecoration: 'underline' }}>隱私權保護政策</span></span>
               </label>
 
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                <input type="checkbox" checked={disclaimerChecked} onChange={e => setDisclaimerChecked(e.target.checked)} style={{ width: 16, height: 16 }} />
-                <span>我已閱讀並同意 <Link href="/disclaimer" style={{ color: '#2563EB', textDecoration: 'underline' }}>免責聲明</Link></span>
+                <input type="checkbox" checked={disclaimerChecked} onChange={e => setDisclaimerChecked(e.target.checked)} style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }} />
+                <span style={{ lineHeight: 1.5 }}>我已閱讀並同意 <Link href="/disclaimer" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>免責聲明</Link></span>
               </label>
 
               {form.age < 18 && (
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', background: '#FFF7ED', padding: '8px', borderRadius: '8px', border: '1px solid #FFEDD5' }}>
-                  <input type="checkbox" checked={form.guardianConsent} onChange={e => setForm({ ...form, guardianConsent: e.target.checked })} style={{ width: 16, height: 16 }} />
-                  <span style={{ color: '#9A3412', fontWeight: 600 }}>我已獲得法定監護人同意使用本平台</span>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', background: 'var(--primary-bg)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-active)' }}>
+                  <input type="checkbox" checked={form.guardianConsent} onChange={e => setForm({ ...form, guardianConsent: e.target.checked })} style={{ width: 16, height: 16, margin: 0, flexShrink: 0 }} />
+                  <span style={{ color: 'var(--primary)', fontWeight: 600 }}>我已獲得法定監護人同意使用本平台</span>
                 </label>
               )}
             </div>
           </div>
 
           <button type="submit" style={{
-            width: '100%', padding: '14px', background: '#2563EB', color: '#fff',
+            width: '100%', padding: '14px', background: 'var(--primary)', color: '#fff',
             border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '15px',
-            boxShadow: '0 4px 12px rgba(37,99,235,0.2)', cursor: 'pointer', marginTop: '8px'
+            boxShadow: '0 4px 12px var(--primary-bg)', cursor: 'pointer', marginTop: '8px'
           }}>
             立即註冊
           </button>
         </form>
       </div>
 
-      <p style={{ textAlign: 'center', fontSize: '0.9rem' }}>
-        已有帳號？ <Link href="/login">直接登入</Link>
+      <p style={{ textAlign: 'center', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+        已有帳號？ <Link href="/login" style={{ color: 'var(--primary)' }}>直接登入</Link>
       </p>
     </div>
   );

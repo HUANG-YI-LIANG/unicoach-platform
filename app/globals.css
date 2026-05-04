@@ -1,13 +1,45 @@
 :root {
-  --primary: #2563EB;
-  --primary-hover: #1D4ED8;
-  --bg-color: #FFFFFF;
-  --surface: #FFFFFF;
-  --text-main: #111827;
-  --text-muted: #6B7280;
-  --border: #E5E7EB;
+  /* Brand colors */
+  --primary: #1E3A8A;
+  --primary-hover: #1E40AF;
+  --cta: #F59E0B;
+  --cta-hover: #D97706;
   --error: #EF4444;
   --success: #10B981;
+
+  /* Light Theme Defaults */
+  --bg-page: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-input: #FFFFFF;
+  --border-main: #E2E8F0;
+  --border-input: #CBD5E1;
+  --border-active: rgba(30, 58, 138, 0.2);
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-light: rgba(15, 23, 42, 0.4);
+  --primary-bg: rgba(30, 58, 138, 0.05);
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --overlay-bg: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme='dark'] {
+  /* Dark Theme Overrides */
+  --bg-page: #0F172A;
+  --bg-surface: #1E293B;
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --border-main: rgba(255, 255, 255, 0.05);
+  --border-input: rgba(255, 255, 255, 0.1);
+  --border-active: rgba(30, 58, 138, 0.4);
+  --text-main: #F8FAFC;
+  --text-muted: #94A3B8;
+  --text-light: rgba(255, 255, 255, 0.4);
+  --primary-bg: rgba(30, 58, 138, 0.2);
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
+  --overlay-bg: rgba(15, 23, 42, 0.7);
 }
 * {
   box-sizing: border-box;
@@ -15,7 +47,7 @@
   padding: 0;
 }
 body {
-  background-color: var(--bg-color);
+  background-color: var(--bg-page);
   color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -26,8 +58,8 @@ body {
   width: 100%;
   max-width: 480px;
   min-height: 100vh;
-  background-color: var(--surface);
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  background-color: var(--bg-surface);
+  box-shadow: 0 0 40px rgba(0,0,0,0.1);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -49,17 +81,17 @@ a {
 button {
   cursor: pointer;
   border: none;
-  background: var(--primary);
+  background: var(--cta);
   color: white;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  font-weight: 500;
+  font-weight: 700;
   font-size: 1rem;
   transition: all 0.2s ease;
 }
 button:active {
   transform: scale(0.98);
-  background: var(--primary-hover);
+  background: var(--cta-hover);
 }
 button.outline {
   background: transparent;
@@ -72,7 +104,9 @@ button.outline:active {
 input, textarea, select {
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-input);
+  background-color: var(--bg-input);
+  color: var(--text-main);
   border-radius: 8px;
   font-size: 1rem;
   margin-bottom: 1rem;
@@ -84,12 +118,12 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 /* === NAVIGATION MENU === */
@@ -98,45 +132,50 @@ input:focus, textarea:focus, select:focus {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid #F3F4F6;
+  height: 72px;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-main);
+  box-shadow: 0 -8px 30px rgba(0,0,0,0.05);
+  border-radius: 20px 20px 0 0;
   display: flex;
   justify-content: space-around;
   align-items: center;
   z-index: 1000;
-  padding-bottom: env(safe-area-inset-bottom, 20px);
-  height: calc(64px + env(safe-area-inset-bottom, 20px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .nav-link {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #9CA3AF;
+  color: var(--text-muted);
   text-decoration: none;
-  transition: color 0.1s;
+  transition: all 0.2s;
   min-width: 64px;
   gap: 4px;
+  padding: 6px 12px;
+  border-radius: 12px;
 }
 .nav-link.active {
+  background-color: transparent;
   color: var(--primary);
+}
+.nav-link.active .nav-icon {
+  filter: drop-shadow(0 0 8px rgba(30, 58, 138, 0.4));
 }
 .nav-icon {
   margin-bottom: 2px;
 }
 .nav-text {
-  font-size: 11px;
-  font-weight: 500;
-}
-.nav-link.active .nav-text {
+  font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 /* === PREMIUM LANDING PAGE === */
 .premium-landing {
   min-height: 100vh;
-  background-color: #FAFAFA;
+  background-color: var(--bg-page);
   padding-bottom: 40px;
 }
 
@@ -153,13 +192,13 @@ input:focus, textarea:focus, select:focus {
   overflow: hidden;
   border-bottom-left-radius: 32px;
   border-bottom-right-radius: 32px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
 }
 
 .premium-hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  /* 使用高質感真實教練教學圖片 (網球發球/籃球指導) */
+  /* 使用高質感真實教練教學圖片 */
   background-image: url('https://images.unsplash.com/photo-1526676537331-7af2b2264585?q=80&w=1000&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center 20%;
@@ -170,7 +209,7 @@ input:focus, textarea:focus, select:focus {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(15,23,42,0.85) 70%, rgba(15,23,42,0.95) 100%);
+  background: linear-gradient(180deg, rgba(11,17,32,0.3) 0%, rgba(11,17,32,0.9) 70%, rgba(11,17,32,1) 100%);
 }
 
 .premium-hero-content {
@@ -186,7 +225,7 @@ input:focus, textarea:focus, select:focus {
   margin-bottom: 24px;
   display: inline-flex;
   align-items: center;
-  background: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.1);
   padding: 6px 14px;
   border-radius: 100px;
   backdrop-filter: blur(8px);
@@ -203,7 +242,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-subtitle {
-  color: #CBD5E1;
+  color: #94A3B8;
   font-size: 15px;
   font-weight: 500;
   line-height: 1.5;
@@ -220,37 +259,40 @@ input:focus, textarea:focus, select:focus {
 
 .premium-btn-primary {
   width: 100%;
-  height: 56px;
-  background-color: #F59E0B; /* 活力琥珀色，高轉換率 */
+  height: 60px;
+  background-color: #F59E0B;
   color: #FFFFFF;
-  border-radius: 16px;
+  border-radius: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   text-decoration: none;
   box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
 .premium-btn-primary:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
   background-color: #D97706;
 }
 
 .premium-btn-text {
   color: #94A3B8;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 4px;
-  padding: 4px;
-  transition: color 0.2s ease;
+  text-decoration: none;
+  padding: 12px 24px;
+  border: 1px solid #334155;
+  border-radius: 100px;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
 .premium-btn-text:active {
-  color: #FFFFFF;
+  background-color: #1E293B;
+  color: #E2E8F0;
+  transform: scale(0.96);
 }
 
 /* 2. 三個信任點 */
@@ -258,23 +300,21 @@ input:focus, textarea:focus, select:focus {
   padding: 32px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   margin-top: -20px;
   position: relative;
   z-index: 2;
 }
 
 .premium-trust-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.4);
-  border-radius: 20px;
-  padding: 16px 20px;
+  background: var(--bg-surface);
+  border-radius: 16px;
+  border: 1px solid var(--border-main);
+  padding: 20px;
   display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.03), 0 1px 4px rgba(0,0,0,0.02);
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.2);
   transition: transform 0.2s ease;
 }
 
@@ -282,23 +322,27 @@ input:focus, textarea:focus, select:focus {
   transform: translateY(2px);
 }
 
+.trust-title {
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trust-desc {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .trust-icon-wrapper {
-  width: 44px;
-  height: 44px;
-  background-color: #F1F5F9;
-  color: #334155;
-  border-radius: 14px;
+  color: #F59E0B;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.trust-text {
-  color: #1E293B;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.01em;
 }
 
 /* 3. 運動分類入口 */
@@ -308,22 +352,19 @@ input:focus, textarea:focus, select:focus {
 
 .sports-header {
   margin-bottom: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
 }
 
 .sports-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #0F172A;
-  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text-main);
+  margin: 0 0 4px 0;
 }
 
 .sports-subtitle {
-  font-size: 13px;
-  color: #64748B;
-  font-weight: 600;
+  font-size: 14px;
+  color: #94A3B8;
+  font-weight: 500;
 }
 
 .premium-sports-grid {
@@ -334,15 +375,14 @@ input:focus, textarea:focus, select:focus {
 
 .sport-card {
   position: relative;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  height: 140px;
+  height: 160px;
   display: flex;
   align-items: flex-end;
   padding: 16px;
   text-decoration: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
-  background-color: #E2E8F0;
+  background-color: #1E293B;
   transition: transform 0.2s ease;
 }
 
@@ -360,7 +400,7 @@ input:focus, textarea:focus, select:focus {
 .sport-card-overlay {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(11,17,32,0.8) 100%);
   z-index: 1;
 }
 
@@ -381,21 +421,40 @@ input:focus, textarea:focus, select:focus {
 }
 
 .sport-arrow {
-  color: #FFFFFF;
-  background: rgba(255,255,255,0.2);
+  color: #0B1120;
+  background: #FFFFFF;
   border-radius: 50%;
   padding: 4px;
   width: 24px;
   height: 24px;
-  backdrop-filter: blur(4px);
+}
+
+/* 4. Footer */
+.premium-footer {
+  text-align: center;
+  padding: 40px 24px 80px 24px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.premium-footer-brand {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.premium-footer-copy {
+  font-size: 12px;
+  color: #64748B;
 }
 
 /* === GLOBAL HEADER === */
 .global-header {
   height: 56px;
-  background-color: rgba(255, 255, 255, 0.85);
+  background-color: var(--overlay-bg);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--border-main);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -403,10 +462,10 @@ input:focus, textarea:focus, select:focus {
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
 .role-badge {
-  background-color: #2563EB;
+  background-color: var(--primary);
   color: #FFFFFF;
   font-size: 11px;
   font-weight: 800;
@@ -417,25 +476,27 @@ input:focus, textarea:focus, select:focus {
 .level-info {
   font-size: 13px;
   font-weight: 700;
-  color: #475569;
+  color: var(--text-muted);
 }
 .brand-name {
   font-weight: 900;
   font-size: 18px;
-  color: #1E3A8A;
+  color: var(--primary);
+  font-style: italic;
+  letter-spacing: 0.05em;
 }
 .status-badge {
   font-size: 11px;
   font-weight: 600;
-  color: #94A3B8;
-  background-color: #F8FAFC;
+  color: var(--text-muted);
+  background-color: rgba(255, 255, 255, 0.05);
   padding: 4px 10px;
   border-radius: 100px;
 }
 
 /* === USER HOME & PROFILE === */
 .user-home-wrapper {
-  background-color: #F8FAFC;
+  background-color: var(--bg-page);
   min-height: calc(100vh - 120px);
 }
 .user-card-header {
@@ -493,7 +554,7 @@ input:focus, textarea:focus, select:focus {
 .section-title {
   font-size: 17px;
   font-weight: 800;
-  color: #0F172A;
+  color: var(--text-main);
   margin-bottom: 12px;
   padding: 0 4px;
 }
@@ -508,8 +569,8 @@ input:focus, textarea:focus, select:focus {
 .coupon-list::-webkit-scrollbar { display: none; }
 .coupon-card {
   min-width: 140px;
-  background: white;
-  border: 2px dashed #BFDBFE;
+  background: var(--bg-surface);
+  border: 2px dashed var(--border-input);
   padding: 16px;
   border-radius: 16px;
   text-align: center;
@@ -525,7 +586,8 @@ input:focus, textarea:focus, select:focus {
 }
 
 .profile-details-card {
-  background: white;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
   border-radius: 24px;
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.03);
@@ -538,12 +600,12 @@ input:focus, textarea:focus, select:focus {
 }
 .detail-item:last-child { border: none; }
 .detail-label {
-  color: #64748B;
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 600;
 }
 .detail-value {
-  color: #0F172A;
+  color: var(--text-main);
   font-size: 14px;
   font-weight: 700;
 }
@@ -568,7 +630,8 @@ input:focus, textarea:focus, select:focus {
   padding: 20px;
 }
 .modal-content {
-  background: white;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-main);
   width: 100%;
   max-width: 400px;
   border-radius: 24px;

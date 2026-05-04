@@ -229,13 +229,33 @@ export async function POST(request) {
       ? parsedGlobalCommission
       : 20;
 
-    // 3. 累加折扣 (基礎 + 優惠券)
-    const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscount);
+    // Fetch and validate coupon securely from server (Prevent IDOR)
+    let safeCouponDiscount = 0;
+    if (couponId) {
+      try {
+        const { data: authUser, error: authErr } = await adminSupabase.auth.admin.getUserById(userId);
+        if (!authErr && authUser?.user?.user_metadata) {
+          const claimedCoupons = authUser.user.user_metadata.coupons || [];
+          const validCoupon = claimedCoupons.find(c => c.id === couponId);
+          if (validCoupon) {
+            const now = new Date().toISOString();
+            if (!validCoupon.expires_at || validCoupon.expires_at > now) {
+              safeCouponDiscount = parseInt(validCoupon.discount) || 0;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[COUPON VERIFY ERROR]', err);
+      }
+    }
+
+    // 3. 累加折扣 (基礎 + 安全的優惠券折扣)
+    const totalDiscountPercent = baseDiscountPercent + safeCouponDiscount;
     const discountAmount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300); // 折扣總額上限 300
 
     // 4. 計算金額拆分
     const finalPrice = basePrice - discountAmount;
-    const depositPaid = Math.round(finalPrice * 0.3); // 訂金 3 成
+    const depositPaid = 0; // 取消訂金機制
     
     // 檢查是否有教練特定抽成比例，否則使用全域設定
     const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
@@ -265,7 +285,7 @@ export async function POST(request) {
         attendees_count: attendeesCount,
         learning_status: learningStatus,
         coupon_id: couponId,
-        coupon_discount: couponDiscount,
+        coupon_discount: safeCouponDiscount,
         status: 'pending_payment',
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,

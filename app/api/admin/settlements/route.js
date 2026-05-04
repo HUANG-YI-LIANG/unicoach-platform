@@ -48,18 +48,6 @@ export async function POST(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    const { data: existingBatches, error: existingError } = await adminSupabase
-      .from('settlement_batches')
-      .select('id')
-      .eq('month', month)
-      .neq('status', 'cancelled')
-      .limit(1);
-
-    if (existingError) throw existingError;
-    if (existingBatches?.length) {
-      return NextResponse.json({ error: '此月份已有未取消的結算批次，請勿重複產生。' }, { status: 409 });
-    }
-
     // 1. 尋找該月份「已完課」且「尚未結算」的預約
     const { data: bookings, error: bError } = await adminSupabase
       .from('bookings')
@@ -98,6 +86,24 @@ export async function POST(request) {
     for (const coachId in coachGroups) {
       const { total, bookingIds } = coachGroups[coachId];
       if (total <= 0 || bookingIds.length === 0) continue;
+
+      // Check if this specific coach already has an active batch for this month
+      const { data: coachExistingBatch, error: coachBatchErr } = await adminSupabase
+        .from('settlement_batches')
+        .select('id')
+        .eq('month', month)
+        .eq('coach_id', coachId)
+        .neq('status', 'cancelled')
+        .maybeSingle();
+
+      if (coachBatchErr) {
+        console.error(`Error checking existing batch for coach ${coachId}:`, coachBatchErr);
+        continue;
+      }
+      if (coachExistingBatch) {
+        // Skip creating duplicate batch for this coach
+        continue;
+      }
 
       // A. 建立批次
       const { data: batch, error: batchErr } = await adminSupabase

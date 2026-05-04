@@ -2,12 +2,12 @@
 import { useState } from 'react';
 import { Play, Film, Clock, User } from 'lucide-react';
 
-const BLUE = '#2563EB';
-const DARK = '#0F172A';
-const MUTED = '#94A3B8';
-const CARD = '#FFFFFF';
+const BLUE = 'var(--primary)';
+const DARK = 'var(--text-main)';
+const MUTED = 'var(--text-muted)';
+const CARD = 'var(--bg-surface)';
 const RADIUS = '24px';
-const SHADOW = '0 10px 30px rgba(0,0,0,0.08)';
+const SHADOW = 'var(--shadow-lg)';
 
 const CATEGORY_MAP = {
   teaching: '教學示範',
@@ -21,8 +21,8 @@ export default function VideoGallery({ videos = [] }) {
   if (!videos || videos.length === 0) {
     return (
       <div style={{ 
-        padding: '60px 20px', textAlign: 'center', background: '#F8FAFC', 
-        borderRadius: RADIUS, border: '1px dashed #E2E8F0' 
+        padding: '60px 20px', textAlign: 'center', background: 'var(--bg-input)', 
+        borderRadius: RADIUS, border: '1px dashed var(--border-main)' 
       }}>
         <Film size={40} color={MUTED} style={{ opacity: 0.4, marginBottom: 12 }} />
         <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: MUTED }}>教練尚未上傳任何影片</p>

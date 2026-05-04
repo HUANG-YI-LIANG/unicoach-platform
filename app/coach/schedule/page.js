@@ -191,36 +191,37 @@ export default function CoachSchedulePage() {
 
   if (authLoading || loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', color: '#94A3B8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', color: 'var(--text-muted)' }}>
         <Loader2 className="animate-spin" size={28} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F1F5F9', paddingBottom: 60 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 60 }}>
       <div style={{ width: 'min(1120px, calc(100vw - 24px))', margin: '0 auto', padding: '20px 0 40px' }}>
         <div style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: 18,
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 24,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--border-main)',
           padding: 18,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               type="button"
               onClick={() => router.back()}
-              style={{ border: 'none', background: '#EFF6FF', color: '#2563EB', width: 40, height: 40, borderRadius: 14, cursor: 'pointer' }}
+              style={{ border: 'none', background: 'var(--bg-input)', color: 'var(--text-main)', width: 40, height: 40, borderRadius: 14, cursor: 'pointer' }}
             >
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: '#0F172A' }}>固定時段維護</h1>
-              <p style={{ margin: '4px 0 0', color: '#64748B', fontSize: 13 }}>勾選你每週固定可直接預約的時段。前台列表與教練頁會直接讀這裡。</p>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'var(--text-main)' }}>固定時段維護</h1>
+              <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 13 }}>勾選你每週固定可直接預約的時段。前台列表與教練頁會直接讀這裡。</p>
             </div>
           </div>
 
@@ -230,13 +231,13 @@ export default function CoachSchedulePage() {
             disabled={saving}
             style={{
               border: 'none',
-              background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
+              background: 'var(--primary)',
               color: '#FFFFFF',
               padding: '14px 18px',
               borderRadius: 16,
               fontWeight: 900,
               cursor: 'pointer',
-              boxShadow: '0 12px 24px rgba(37, 99, 235, 0.22)',
+              boxShadow: '0 8px 24px var(--primary-bg)',
             }}
           >
             {saving ? <Loader2 className="animate-spin" size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> : <Save size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />}
@@ -245,12 +246,13 @@ export default function CoachSchedulePage() {
         </div>
 
         <div style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 28,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--border-main)',
           padding: 20,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#2563EB', fontWeight: 900, marginBottom: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 900, marginBottom: 12 }}>
             <CalendarDays size={16} />
             勾選式週課表
           </div>
@@ -260,8 +262,8 @@ export default function CoachSchedulePage() {
               marginBottom: 14,
               padding: 14,
               borderRadius: 18,
-              background: '#EFF6FF',
-              color: '#1D4ED8',
+              background: 'var(--primary-bg)',
+              color: 'var(--primary)',
               fontSize: 13,
               fontWeight: 800,
             }}>
@@ -273,9 +275,9 @@ export default function CoachSchedulePage() {
             <table style={{ width: '100%', minWidth: 860, borderCollapse: 'separate', borderSpacing: 6 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', color: '#64748B', fontSize: 12, paddingBottom: 8 }}>時間</th>
+                  <th style={{ textAlign: 'left', color: 'var(--text-muted)', fontSize: 12, paddingBottom: 8 }}>時間</th>
                   {WEEKDAYS.map((day) => (
-                    <th key={day.value} style={{ textAlign: 'center', color: '#64748B', fontSize: 12, paddingBottom: 8 }}>
+                    <th key={day.value} style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 12, paddingBottom: 8 }}>
                       {day.label}
                     </th>
                   ))}
@@ -284,7 +286,7 @@ export default function CoachSchedulePage() {
               <tbody>
                 {SLOT_OPTIONS.map((slotOption) => (
                   <tr key={slotOption.key}>
-                    <td style={{ color: '#64748B', fontSize: 12, fontWeight: 800, paddingRight: 4 }}>{slotOption.label}</td>
+                    <td style={{ color: 'var(--text-muted)', fontSize: 12, fontWeight: 800, paddingRight: 4 }}>{slotOption.label}</td>
                     {WEEKDAYS.map((day) => {
                       const selected = slotSet.has(`${day.value}-${slotOption.start}-${slotOption.end}`);
                       return (
@@ -298,8 +300,8 @@ export default function CoachSchedulePage() {
                               border: 'none',
                               borderRadius: 14,
                               padding: '12px 8px',
-                              background: selected ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' : '#EFF6FF',
-                              color: selected ? '#FFFFFF' : '#1D4ED8',
+                              background: selected ? 'var(--primary)' : 'var(--bg-input)',
+                              color: selected ? '#FFFFFF' : 'var(--text-muted)',
                               fontWeight: 900,
                               cursor: 'pointer',
                             }}
@@ -320,8 +322,8 @@ export default function CoachSchedulePage() {
             marginTop: 16,
             padding: 14,
             borderRadius: 18,
-            background: '#F8FAFC',
-            color: '#475569',
+            background: 'var(--bg-input)',
+            color: 'var(--text-muted)',
             fontSize: 13,
             lineHeight: 1.7,
           }}>
@@ -331,18 +333,19 @@ export default function CoachSchedulePage() {
         </div>
 
         <div style={{
-          background: '#FFFFFF',
+          background: 'var(--bg-surface)',
           borderRadius: 28,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
+          boxShadow: 'var(--shadow-md)',
+          border: '1px solid var(--border-main)',
           padding: 20,
           marginTop: 20,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#0F172A', fontWeight: 900, marginBottom: 12 }}>
-            <CalendarDays size={16} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-main)', fontWeight: 900, marginBottom: 12 }}>
+            <CalendarDays size={16} color="var(--primary)" />
             單日例外時段
           </div>
-
-          <p style={{ margin: '0 0 16px', color: '#64748B', fontSize: 13, lineHeight: 1.6 }}>
+          
+          <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
             用來設定特定日期的請假/停課，或臨時加開可約時段。例外會覆蓋上方固定週課表。
           </p>
 
@@ -412,7 +415,7 @@ export default function CoachSchedulePage() {
               disabled={savingException}
               style={{
                 border: 'none',
-                background: exceptionForm.exception_type === 'available' ? '#059669' : '#F59E0B',
+                background: exceptionForm.exception_type === 'available' ? 'var(--success)' : 'var(--warning)',
                 color: '#FFFFFF',
                 borderRadius: 14,
                 padding: '12px 16px',
@@ -429,8 +432,8 @@ export default function CoachSchedulePage() {
             <div style={{
               padding: 18,
               borderRadius: 18,
-              background: '#F8FAFC',
-              color: '#64748B',
+              background: 'var(--bg-input)',
+              color: 'var(--text-muted)',
               fontSize: 13,
               textAlign: 'center',
               fontWeight: 700,
@@ -445,10 +448,10 @@ export default function CoachSchedulePage() {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   gap: 12,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-main)',
                   borderRadius: 18,
                   padding: 14,
-                  background: '#FFFFFF',
+                  background: 'var(--bg-input)',
                 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -457,16 +460,16 @@ export default function CoachSchedulePage() {
                         borderRadius: 999,
                         fontSize: 11,
                         fontWeight: 900,
-                        color: exception.exception_type === 'available' ? '#065F46' : '#92400E',
-                        background: exception.exception_type === 'available' ? '#D1FAE5' : '#FEF3C7',
+                        color: exception.exception_type === 'available' ? 'var(--success)' : 'var(--warning)',
+                        background: exception.exception_type === 'available' ? 'var(--success-bg)' : 'var(--warning-bg)',
                       }}>
                         {exception.exception_type === 'available' ? '臨時可約' : '不可約'}
                       </span>
-                      <strong style={{ color: '#0F172A', fontSize: 14 }}>
+                      <strong style={{ color: 'var(--text-main)', fontSize: 14 }}>
                         {exception.exception_date} {String(exception.start_time).slice(0, 5)}-{String(exception.end_time).slice(0, 5)}
                       </strong>
                     </div>
-                    <div style={{ color: '#64748B', fontSize: 12 }}>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                       {exception.reason || '未填寫備註'}
                     </div>
                   </div>
@@ -475,8 +478,8 @@ export default function CoachSchedulePage() {
                     onClick={() => handleDeleteException(exception.id)}
                     style={{
                       border: 'none',
-                      background: '#FEE2E2',
-                      color: '#991B1B',
+                      background: 'var(--danger-bg)',
+                      color: 'var(--error)',
                       borderRadius: 12,
                       padding: '9px 12px',
                       fontWeight: 900,
@@ -499,16 +502,17 @@ const fieldLabelStyle = {
   display: 'flex',
   flexDirection: 'column',
   gap: 6,
-  color: '#64748B',
+  color: 'var(--text-muted)',
   fontSize: 12,
   fontWeight: 900,
 };
 
 const fieldInputStyle = {
-  border: '1px solid #CBD5E1',
+  border: '1px solid var(--border-input)',
+  background: 'var(--bg-input)',
   borderRadius: 12,
   padding: '11px 12px',
-  color: '#0F172A',
+  color: 'var(--text-main)',
   fontSize: 13,
   outline: 'none',
   width: '100%',

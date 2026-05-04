@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX } from 'lucide-react';
+import Link from 'next/link';
+import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX, X } from 'lucide-react';
 
 function formatCount(value) {
   const count = Number(value || 0);
@@ -11,11 +12,13 @@ function formatCount(value) {
   return String(count);
 }
 
-function VideoItem({ video, isVisible, onLike, onShare, onView }) {
+function VideoItem({ video, isVisible, onLike, onView }) {
   const router = useRouter();
   const videoRef = useRef(null);
   const viewedRef = useRef(false);
   const [muted, setMuted] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [showPopCta, setShowPopCta] = useState(false);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -28,14 +31,29 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
       }
     } else {
       videoRef.current.pause();
+      // Reset states when scrolled away
+      setShowToast(false);
+      setShowPopCta(false);
     }
   }, [isVisible, onView, video.id]);
+
+  // Handle Toast logic when liked
+  useEffect(() => {
+    if (video.liked && isVisible && !showPopCta && !showToast) {
+      setShowToast(true);
+      const timer = setTimeout(() => {
+        setShowToast(false);
+        setShowPopCta(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [video.liked, isVisible]);
 
   return (
     <div style={{
       position: 'relative',
-      height: '100vh',
-      width: '100vw',
+      height: '100%',
+      width: '100%',
       scrollSnapAlign: 'start',
       backgroundColor: '#000',
       overflow: 'hidden'
@@ -86,16 +104,112 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
         {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
       </button>
 
+      {/* Toast Notification */}
+      {showToast && (
+        <div style={{
+          position: 'absolute',
+          top: '120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(15, 23, 42, 0.9)',
+          backdropFilter: 'blur(8px)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: '100px',
+          fontSize: '15px',
+          fontWeight: '700',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 30,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          animation: 'slideUpFade 0.3s ease-out forwards'
+        }}>
+          很多人也喜歡這位教練 👍
+        </div>
+      )}
+
+      {/* Floating CTA (Triggered after 2s of liking) */}
+      {showPopCta && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 40,
+          background: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(10px)',
+          padding: '24px',
+          borderRadius: '24px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          width: '80%',
+          maxWidth: '320px',
+          border: '1px solid rgba(255, 255, 255, 0.1)'
+        }}>
+          <button
+            onClick={() => setShowPopCta(false)}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--text-muted)',
+              cursor: 'pointer'
+            }}
+          >
+            <X size={18} />
+          </button>
+          
+          <div style={{ fontSize: '48px', marginTop: '12px' }}>🔥</div>
+          <h3 style={{ margin: 0, color: '#FFFFFF', fontSize: '20px', fontWeight: '900', textAlign: 'center' }}>
+            這位教練非常搶手！
+          </h3>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '14px', textAlign: 'center' }}>
+            趕快查看他的詳細資料與可預約時段
+          </p>
+          <button 
+            onClick={() => router.push(`/coaches/${video.coach_id}`)}
+            style={{
+              width: '100%',
+              background: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              padding: '16px',
+              borderRadius: '100px',
+              fontWeight: '900',
+              fontSize: '16px',
+              cursor: 'pointer',
+              boxShadow: 'var(--shadow-md)',
+              marginTop: '8px'
+            }}
+          >
+            👉 立即預約
+          </button>
+        </div>
+      )}
+
       {/* Right Action Bar */}
       <div style={{
         position: 'absolute',
         right: 16,
-        bottom: 120,
+        bottom: 160,
         display: 'flex',
         flexDirection: 'column',
         gap: 24,
         alignItems: 'center',
-        zIndex: 10
+        zIndex: 20
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
           <div 
@@ -103,7 +217,8 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
             style={{ 
               width: 48, height: 48, borderRadius: '50%', backgroundColor: '#333', 
               border: '2px solid white', overflow: 'hidden', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
             }}
           >
             {video.coach_avatar ? (
@@ -116,27 +231,39 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
           <button
-            onClick={() => onLike(video.id)}
-            style={{ background: 'none', border: 'none', color: video.liked ? '#EF4444' : 'white', cursor: 'pointer', padding: 8 }}
+            onClick={() => {
+              if (!video.liked) {
+                // Trigger animation
+                const btn = document.getElementById(`like-btn-${video.id}`);
+                if (btn) {
+                  btn.style.animation = 'none';
+                  void btn.offsetWidth; // trigger reflow
+                  btn.style.animation = 'bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }
+              }
+              onLike(video.id);
+            }}
+            id={`like-btn-${video.id}`}
+            style={{ 
+              background: 'rgba(0,0,0,0.2)', 
+              backdropFilter: 'blur(8px)',
+              border: 'none', 
+              color: video.liked ? '#EF4444' : 'white', 
+              cursor: 'pointer', 
+              padding: '12px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <Heart size={32} fill={video.liked ? '#EF4444' : 'none'} />
+            <Heart size={28} fill={video.liked ? '#EF4444' : 'rgba(0,0,0,0.5)'} strokeWidth={video.liked ? 0 : 2} />
           </button>
-          <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>{formatCount(video.like_count)}</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-          <button
-            onClick={() => onShare(video)}
-            style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: 8 }}
-          >
-            <Share2 size={32} />
-          </button>
-          <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>{formatCount(video.share_count)}</span>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, color: 'white' }}>
-          <Eye size={28} />
-          <span style={{ color: 'white', fontSize: 12, fontWeight: 700 }}>{formatCount(video.view_count)}</span>
+          {video.like_count >= 5 && (
+            <span style={{ color: 'white', fontSize: 13, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+              {formatCount(video.like_count)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -154,7 +281,10 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
         alignItems: 'flex-end'
       }}>
         <div style={{ flex: 1, paddingRight: 16 }}>
-          <h2 style={{ margin: '0 0 8px', color: 'white', fontSize: 18, fontWeight: 800, textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
+          <h2 
+            onClick={() => router.push(`/coaches/${video.coach_id}`)}
+            style={{ margin: '0 0 8px', color: 'white', fontSize: 18, fontWeight: 800, textShadow: '0 1px 3px rgba(0,0,0,0.8)', cursor: 'pointer', display: 'inline-block' }}
+          >
             @{video.coach_name}
           </h2>
           <p style={{ margin: '0 0 12px', color: 'white', fontSize: 14, lineHeight: 1.5, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
@@ -168,35 +298,45 @@ function VideoItem({ video, isVisible, onLike, onShare, onView }) {
         <button 
           onClick={() => router.push(`/coaches/${video.coach_id}`)}
           style={{
-            background: 'linear-gradient(135deg, #EF4444, #B91C1C)',
-            color: 'white', border: 'none', padding: '14px 20px', borderRadius: 16,
+            background: 'var(--primary)',
+            color: 'white', border: 'none', padding: '14px 20px', borderRadius: '100px',
             fontWeight: 900, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 8px 24px rgba(239, 68, 68, 0.4)',
-            animation: 'pulse 2s infinite'
+            boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
+            zIndex: 10
           }}
         >
-          <Calendar size={18} />
-          預約他
+          預約這位教練
         </button>
       </div>
 
       <style dangerouslySetInnerHTML={{__html: `
-        @keyframes pulse {
+        @keyframes bounce {
           0% { transform: scale(1); }
-          50% { transform: scale(1.05); }
+          50% { transform: scale(1.4); }
           100% { transform: scale(1); }
+        }
+        @keyframes slideUpFade {
+          0% { opacity: 0; transform: translate(-50%, 20px); }
+          100% { opacity: 1; transform: translate(-50%, 0); }
+        }
+        @keyframes popIn {
+          0% { opacity: 0; transform: translate(-50%, -40%); }
+          100% { opacity: 1; transform: translate(-50%, -50%); }
         }
       `}} />
     </div>
   );
 }
 
-export default function VideoFeed() {
   const [videos, setVideos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [seenIndices, setSeenIndices] = useState(new Set([0]));
+  const [showConversion, setShowConversion] = useState(false);
+  const [showAntiAddiction, setShowAntiAddiction] = useState(false);
   const containerRef = useRef(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/videos/feed')
@@ -279,8 +419,23 @@ export default function VideoFeed() {
     const scrollPosition = containerRef.current.scrollTop;
     const windowHeight = window.innerHeight;
     const index = Math.round(scrollPosition / windowHeight);
+    
     if (index !== currentIndex) {
       setCurrentIndex(index);
+      
+      setSeenIndices(prev => {
+        const next = new Set(prev);
+        next.add(index);
+        
+        // Conversion logic
+        if (next.size === 4 && !showConversion) {
+          setShowConversion(true);
+        } else if (next.size === 11 && !showAntiAddiction) {
+          setShowAntiAddiction(true);
+        }
+        
+        return next;
+      });
     }
   };
 
@@ -294,23 +449,34 @@ export default function VideoFeed() {
 
   if (error || videos.length === 0) {
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', background: '#000', color: 'white', padding: 24, textAlign: 'center' }}>
-        <p style={{ fontSize: 18, fontWeight: 900, margin: 0 }}>{error ? '影音載入失敗' : '目前還沒有教練影片'}</p>
-        <p style={{ color: 'rgba(255,255,255,0.68)', margin: 0, fontSize: 14 }}>{error || '等教練上傳影片後，這裡會出現探索內容。'}</p>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)', color: 'var(--text-main)', padding: 24, textAlign: 'center' }}>
+        <div>
+          <p style={{ fontSize: 20, fontWeight: 900, margin: '0 0 8px 0' }}>{error ? '影音載入失敗' : '目前尚無教練影片'}</p>
+          <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: 14 }}>{error || '等教練上傳影片後，這裡會出現探索內容。'}</p>
+        </div>
+        <Link href="/coaches" style={{ background: 'var(--primary)', color: '#FFF', padding: '14px 32px', borderRadius: '100px', fontWeight: 800, textDecoration: 'none' }}>
+          去找教練
+        </Link>
       </div>
     );
   }
+
+  const currentVideo = videos[currentIndex];
 
   return (
     <div 
       ref={containerRef}
       onScroll={handleScroll}
       style={{
-        height: '100vh',
-        width: '100vw',
+        position: 'absolute',
+        top: 60, /* Header height */
+        left: 0,
+        right: 0,
+        bottom: 72, /* BottomNav height */
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
         background: '#000',
+        zIndex: 10, /* Below header/nav but above main content */
         msOverflowStyle: 'none', /* IE and Edge */
         scrollbarWidth: 'none', /* Firefox */
       }}
@@ -326,12 +492,66 @@ export default function VideoFeed() {
         <VideoItem 
           key={video.id} 
           video={video} 
-          isVisible={index === currentIndex} 
+          isVisible={index === currentIndex && !showConversion && !showAntiAddiction} 
           onLike={handleLike}
           onShare={handleShare}
           onView={handleView}
         />
       ))}
+
+      {/* Conversion CTA (After 3 videos) */}
+      {showConversion && currentVideo && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+          <h2 style={{ color: 'white', margin: '0 0 12px', fontSize: 24, fontWeight: 900 }}>喜歡這位教練嗎？</h2>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 32px', textAlign: 'center', fontSize: 15 }}>
+            你已經看了幾支影片，現在是預約的好時機！<br/>{currentVideo.coach_name} 教練還有空檔喔。
+          </p>
+          <button 
+            onClick={() => router.push(`/coaches/${currentVideo.coach_id}`)}
+            style={{ width: '100%', maxWidth: 320, background: 'var(--cta)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)' }}
+          >
+            👉 立即預約 {currentVideo.coach_name}
+          </button>
+          <button 
+            onClick={() => setShowConversion(false)}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 100, fontSize: 14, cursor: 'pointer' }}
+          >
+            晚點再說，繼續滑
+          </button>
+        </div>
+      )}
+
+      {/* Anti-Addiction CTA (After 10 videos) */}
+      {showAntiAddiction && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24
+        }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+          <h2 style={{ color: 'white', margin: '0 0 12px', fontSize: 24, fontWeight: 900 }}>看了很多影片囉！</h2>
+          <p style={{ color: 'var(--text-muted)', margin: '0 0 32px', textAlign: 'center', fontSize: 15, lineHeight: 1.6 }}>
+            與其一直看影片，不如直接找教練聊聊！<br/>許多學員都是聊過後才發現最適合的教練。
+          </p>
+          <button 
+            onClick={() => router.push('/coaches')}
+            style={{ width: '100%', maxWidth: 320, background: 'var(--primary)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(37, 99, 235, 0.4)' }}
+          >
+            💬 去教練列表聊聊
+          </button>
+          <button 
+            onClick={() => setShowAntiAddiction(false)}
+            style={{ background: 'transparent', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '12px 24px', borderRadius: 100, fontSize: 14, cursor: 'pointer' }}
+          >
+            我還想再看幾支
+          </button>
+        </div>
+      )}
     </div>
   );
 }

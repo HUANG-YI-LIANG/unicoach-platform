@@ -12,18 +12,10 @@ export async function GET() {
     // Fetch videos and join with coach (to get base_price) and users (to get name, avatar)
     // Since we need information from users, and coach_videos links to users via coach_id,
     // we can do a nested join.
-    const { data: videos, error } = await adminSupabase
+    const { data: rawVideos, error } = await adminSupabase
       .from('coach_videos')
-      .select(`
-        *,
-        coach:coaches!coach_videos_coach_id_fkey (
-          base_price
-        ),
-        user:users!coach_videos_coach_id_fkey (
-          name,
-          avatar_url
-        )
-      `)
+      .select('*')
+      .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(20);
 
@@ -32,7 +24,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
     }
 
-    const videoIds = (videos || []).map((video) => video.id);
+    const videos = rawVideos || [];
+    const coachIds = [...new Set(videos.map(v => v.coach_id))];
+
+    let usersMap = {};
+    let coachesMap = {};
+    if (coachIds.length > 0) {
+      const { data: usersData } = await adminSupabase.from('users').select('id, name, avatar_url').in('id', coachIds);
+      const { data: coachesData } = await adminSupabase.from('coaches').select('user_id, base_price').in('user_id', coachIds);
+      
+      (usersData || []).forEach(u => { usersMap[u.id] = u; });
+      (coachesData || []).forEach(c => { coachesMap[c.user_id] = c; });
+    }
+
+    const populatedVideos = videos.map(v => ({
+      ...v,
+      user: usersMap[v.coach_id] || null,
+      coach: coachesMap[v.coach_id] || null
+    }));
+
+    const videoIds = populatedVideos.map((video) => video.id);
     let likedVideoIds = new Set();
 
     if (!auth.error && auth.user?.id && videoIds.length > 0) {
@@ -45,7 +56,7 @@ export async function GET() {
       likedVideoIds = new Set((likes || []).map((like) => like.video_id));
     }
 
-    const formattedVideos = (videos || []).map(v => ({
+    const formattedVideos = populatedVideos.map(v => ({
       id: v.id,
       video_url: v.video_url,
       title: v.title,

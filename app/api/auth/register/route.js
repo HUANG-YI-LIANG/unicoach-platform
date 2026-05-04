@@ -10,7 +10,7 @@ export async function POST(request) {
       email, 
       password, 
       name, 
-      role = 'user',
+      role: rawRole = 'user',
       // ✅ 法律合規性欄位
       acceptedTerms,
       acceptedPrivacy,
@@ -20,6 +20,8 @@ export async function POST(request) {
       age,
       referralCode = null
     } = await request.json();
+
+    const role = (rawRole === 'coach') ? 'coach' : 'user';
 
     // 1. 基本驗證
     if (!email || !password || !name) {

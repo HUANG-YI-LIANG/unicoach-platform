@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { Upload, X, Film, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
-const BLUE = '#2563EB';
-const BG = '#F1F5F9';
-const DARK = '#0F172A';
-const MUTED = '#94A3B8';
+const BLUE = 'var(--primary)';
+const BG = 'var(--bg-page)';
+const DARK = 'var(--text-main)';
+const MUTED = 'var(--text-muted)';
 const RADIUS = '20px';
 const VIDEO_UPLOAD_MAX_MB = 500;
 const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
@@ -35,12 +35,9 @@ export default function VideoUpload() {
 
   const fetchVideos = async () => {
     try {
-      const res = await fetch('/api/videos/fetch-coach-videos'); // Need to create this or reuse upload for GET? 
-      // Actually I'll create a small fetch route or just use the upload route if I add GET.
-      // For now let's assume I add GET to the upload route or create a new one.
-      const res2 = await fetch('/api/videos/upload'); // I'll add GET support to the upload route.
-      if (res2.ok) {
-        const data = await res2.json();
+      const res = await fetch('/api/videos/upload');
+      if (res.ok) {
+        const data = await res.json();
         setVideos(data.videos || []);
       }
     } catch (err) {
@@ -135,8 +132,8 @@ export default function VideoUpload() {
       
       {/* ── 上傳區 ── */}
       <section style={{ 
-        background: '#fff', padding: 24, borderRadius: RADIUS, 
-        boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0' 
+        background: 'var(--bg-surface)', padding: 24, borderRadius: RADIUS, 
+        boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-main)' 
       }}>
         <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
           <Upload size={20} color={BLUE} /> 上傳新影片
@@ -152,7 +149,7 @@ export default function VideoUpload() {
                 value={newVideo.title}
                 onChange={e => setNewVideo({...newVideo, title: e.target.value})}
                 required
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14 }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: 14 }}
               />
             </div>
             <div>
@@ -160,7 +157,7 @@ export default function VideoUpload() {
               <select 
                 value={newVideo.category}
                 onChange={e => setNewVideo({...newVideo, category: e.target.value})}
-                style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, background: '#fff' }}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid var(--border-input)', background: 'var(--bg-input)', color: 'var(--text-main)', fontSize: 14 }}
               >
                 {CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
               </select>
@@ -170,12 +167,12 @@ export default function VideoUpload() {
           <div 
             onClick={() => document.getElementById('video-input').click()}
             style={{ 
-              border: '2px dashed #E2E8F0', borderRadius: 16, padding: '32px 16px', 
-              textAlign: 'center', cursor: 'pointer', background: '#F8FAFC',
+              border: '2px dashed var(--border-active)', borderRadius: 16, padding: '32px 16px', 
+              textAlign: 'center', cursor: 'pointer', background: 'var(--bg-input)',
               transition: 'border-color 0.2s'
             }}
             onMouseOver={e => e.currentTarget.style.borderColor = BLUE}
-            onMouseOut={e => e.currentTarget.style.borderColor = '#E2E8F0'}
+            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-active)'}
           >
             <input 
               id="video-input" type="file" accept="video/mp4,video/webm,video/quicktime" 
@@ -186,7 +183,7 @@ export default function VideoUpload() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <Film size={24} color={BLUE} />
                 <span style={{ fontSize: 14, fontWeight: 600, color: DARK }}>{newVideo.file.name} ({(newVideo.file.size / 1024 / 1024).toFixed(1)}MB)</span>
-                <X size={16} color="#EF4444" onClick={(e) => { e.stopPropagation(); setNewVideo({...newVideo, file: null}); }} />
+                <X size={16} color="var(--error)" onClick={(e) => { e.stopPropagation(); setNewVideo({...newVideo, file: null}); }} />
               </div>
             ) : (
               <div>
@@ -197,7 +194,7 @@ export default function VideoUpload() {
             )}
           </div>
 
-          {error && <p style={{ margin: 0, fontSize: 13, color: '#EF4444', display: 'flex', alignItems: 'center', gap: 4 }}>
+          {error && <p style={{ margin: 0, fontSize: 13, color: 'var(--error)', display: 'flex', alignItems: 'center', gap: 4 }}>
             <AlertCircle size={14} /> {error}
           </p>}
 
@@ -225,8 +222,8 @@ export default function VideoUpload() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
           {videos.map(video => (
             <div key={video.id} style={{ 
-              background: '#fff', borderRadius: 16, overflow: 'hidden', 
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: '1px solid #E2E8F0' 
+              background: 'var(--bg-surface)', borderRadius: 16, overflow: 'hidden', 
+              boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-main)' 
             }}>
               <video 
                 src={video.video_url} 
@@ -237,12 +234,12 @@ export default function VideoUpload() {
                   <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: DARK, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {video.title}
                   </p>
-                  <button onClick={() => handleDelete(video.id)} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444' }}>
+                  <button onClick={() => handleDelete(video.id)} style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)' }}>
                     <Trash2 size={14} />
                   </button>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
-                  <span style={{ fontSize: 10, background: '#EFF6FF', color: BLUE, padding: '2px 8px', borderRadius: 100, fontWeight: 600 }}>
+                  <span style={{ fontSize: 10, background: 'var(--primary-bg)', color: BLUE, padding: '2px 8px', borderRadius: 100, fontWeight: 600 }}>
                     {CATEGORIES.find(c => c.id === video.category)?.label || video.category}
                   </span>
                 </div>
@@ -250,7 +247,7 @@ export default function VideoUpload() {
             </div>
           ))}
           {videos.length === 0 && (
-            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', background: '#fff', borderRadius: 16, border: '1px dashed #E2E8F0', color: MUTED }}>
+            <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', background: 'var(--bg-surface)', borderRadius: 16, border: '1px dashed var(--border-main)', color: MUTED }}>
               <Film size={32} style={{ opacity: 0.3, marginBottom: 8 }} />
               <p style={{ margin: 0, fontSize: 14 }}>尚未上傳任何影片</p>
             </div>

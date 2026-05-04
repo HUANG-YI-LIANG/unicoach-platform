@@ -59,6 +59,30 @@ export async function POST(request) {
     }
 
     const adminSupabase = getAdminSupabase();
+
+    // Check for overlaps
+    const { data: existingExceptions, error: fetchError } = await adminSupabase
+      .from('coach_availability_exceptions')
+      .select('start_time, end_time')
+      .eq('coach_id', auth.user.id)
+      .eq('exception_date', sanitized.value.exception_date);
+
+    if (fetchError) throw fetchError;
+
+    const newStart = parseTimeToMinutes(sanitized.value.start_time);
+    const newEnd = parseTimeToMinutes(sanitized.value.end_time);
+
+    const hasOverlap = (existingExceptions || []).some(ex => {
+      const exStart = parseTimeToMinutes(ex.start_time);
+      const exEnd = parseTimeToMinutes(ex.end_time);
+      if (exStart === null || exEnd === null) return false;
+      return newStart < exEnd && newEnd > exStart; // Overlap logic
+    });
+
+    if (hasOverlap) {
+      return NextResponse.json({ error: '此日期已有重疊的例外時段，請檢查您的行事曆' }, { status: 409 });
+    }
+
     const { data: exception, error } = await adminSupabase
       .from('coach_availability_exceptions')
       .insert([{

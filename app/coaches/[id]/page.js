@@ -61,6 +61,11 @@ function formatNextAvailable(value) {
     return '尚未設定固定時段';
   }
 
+  const date = new Date(value);
+  if (isNaN(date.getTime())) {
+    return '尚未設定固定時段';
+  }
+
   const parts = new Intl.DateTimeFormat('zh-TW', {
     timeZone: 'Asia/Taipei',
     month: 'numeric',
@@ -68,7 +73,7 @@ function formatNextAvailable(value) {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
-  }).formatToParts(new Date(value));
+  }).formatToParts(date);
 
   const month = parts.find((part) => part.type === 'month')?.value || '--';
   const day = parts.find((part) => part.type === 'day')?.value || '--';
@@ -87,6 +92,7 @@ export default function CoachDetailPage({ params }) {
   const initRegion = searchParams.get('region') || '';
 
   const [coach, setCoach] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [videos, setVideos] = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -128,8 +134,8 @@ export default function CoachDetailPage({ params }) {
     isRecurring: false,
     recurringWeeks: 4,
   });
-  const [userProfile, setUserProfile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [chatting, setChatting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -151,6 +157,8 @@ export default function CoachDetailPage({ params }) {
           setBookingForm((current) => ({
             ...current,
             address: current.address || profilePayload.profile.address || '',
+            couponId: profilePayload.profile.active_coupon?.id || null,
+            couponDiscount: profilePayload.profile.active_coupon?.discount || 0,
           }));
         }
       })
@@ -218,18 +226,23 @@ export default function CoachDetailPage({ params }) {
       return;
     }
 
-    const response = await fetch('/api/chat/rooms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coachId: coach.user_id || coach.id }),
-    });
-    const payload = await response.json();
-    if (response.ok && payload.roomId) {
-      router.push(`/chat/${payload.roomId}`);
-      return;
-    }
+    setChatting(true);
+    try {
+      const response = await fetch('/api/chat/rooms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coachId: coach.user_id || coach.id }),
+      });
+      const payload = await response.json();
+      if (response.ok && payload.roomId) {
+        router.push(`/chat/${payload.roomId}`);
+        return;
+      }
 
-    alert(payload.error || '建立聊天室失敗');
+      alert(payload.error || '建立聊天室失敗');
+    } finally {
+      setChatting(false);
+    }
   }
 
   async function handleBooking() {
@@ -688,9 +701,10 @@ export default function CoachDetailPage({ params }) {
 
         {/* 1. 最上方：先聊聊 */}
         <div style={{ marginTop: 20 }}>
-          <button type="button" className="ghost-btn" onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: '#fff', border: '1px solid #cbd5e1', fontSize: 16, color: '#334155' }}>
-            <MessageCircle size={18} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
-            有任何問題？先與教練聊聊
+          <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 800, marginBottom: 8, textAlign: 'center' }}>👉 不確定？先聊聊</div>
+          <button type="button" className="ghost-btn" disabled={chatting} onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: '#fff', border: '1px solid #cbd5e1', fontSize: 16, color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: chatting ? 0.7 : 1 }}>
+            {chatting ? <div className="animate-spin"><Clock3 size={18} /></div> : <MessageCircle size={18} />}
+            {chatting ? '建立聊天室中...' : '有任何問題？先與教練聊聊'}
           </button>
         </div>
 
@@ -751,7 +765,9 @@ export default function CoachDetailPage({ params }) {
           </div>
 
           <div className="panel">
-            <h2>影片</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              影片 <span style={{ fontSize: 13, color: 'var(--cta)', background: 'rgba(245, 158, 11, 0.1)', padding: '4px 8px', borderRadius: 8, fontWeight: 800 }}>👉 建議先看影片再決定</span>
+            </h2>
             <p className="lead">教學與自我介紹影片會顯示在這裡。</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: '#64748b', fontSize: 13 }}>
               <Video size={15} /> 目前共 {videos.length} 支
@@ -781,7 +797,9 @@ export default function CoachDetailPage({ params }) {
 
           {/* 3. 中間區塊：方案與預約 */}
           <div className="panel">
-            <h2>預約日期與時段</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              預約日期與時段 <span style={{ fontSize: 13, color: 'var(--primary)', background: 'var(--primary-bg)', padding: '4px 8px', borderRadius: 8, fontWeight: 800 }}>👉 選一個你方便的時間</span>
+            </h2>
             <p className="lead">請先點選日期，再選擇下方的可用時段。</p>
             
             <div className="calendar-nav">
@@ -1000,10 +1018,40 @@ export default function CoachDetailPage({ params }) {
         {/* 5. 最底端：送出預約 */}
         <div style={{ position: 'sticky', bottom: 20, zIndex: 50, marginTop: 24, padding: '0 12px' }}>
           <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', padding: 16, borderRadius: 24, boxShadow: '0 12px 40px rgba(15,23,42,0.15)', border: '1px solid rgba(226,232,240,0.8)' }}>
-            <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: '#F59E0B', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: 'pointer' }}>
-              <CalendarDays size={18} style={{ verticalAlign: 'text-bottom', marginRight: 8 }} />
-              {submitting ? '建立預約中...' : `送出預約 (一次付清 NT$${((selectedPlan?.price || coach?.base_price || 0) * (bookingForm.isRecurring ? bookingForm.recurringWeeks : 1)).toLocaleString()})`}
-            </button>
+            
+            {(() => {
+              const baseDiscountPercent = userProfile?.base_discount || 0;
+              const couponDiscountPercent = bookingForm.couponDiscount || 0;
+              const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscountPercent);
+
+              const basePrice = (selectedPlan?.price || coach?.base_price || 0);
+              const weeks = bookingForm.isRecurring ? bookingForm.recurringWeeks : 1;
+              const rawTotal = basePrice * weeks;
+
+              const perSessionDiscount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300);
+              const totalDiscountAmount = perSessionDiscount * weeks;
+              const finalTotal = rawTotal - totalDiscountAmount;
+
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 8px' }}>
+                     <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                       自動套用折扣：等級 {baseDiscountPercent}% 
+                       {bookingForm.couponId ? ` + 優惠券 ${couponDiscountPercent}%` : ''}
+                     </div>
+                     <div style={{ fontSize: 14, color: '#10b981', fontWeight: 800 }}>
+                       {totalDiscountAmount > 0 ? `- NT$ ${totalDiscountAmount.toLocaleString()}` : ''}
+                     </div>
+                  </div>
+
+                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: '#F59E0B', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                    {submitting ? <div className="animate-spin"><Clock3 size={18} /></div> : <CalendarDays size={18} />}
+                    {submitting ? '建立預約中...' : `送出預約 (實付 NT$${finalTotal.toLocaleString()})`}
+                  </button>
+                </>
+              );
+            })()}
+            
           </div>
         </div>
       </div>

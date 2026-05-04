@@ -60,7 +60,7 @@ export async function GET(request) {
     }, {});
 
     // 5. 計算總折扣
-    let baseDiscount = 5; // 預設 5%
+    let baseDiscount = 0; // 預設 0%
     const levelKey = `level_${user.level || 1}_discount`;
     
     if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
@@ -68,8 +68,9 @@ export async function GET(request) {
     } else if (settingsObj[levelKey] !== undefined) {
       baseDiscount = settingsObj[levelKey];
     } else {
-      // 如果還沒有全域設定，使用預設值：Lv1=5, Lv2=10, Lv3=15, Lv4=20
-      baseDiscount = (user.level || 1) * 5;
+      // 如果還沒有全域設定，使用預設值：Lv1=0, Lv2=5, Lv3=10, Lv4=12
+      const defaultDiscounts = { 1: 0, 2: 5, 3: 10, 4: 12 };
+      baseDiscount = defaultDiscounts[user.level || 1] ?? 12;
     }
 
     const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
@@ -77,7 +78,8 @@ export async function GET(request) {
     return NextResponse.json({ 
       profile: { 
         ...user, 
-        base_discount: totalDiscount, 
+        base_discount: baseDiscount, 
+        total_discount: totalDiscount,
         referred_by_name: referredByName, 
         coupons: claimedCoupons,
         active_coupon: activeCoupon

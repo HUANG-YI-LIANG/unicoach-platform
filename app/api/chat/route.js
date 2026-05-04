@@ -110,7 +110,7 @@ export async function GET(request) {
     }));
 
     const unreadMessageIds = formattedMessages
-      .filter((message) => !message.is_system && !message.is_read && String(message.sender_id) !== String(auth.user.id))
+      .filter((message) => !message.is_read && String(message.sender_id) !== String(auth.user.id))
       .map((message) => message.id);
 
     if (unreadMessageIds.length > 0) {

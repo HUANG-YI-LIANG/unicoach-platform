@@ -25,12 +25,19 @@ export async function POST(request, { params }) {
     // 2. 獲取原始預約資料以重新計算最終價格
     const { data: booking, error: fetchError } = await adminSupabase
       .from('bookings')
-      .select('base_price, discount_amount')
+      .select('base_price, discount_amount, status, payment_expires_at')
       .eq('id', id)
       .single();
 
     if (fetchError || !booking) {
       return NextResponse.json({ error: '找不到該筆預約' }, { status: 404 });
+    }
+
+    if (booking.status === 'pending_payment' && booking.payment_expires_at) {
+      const expiresAt = new Date(booking.payment_expires_at).getTime();
+      if (Number.isFinite(expiresAt) && Date.now() > expiresAt) {
+        return NextResponse.json({ error: '此預約已逾付款保留時間，無法調整金額' }, { status: 409 });
+      }
     }
 
     // 3. 計算新價格
