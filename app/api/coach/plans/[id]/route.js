@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { normalizePlan } from '@/lib/coachPlans';
 
@@ -45,7 +45,7 @@ function sanitizePatch(body) {
 
 export async function PATCH(request, { params }) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { id } = await params;
@@ -77,7 +77,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(_request, { params }) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { id } = await params;

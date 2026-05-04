@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -9,7 +9,7 @@ const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
 export async function POST(request) {
   try {
     // 1. 權限檢查：只有教練能上傳
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const formData = await request.formData();
@@ -111,7 +111,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const adminSupabase = getAdminSupabase();
@@ -132,7 +132,7 @@ export async function GET(request) {
 
 export async function DELETE(request) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { searchParams } = new URL(request.url);

@@ -1,6 +1,8 @@
 -- Supabase Schema for College Sports Coaching Platform
 -- Please run this script in the Supabase SQL Editor
 
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- 1. Create Users
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -111,7 +113,13 @@ CREATE TABLE coach_availability_exceptions (
   reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CHECK(end_time > start_time)
+  CHECK(end_time > start_time),
+  CONSTRAINT coach_availability_exceptions_no_overlap
+    EXCLUDE USING gist (
+      coach_id WITH =,
+      exception_date WITH =,
+      timerange(start_time, end_time, '[)') WITH &&
+    )
 );
 
 CREATE INDEX idx_coach_availability_exceptions_coach_id_date ON coach_availability_exceptions(coach_id, exception_date);
@@ -124,11 +132,12 @@ CREATE TABLE bookings (
   expected_time TIMESTAMPTZ NOT NULL,
   base_price INTEGER NOT NULL,
   discount_amount INTEGER DEFAULT 0,
+  price_adjustment INTEGER NOT NULL DEFAULT 0,
   final_price INTEGER NOT NULL,
   deposit_paid INTEGER DEFAULT 0,
   platform_fee INTEGER NOT NULL,
   coach_payout INTEGER NOT NULL,
-  payment_status TEXT CHECK(payment_status IN ('pending', 'paid', 'refunded')) DEFAULT 'pending',
+  payment_status TEXT CHECK(payment_status IN ('pending', 'paid', 'refunded', 'expired')) DEFAULT 'pending',
   payment_method TEXT,
   payment_reference TEXT,
   paid_at TIMESTAMPTZ,
@@ -151,7 +160,28 @@ CREATE TABLE bookings (
   plan_id TEXT,
   plan_title TEXT,
   plan_snapshot TEXT,
-  settlement_id UUID
+  settlement_id UUID,
+  CONSTRAINT bookings_non_negative_money CHECK (
+    base_price >= 0
+    AND discount_amount >= 0
+    AND final_price >= 0
+    AND deposit_paid >= 0
+    AND platform_fee >= 0
+    AND coach_payout >= 0
+    AND COALESCE(price_adjustment, 0) >= 0
+    AND COALESCE(coupon_discount, 0) >= 0
+  ),
+  CONSTRAINT bookings_paid_state_consistency CHECK (
+    (
+      payment_status = 'paid'
+      AND paid_at IS NOT NULL
+      AND status IN ('scheduled', 'in_progress', 'pending_completion', 'completed', 'disputed', 'refunded')
+    )
+    OR (
+      payment_status <> 'paid'
+      AND status NOT IN ('scheduled', 'in_progress', 'pending_completion', 'completed')
+    )
+  )
 );
 
 -- 6. Create Chat Rooms & Messages
@@ -160,7 +190,9 @@ CREATE TABLE chat_rooms (
   booking_id UUID REFERENCES bookings(id),
   user_id UUID NOT NULL REFERENCES users(id),
   coach_id UUID NOT NULL REFERENCES users(id),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  pair_key TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT chat_rooms_pair_key_unique UNIQUE (pair_key)
 );
 
 CREATE TABLE chat_messages (
@@ -189,6 +221,7 @@ CREATE TABLE reviews (
 CREATE TABLE learning_reports (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   booking_id UUID NOT NULL UNIQUE REFERENCES bookings(id),
+  user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   coach_id UUID NOT NULL REFERENCES users(id),
   completed_items TEXT NOT NULL,
   focus_score INTEGER CHECK(focus_score >= 1 AND focus_score <= 5),
@@ -208,7 +241,30 @@ CREATE TABLE learning_reports (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. Settlement Batches (Monthly)
+-- 9. Platform Settings
+CREATE TABLE platform_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 10. Password Reset Tokens
+CREATE TABLE password_reset_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+CREATE INDEX idx_password_reset_tokens_token ON password_reset_tokens(token);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+
+-- 11. Settlement Batches (Monthly)
 CREATE TABLE settlement_batches (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   month TEXT NOT NULL,
@@ -217,7 +273,24 @@ CREATE TABLE settlement_batches (
   booking_count INTEGER DEFAULT 0,
   status TEXT CHECK(status IN ('pending', 'paid', 'cancelled')) DEFAULT 'pending',
   paid_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  CONSTRAINT settlement_batches_non_negative_totals CHECK (
+    total_amount >= 0
+    AND booking_count >= 0
+  )
+);
+
+CREATE UNIQUE INDEX settlement_batches_unique_active_coach_month
+ON settlement_batches (month, coach_id)
+WHERE (status <> 'cancelled');
+
+CREATE INDEX idx_bookings_unsettled_paid_completed
+ON bookings (completed_at, coach_id)
+WHERE (
+  status = 'completed'
+  AND payment_status = 'paid'
+  AND paid_at IS NOT NULL
+  AND settlement_id IS NULL
 );
 
 ALTER TABLE bookings

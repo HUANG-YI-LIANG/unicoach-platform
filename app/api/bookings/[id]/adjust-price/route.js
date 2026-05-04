@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { calculateBookingPrice, canAdjustBookingPrice } from '@/lib/bookingSecurity';
+import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
 
 /**
  * POST: 調整單一預約的金額 (議價功能)
@@ -25,7 +27,7 @@ export async function POST(request, { params }) {
     // 2. 獲取原始預約資料以重新計算最終價格
     const { data: booking, error: fetchError } = await adminSupabase
       .from('bookings')
-      .select('base_price, discount_amount, status, payment_expires_at')
+      .select('base_price, discount_amount, final_price, coach_id, status, platform_fee, payment_expires_at')
       .eq('id', id)
       .single();
 
@@ -33,23 +35,35 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: '找不到該筆預約' }, { status: 404 });
     }
 
-    if (booking.status === 'pending_payment' && booking.payment_expires_at) {
-      const expiresAt = new Date(booking.payment_expires_at).getTime();
-      if (Number.isFinite(expiresAt) && Date.now() > expiresAt) {
-        return NextResponse.json({ error: '此預約已逾付款保留時間，無法調整金額' }, { status: 409 });
-      }
+    const expiration = getPendingPaymentExpirationState(booking);
+    if (expiration.expired) {
+      await adminSupabase
+        .from('bookings')
+        .update(buildExpiredPendingPaymentUpdate())
+        .eq('id', id)
+        .eq('status', 'pending_payment');
+
+      return NextResponse.json({ error: expiration.error }, { status: expiration.status });
+    }
+
+    const authorization = canAdjustBookingPrice({ actor: auth.user, booking });
+    if (!authorization.ok) {
+      return NextResponse.json({ error: authorization.error }, { status: authorization.status });
     }
 
     // 3. 計算新價格
     // 公式：final_price = base_price - discount_amount + adjustment
-    const newFinalPrice = Math.max(0, booking.base_price - (booking.discount_amount || 0) + adjustment);
+    const baseFinalPrice = Math.max(0, booking.base_price - (booking.discount_amount || 0));
+    const newFinalPrice = Math.max(0, baseFinalPrice + adjustment);
+    const newDepositPaid = calculateBookingPrice({ basePrice: newFinalPrice }).depositPaid;
 
     // 4. 更新資料庫
     const { error: updateError } = await adminSupabase
       .from('bookings')
       .update({
         price_adjustment: adjustment,
-        final_price: newFinalPrice
+        final_price: newFinalPrice,
+        deposit_paid: newDepositPaid
       })
       .eq('id', id);
 
@@ -67,6 +81,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ 
       success: true, 
       finalPrice: newFinalPrice,
+      depositPaid: newDepositPaid,
       adjustment: adjustment
     });
   } catch (err) {

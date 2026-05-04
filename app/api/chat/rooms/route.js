@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import {
+  buildChatRoomInsert,
+  buildChatRoomUpsertOptions,
+  getChatParticipantsForCreate,
+  isDuplicateChatRoomError,
+} from '@/lib/chatRules';
 
 async function getRoomStats(adminSupabase, roomId, viewerId) {
   const [{ data: latestMessage }, unreadResult] = await Promise.all([
@@ -82,27 +88,16 @@ export async function POST(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();
-    const { coachId, userId: targetUserId } = body;
     const adminSupabase = getAdminSupabase();
-    const currentUserId = auth.user.id;
-    const role = auth.user.role;
 
-    let studentId;
-    let coachIdFinal;
+    const participants = getChatParticipantsForCreate({ actor: auth.user, body });
+    if (!participants.ok) {
+      return NextResponse.json({ error: participants.error }, { status: participants.status });
+    }
 
-    if (role === 'user' || role === 'admin') {
-      studentId = currentUserId;
-      coachIdFinal = coachId;
-      if (!coachIdFinal) {
-        return NextResponse.json({ error: '缺少教練 ID' }, { status: 400 });
-      }
-    } else {
-      studentId = targetUserId;
-      coachIdFinal = currentUserId;
-      if (!studentId) {
-        return NextResponse.json({ error: '缺少學員 ID' }, { status: 400 });
-      }
+    const { studentId, coachId: coachIdFinal } = participants;
 
+    if (participants.needsBookingRelationship) {
       const { data: relationship, error: relError } = await adminSupabase
         .from('bookings')
         .select('id')
@@ -117,15 +112,10 @@ export async function POST(request) {
       }
     }
 
-    if (studentId === coachIdFinal) {
-      return NextResponse.json({ error: '不能和自己建立聊天室' }, { status: 400 });
-    }
-
     const { data: existing, error: existingError } = await adminSupabase
       .from('chat_rooms')
       .select('id')
-      .eq('user_id', studentId)
-      .eq('coach_id', coachIdFinal)
+      .eq('pair_key', buildChatRoomInsert({ studentId, coachId: coachIdFinal }).pair_key)
       .maybeSingle();
 
     if (existingError) throw existingError;
@@ -133,13 +123,26 @@ export async function POST(request) {
       return NextResponse.json({ success: true, roomId: existing.id });
     }
 
-    const { data: newRoom, error: insertError } = await adminSupabase
+    const chatRoomInsert = buildChatRoomInsert({ studentId, coachId: coachIdFinal });
+    const { data: newRoom, error: upsertError } = await adminSupabase
       .from('chat_rooms')
-      .insert([{ user_id: studentId, coach_id: coachIdFinal }])
+      .upsert(chatRoomInsert, buildChatRoomUpsertOptions())
       .select('id')
       .single();
 
-    if (insertError) throw insertError;
+    if (upsertError) {
+      if (isDuplicateChatRoomError(upsertError)) {
+        const { data: fallbackRoom, error: fallbackError } = await adminSupabase
+          .from('chat_rooms')
+          .select('id')
+          .eq('pair_key', chatRoomInsert.pair_key)
+          .single();
+
+        if (fallbackError) throw fallbackError;
+        return NextResponse.json({ success: true, roomId: fallbackRoom.id });
+      }
+      throw upsertError;
+    }
 
     return NextResponse.json({ success: true, roomId: newRoom.id });
   } catch (error) {

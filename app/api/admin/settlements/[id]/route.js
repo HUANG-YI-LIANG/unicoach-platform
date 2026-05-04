@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { canMarkSettlementStatus } from '@/lib/settlementRules';
 
 /**
  * GET /api/admin/settlements/[id]
@@ -91,8 +92,12 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: '找不到該結算批次' }, { status: 404 });
     }
 
-    if (currentBatch.status === 'paid' && status !== 'paid') {
-      return NextResponse.json({ error: '已撥款批次不可改回其他狀態' }, { status: 400 });
+    const statusChange = canMarkSettlementStatus({
+      currentStatus: currentBatch.status,
+      nextStatus: status,
+    });
+    if (!statusChange.ok) {
+      return NextResponse.json({ error: statusChange.error }, { status: statusChange.status });
     }
 
     const updateData = { status };

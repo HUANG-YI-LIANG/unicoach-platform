@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -7,7 +7,7 @@ const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 
 export async function POST(request) {
   try {
-    const auth = await requireAuth(['coach']);
+    const auth = await requireApprovedCoach();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
 
 export async function POST(request, { params }) {
   try {
@@ -34,11 +35,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: '只有待付款訂單可以回報付款' }, { status: 400 });
     }
 
-    if (booking.payment_expires_at) {
-      const expiresAt = new Date(booking.payment_expires_at).getTime();
-      if (Number.isFinite(expiresAt) && Date.now() > expiresAt) {
-        return NextResponse.json({ error: '付款保留時間已過期，請重新建立預約' }, { status: 409 });
-      }
+    const expiration = getPendingPaymentExpirationState(booking);
+    if (expiration.expired) {
+      await adminSupabase
+        .from('bookings')
+        .update(buildExpiredPendingPaymentUpdate())
+        .eq('id', id)
+        .eq('status', 'pending_payment');
+
+      return NextResponse.json({ error: expiration.error }, { status: expiration.status });
     }
 
     const { error: updateError } = await adminSupabase

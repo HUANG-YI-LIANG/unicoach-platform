@@ -1,51 +1,11 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-
-function parseTimeToMinutes(timeText) {
-  if (!timeText || typeof timeText !== 'string' || !timeText.includes(':')) {
-    return null;
-  }
-  const [hoursText, minutesText] = timeText.split(':');
-  const hours = Number(hoursText);
-  const minutes = Number(minutesText);
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-    return null;
-  }
-  return hours * 60 + minutes;
-}
-
-function sanitizeException(body) {
-  const date = String(body.exception_date || body.date || '').slice(0, 10);
-  const type = String(body.exception_type || body.type || '');
-  const startTime = String(body.start_time || body.start || '').slice(0, 5);
-  const endTime = String(body.end_time || body.end || '').slice(0, 5);
-  const startMinutes = parseTimeToMinutes(startTime);
-  const endMinutes = parseTimeToMinutes(endTime);
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return { error: '請選擇日期' };
-  }
-  if (!['available', 'unavailable'].includes(type)) {
-    return { error: '例外類型不合法' };
-  }
-  if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
-    return { error: '例外時段起訖不合法' };
-  }
-  if ((startMinutes % 30) !== 0 || (endMinutes % 30) !== 0) {
-    return { error: '例外時段必須以 30 分鐘為單位' };
-  }
-
-  return {
-    value: {
-      exception_date: date,
-      exception_type: type,
-      start_time: startTime,
-      end_time: endTime,
-      reason: body.reason ? String(body.reason).trim().slice(0, 120) : '',
-    },
-  };
-}
+import {
+  findOverlappingAvailabilityException,
+  isAvailabilityExceptionOverlapError,
+  sanitizeAvailabilityException,
+} from '@/lib/availabilityRules';
 
 export async function POST(request) {
   try {
@@ -53,34 +13,23 @@ export async function POST(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();
-    const sanitized = sanitizeException(body);
+    const sanitized = sanitizeAvailabilityException(body);
     if (sanitized.error) {
       return NextResponse.json({ error: sanitized.error }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
-
-    // Check for overlaps
-    const { data: existingExceptions, error: fetchError } = await adminSupabase
+    const { data: existingExceptions, error: existingError } = await adminSupabase
       .from('coach_availability_exceptions')
-      .select('start_time, end_time')
+      .select('id, exception_date, exception_type, start_time, end_time')
       .eq('coach_id', auth.user.id)
       .eq('exception_date', sanitized.value.exception_date);
 
-    if (fetchError) throw fetchError;
+    if (existingError) throw existingError;
 
-    const newStart = parseTimeToMinutes(sanitized.value.start_time);
-    const newEnd = parseTimeToMinutes(sanitized.value.end_time);
-
-    const hasOverlap = (existingExceptions || []).some(ex => {
-      const exStart = parseTimeToMinutes(ex.start_time);
-      const exEnd = parseTimeToMinutes(ex.end_time);
-      if (exStart === null || exEnd === null) return false;
-      return newStart < exEnd && newEnd > exStart; // Overlap logic
-    });
-
-    if (hasOverlap) {
-      return NextResponse.json({ error: '此日期已有重疊的例外時段，請檢查您的行事曆' }, { status: 409 });
+    const overlappingException = findOverlappingAvailabilityException(sanitized.value, existingExceptions || []);
+    if (overlappingException) {
+      return NextResponse.json({ error: '同一天不可設定重疊例外時段' }, { status: 409 });
     }
 
     const { data: exception, error } = await adminSupabase
@@ -92,7 +41,12 @@ export async function POST(request) {
       .select('*')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (isAvailabilityExceptionOverlapError(error)) {
+        return NextResponse.json({ error: '同一天不可設定重疊例外時段' }, { status: 409 });
+      }
+      throw error;
+    }
 
     return NextResponse.json({ success: true, exception });
   } catch (error) {
