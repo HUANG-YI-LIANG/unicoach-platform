@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileText, MapPin, User, ChevronRight, Loader2 } from 'lucide-react';
+import { FileText, MapPin, User, ChevronRight, Loader2, Search, PlaySquare, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
 const SPORT_IMAGES = {
@@ -22,13 +22,21 @@ export default function Home() {
   const router = useRouter();
   const [sports, setSports] = useState([]);
   const [isLoadingSports, setIsLoadingSports] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isQRUser, setIsQRUser] = useState(false);
 
   useEffect(() => {
-    // Check if onboarding was seen
+    // Check if user came from a QR code (e.g. ?ref=XYZ or ?qrcode=1)
     if (typeof window !== 'undefined') {
-      const seen = localStorage.getItem('has_seen_onboarding');
-      if (!seen) {
-        setShowOnboarding(true);
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasQRParam = urlParams.has('ref') || urlParams.has('promo') || urlParams.has('qrcode');
+      
+      if (hasQRParam) {
+        setIsQRUser(true);
+        const seen = localStorage.getItem('has_seen_onboarding');
+        if (!seen) {
+          setShowOnboarding(true);
+        }
       }
     }
     
@@ -151,8 +159,9 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 2. 4步驟卡片 */}
-      <section style={{ padding: '32px 24px', marginTop: '-30px', position: 'relative', zIndex: 2 }}>
+      {/* 2. 4步驟卡片 (QR Code 用戶專屬) */}
+      {isQRUser && (
+        <section style={{ padding: '32px 24px', marginTop: '-30px', position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           {[
             { icon: <Search size={24} color="#F59E0B" />, title: '1. 找教練', desc: '馬上找到附近教練' },
@@ -173,6 +182,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+      )}
 
       {/* 3. 運動分類入口 */}
       <section className="premium-sports-section">
