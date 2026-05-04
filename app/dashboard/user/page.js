@@ -26,14 +26,14 @@ import {
   Check
 } from 'lucide-react';
 
-const BG = 'var(--bg-page)';
-const CARD = 'var(--bg-surface)';
-const ORANGE = 'var(--primary)';
-const MUTED = 'var(--text-muted)';
-const DARK_ORANGE = '#9A3412'; // Keep specific accents if needed, or use var(--primary-hover)
-const TEXT_LIGHT = 'var(--text-main)';
-const BORDER = 'var(--border-main)';
-const SHADOW = 'var(--shadow-md)';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-surface)';
+const ORANGE = 'var(--color-accent)';
+const MUTED = 'var(--color-text-muted)';
+const DARK_ORANGE = 'var(--color-warning)';
+const TEXT_LIGHT = 'var(--color-text)';
+const BORDER = 'var(--color-border)';
+const SHADOW = 'var(--shadow-card)';
 const RADIUS = '20px';
 
 const EMPTY_PROFILE = {
@@ -251,7 +251,7 @@ export default function UserDashboard() {
       {toast.show && (
         <div style={{
           position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-          background: toast.type === 'error' ? '#EF4444' : '#10B981', color: '#FFF',
+          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-success)', color: 'white',
           padding: '12px 24px', borderRadius: 100, fontSize: 14, fontWeight: 800,
           boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: 8,
           animation: 'fadeInDown 0.3s ease-out'
@@ -298,7 +298,7 @@ export default function UserDashboard() {
               {unreadCount > 0 && (
                 <span
                   style={{
-                    position: 'absolute', top: 0, right: 0, background: '#EF4444', color: '#FFF',
+                    position: 'absolute', top: 0, right: 0, background: 'var(--color-danger)', color: 'white',
                     fontSize: 10, fontWeight: 900, minWidth: 18, height: 18, borderRadius: 9,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${CARD}`,
                   }}
@@ -496,7 +496,7 @@ export default function UserDashboard() {
                   style={{ flex: 1, padding: '12px 16px', background: 'var(--bg-input)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
                 {profile.promotion_code && (
-                  <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? '#10B981' : 'rgba(249, 115, 22, 0.1)', color: copiedCode ? '#fff' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
+                  <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'white' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
                     {copiedCode ? <Check size={18} /> : <Copy size={18} />}
                   </button>
                 )}

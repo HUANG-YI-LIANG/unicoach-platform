@@ -55,7 +55,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
       height: '100%',
       width: '100%',
       scrollSnapAlign: 'start',
-      backgroundColor: '#000',
+      backgroundColor: 'var(--color-bg)',
       overflow: 'hidden'
     }}>
       {/* Back button */}
@@ -215,7 +215,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
           <div 
             onClick={() => router.push(`/coaches/${video.coach_id}`)}
             style={{ 
-              width: 48, height: 48, borderRadius: '50%', backgroundColor: '#333', 
+              width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--color-surface)', 
               border: '2px solid white', overflow: 'hidden', cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white',
               boxShadow: '0 4px 12px rgba(0,0,0,0.3)'
@@ -298,7 +298,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
         <button 
           onClick={() => router.push(`/coaches/${video.coach_id}`)}
           style={{
-            background: 'var(--primary)',
+            background: 'var(--color-primary)',
             color: 'white', border: 'none', padding: '14px 20px', borderRadius: '100px',
             fontWeight: 900, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
             boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
@@ -442,7 +442,7 @@ export default function VideoFeed() {
 
   if (loading) {
     return (
-      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', color: 'white' }}>
+      <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-bg)', color: 'var(--color-text)' }}>
         <Loader2 className="animate-spin" size={28} />
       </div>
     );
@@ -476,7 +476,7 @@ export default function VideoFeed() {
         bottom: 72, /* BottomNav height */
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
-        background: '#000',
+        background: 'var(--color-bg)',
         zIndex: 10, /* Below header/nav but above main content */
         msOverflowStyle: 'none', /* IE and Edge */
         scrollbarWidth: 'none', /* Firefox */
@@ -514,7 +514,7 @@ export default function VideoFeed() {
           </p>
           <button 
             onClick={() => router.push(`/coaches/${currentVideo.coach_id}`)}
-            style={{ width: '100%', maxWidth: 320, background: 'var(--cta)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)' }}
+            style={{ width: '100%', maxWidth: 320, background: 'var(--color-accent)', color: 'white', padding: 18, borderRadius: 100, border: 'none', fontSize: 18, fontWeight: 900, marginBottom: 16, cursor: 'pointer', boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)' }}
           >
             👉 立即預約 {currentVideo.coach_name}
           </button>

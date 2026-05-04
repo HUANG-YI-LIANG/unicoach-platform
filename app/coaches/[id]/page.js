@@ -473,9 +473,9 @@ export default function CoachDetailPage({ params }) {
           border: 1px solid #e2e8f0;
         }
         .cal-day-btn.selected {
-          background: #f59e0b;
+          background: var(--color-accent);
           color: white;
-          border-color: #f59e0b;
+          border-color: var(--color-accent);
           font-weight: 900;
         }
         .time-slots-container {
@@ -513,9 +513,9 @@ export default function CoachDetailPage({ params }) {
           background: #f1f5f9;
         }
         .slot-btn.selected {
-          background: #f59e0b;
+          background: var(--color-accent);
           color: white;
-          border-color: #f59e0b;
+          border-color: var(--color-accent);
         }
         .slot-btn.booked {
           opacity: 0.5;
@@ -702,7 +702,7 @@ export default function CoachDetailPage({ params }) {
         {/* 1. 最上方：先聊聊 */}
         <div style={{ marginTop: 20 }}>
           <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 800, marginBottom: 8, textAlign: 'center' }}>👉 不確定？先聊聊</div>
-          <button type="button" className="ghost-btn" disabled={chatting} onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: '#fff', border: '1px solid #cbd5e1', fontSize: 16, color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: chatting ? 0.7 : 1 }}>
+          <button type="button" className="ghost-btn" disabled={chatting} onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: 'var(--color-surface)', border: '1px solid var(--color-border)', fontSize: 16, color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: chatting ? 0.7 : 1 }}>
             {chatting ? <div className="animate-spin"><Clock3 size={18} /></div> : <MessageCircle size={18} />}
             {chatting ? '建立聊天室中...' : '有任何問題？先與教練聊聊'}
           </button>

@@ -565,9 +565,9 @@ export default function CoachesPage() {
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-                background: isFilterOpen ? '#F97316' : 'transparent',
-                color: isFilterOpen ? '#FFFFFF' : '#F97316',
-                border: '1px solid #F97316', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                background: isFilterOpen ? 'var(--color-accent)' : 'transparent',
+                color: isFilterOpen ? 'white' : 'var(--color-accent)',
+                border: '1px solid var(--color-accent)', borderRadius: 8, fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', whiteSpace: 'nowrap'
               }}
             >

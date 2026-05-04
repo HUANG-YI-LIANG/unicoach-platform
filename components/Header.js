@@ -16,14 +16,14 @@ export default function Header() {
         ) : user ? (
           <>
             {user.role === 'user' && user.level && (
-              <span style={{ fontSize: '11px', background: '#DBEAFE', color: '#1E40AF', padding: '2px 8px', borderRadius: '100px', fontWeight: '600' }}>
+              <span style={{ fontSize: '11px', background: 'var(--color-surface-soft)', color: 'var(--color-primary)', padding: '2px 8px', borderRadius: '100px', fontWeight: '600' }}>
                 Lv.{user.level}
               </span>
             )}
             <span className="status-badge">已登入</span>
           </>
         ) : (
-          <Link href="/login" style={{ fontSize: '13px', fontWeight: '700', color: '#1E293B', background: '#F1F5F9', padding: '6px 14px', borderRadius: '100px', textDecoration: 'none' }}>登入 / 註冊</Link>
+          <Link href="/login" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-text)', background: 'var(--color-surface-soft)', padding: '6px 14px', borderRadius: '100px', textDecoration: 'none' }}>登入 / 註冊</Link>
         )}
       </div>
     </header>

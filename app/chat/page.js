@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
-const ORANGE = 'var(--cta, #F97316)';
-const BG = 'var(--bg-page)';
-const CARD = 'var(--bg-surface)';
-const BORDER = 'var(--border-main)';
-const MUTED = 'var(--text-muted)';
-const TEXT_LIGHT = 'var(--text-main)';
-const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
+const ORANGE = 'var(--color-accent)';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-bg)'; // Unified
+const BORDER = 'var(--color-border)';
+const MUTED = 'var(--color-text-muted)';
+const TEXT_LIGHT = 'var(--color-text)';
+const SHADOW = 'none'; // Remove shadow for flat unified look
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
@@ -58,14 +58,14 @@ function RoomCard({ room, onClick }) {
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: hovered ? '#1E293B' : CARD,
+        background: hovered ? 'var(--color-surface-soft)' : CARD,
         borderRadius: 16,
         padding: '14px 16px',
-        boxShadow: SHADOW,
+        boxShadow: hovered ? 'var(--shadow-card)' : SHADOW,
         cursor: 'pointer',
-        transition: 'background 0.15s, transform 0.1s',
+        transition: 'background 0.15s, transform 0.1s, box-shadow 0.15s',
         transform: hovered ? 'scale(1.01)' : 'scale(1)',
-        border: `1px solid ${BORDER}`,
+        border: hovered ? `1px solid ${ORANGE}` : `1px solid ${BORDER}`,
       }}
     >
       <Avatar name={room.other_party_name} size={48} />
@@ -161,7 +161,7 @@ export default function ChatPage() {
         transform: 'translateX(-50%)',
         width: '600px',
         height: '600px',
-        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, rgba(9, 14, 23, 0) 60%)',
+        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%)',
         zIndex: 0,
         pointerEvents: 'none'
       }} />

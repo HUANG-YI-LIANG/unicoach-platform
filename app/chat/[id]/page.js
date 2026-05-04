@@ -3,15 +3,15 @@
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const ORANGE = 'var(--cta, #F97316)';
-const ORANGE_BG = 'rgba(249, 115, 22, 0.1)';
-const BG = 'var(--bg-page)';
-const CARD = 'var(--bg-surface)';
-const TEXT_LIGHT = 'var(--text-main)';
-const MUTED = 'var(--text-muted)';
-const INPUT_BG = 'var(--bg-page)';
-const BORDER = 'var(--border-main)';
-const SECONDARY_BUBBLE = 'var(--bg-surface)';
+const ORANGE = 'var(--color-accent)';
+const ORANGE_BG = 'rgba(245, 158, 11, 0.1)';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-bg)'; // Unified with BG
+const TEXT_LIGHT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const INPUT_BG = 'var(--color-surface)';
+const BORDER = 'var(--color-border)';
+const SECONDARY_BUBBLE = 'var(--color-surface-soft)';
 
 const QUICK_REPLIES = [
   '你好，我想先了解課程安排。',
@@ -432,11 +432,11 @@ export default function ChatRoomPage({ params }) {
                       padding: '12px 14px',
                       borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       background: isMe ? ORANGE : SECONDARY_BUBBLE,
-                      color: isMe ? '#FFF' : 'var(--text-main)',
+                      color: isMe ? '#FFF' : 'var(--color-text)',
                       fontSize: 14,
                       lineHeight: 1.5,
-                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : 'var(--shadow-sm)',
-                      border: isMe ? 'none' : '1px solid var(--border-main)',
+                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : 'var(--shadow-card)',
+                      border: isMe ? 'none' : '1px solid var(--color-border)',
                     }}
                   >
                     {message.message}

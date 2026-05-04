@@ -86,7 +86,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748B' }}>
+      <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
         <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={32} />
       </div>
     );
@@ -127,7 +127,7 @@ export default function Home() {
             <button
               onClick={() => handleOnboardingSelect('幫我選')}
               style={{
-                width: '100%', background: 'var(--cta)', color: '#fff', border: 'none',
+                width: '100%', background: 'var(--color-accent)', color: 'white', border: 'none',
                 padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 800,
                 marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
@@ -148,7 +148,7 @@ export default function Home() {
           
           <div className="premium-cta-group">
             <button onClick={() => router.push('/coaches')} style={{
-              width: '100%', height: '64px', background: 'var(--cta)', color: '#FFFFFF',
+              width: '100%', height: '64px', background: 'var(--color-accent)', color: 'white',
               borderRadius: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
               border: 'none', cursor: 'pointer', gap: 8
@@ -164,10 +164,10 @@ export default function Home() {
         <section style={{ padding: '32px 24px', marginTop: '-30px', position: 'relative', zIndex: 2 }}>
         <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 16, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
           {[
-            { icon: <Search size={24} color="#F59E0B" />, title: '1. 找教練', desc: '馬上找到附近教練' },
-            { icon: <PlaySquare size={24} color="#F59E0B" />, title: '2. 看影片', desc: '30秒快速判斷合不合' },
-            { icon: <MessageCircle size={24} color="#F59E0B" />, title: '3. 先問教練', desc: '不確定先問清楚' },
-            { icon: <User size={24} color="#F59E0B" />, title: '4. 預約課程', desc: '選時間直接上課' },
+            { icon: <Search size={24} color="var(--color-accent)" />, title: '1. 找教練', desc: '馬上找到附近教練' },
+            { icon: <PlaySquare size={24} color="var(--color-accent)" />, title: '2. 看影片', desc: '30秒快速判斷合不合' },
+            { icon: <MessageCircle size={24} color="var(--color-accent)" />, title: '3. 先問教練', desc: '不確定先問清楚' },
+            { icon: <User size={24} color="var(--color-accent)" />, title: '4. 預約課程', desc: '選時間直接上課' },
           ].map((step, idx) => (
             <div key={idx} onClick={() => router.push('/coaches')} style={{
               minWidth: 160, background: 'var(--bg-surface)', padding: 20, borderRadius: 20,
@@ -192,7 +192,7 @@ export default function Home() {
         </div>
         
         {isLoadingSports ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', color: '#94A3B8' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0', color: 'var(--color-text-muted)' }}>
             <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={24} />
           </div>
         ) : sports.length > 0 ? (
@@ -214,9 +214,9 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748B', fontSize: '14px', fontWeight: 600 }}>
+          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--color-text-muted)', fontSize: '14px', fontWeight: 600 }}>
             目前尚無開放的教練專長 👉 
-            <Link href="/coaches" style={{ color: 'var(--cta)', fontWeight: 800 }}>去找教練</Link>
+            <Link href="/coaches" style={{ color: 'var(--color-accent)', fontWeight: 800 }}>去找教練</Link>
           </div>
         )}
       </section>

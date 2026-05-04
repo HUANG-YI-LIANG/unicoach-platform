@@ -7,15 +7,15 @@ import {
   Languages, Save, ArrowLeft, Loader2, UploadCloud
 } from 'lucide-react';
 
-const ORANGE = 'var(--cta, #F97316)';
-const BG     = 'var(--bg-page)';
-const CARD   = 'var(--bg-surface)';
-const MUTED  = 'var(--text-muted)';
-const TEXT_LIGHT = 'var(--text-main)';
+const ORANGE = 'var(--color-accent)';
+const BG     = 'var(--color-bg)';
+const CARD   = 'var(--color-surface)';
+const MUTED  = 'var(--color-text-muted)';
+const TEXT_LIGHT = 'var(--color-text)';
 const RADIUS = '20px';
-const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
-const INPUT_BG = 'var(--bg-input)';
-const BORDER = 'var(--border-main)';
+const SHADOW = 'var(--shadow-card)';
+const INPUT_BG = 'var(--color-surface-soft)';
+const BORDER = 'var(--color-border)';
 
 export default function UserProfileEdit() {
   const { user, loading: authLoading } = useAuth();

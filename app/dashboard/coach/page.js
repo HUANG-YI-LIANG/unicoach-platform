@@ -26,15 +26,15 @@ import {
 import { QRCodeSVG } from 'qrcode.react';
 import VideoUpload from '@/components/VideoUpload';
 
-const BG = 'var(--bg-page)';
-const CARD = 'var(--bg-surface)';
-const ORANGE = 'var(--primary, #F97316)';
-const MUTED = 'var(--text-muted)';
-const DARK_ORANGE = 'var(--primary-hover, #9A3412)';
-const TEXT_LIGHT = 'var(--text-main)';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-surface)';
+const ORANGE = 'var(--color-accent)';
+const MUTED = 'var(--color-text-muted)';
+const DARK_ORANGE = 'var(--color-warning)';
+const TEXT_LIGHT = 'var(--color-text)';
 const RADIUS = '20px';
-const SHADOW = 'var(--shadow-md, 0 4px 24px rgba(0,0,0,0.1))';
-const BORDER = 'var(--border-main)';
+const SHADOW = 'var(--shadow-card)';
+const BORDER = 'var(--color-border)';
 
 export default function CoachDashboard() {
   const [profile, setProfile] = useState(null);
