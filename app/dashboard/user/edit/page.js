@@ -164,7 +164,7 @@ export default function UserProfileEdit() {
   const labelStyle = { display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 8 };
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT }}>
+    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
       {/* Background Gradient */}
       <div style={{
         position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
