@@ -36,6 +36,9 @@ export default function AdminDashboard() {
       setProfile(pData.profile);
       if (bData.bookings) setBookings(bData.bookings);
       setLoading(false);
+    }).catch(err => {
+      console.error('[ADMIN DASHBOARD LOAD ERROR]', err);
+      setLoading(false);
     });
   }, [router]);
 

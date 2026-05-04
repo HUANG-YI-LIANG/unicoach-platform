@@ -88,16 +88,18 @@ export async function POST(request, { params }) {
             description: "Referral reward after first successful payment",
           }]);
 
-          const { data: referrerData } = await adminSupabase
-            .from("users")
-            .select("wallet_balance")
-            .eq("id", referredBy)
-            .single();
+          // 為了防止併發寫入造成的 TOCTOU Race Condition 餘額覆蓋問題
+          // 我們直接從 source of truth (交易紀錄表) 重新計算總和，確保餘額永遠正確
+          const { data: allTransactions, error: txError } = await adminSupabase
+            .from("wallet_transactions")
+            .select("amount")
+            .eq("user_id", referredBy);
 
-          if (referrerData) {
+          if (!txError && allTransactions) {
+            const correctBalance = allTransactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
             await adminSupabase
               .from("users")
-              .update({ wallet_balance: (referrerData.wallet_balance || 0) + REWARD_AMOUNT })
+              .update({ wallet_balance: correctBalance })
               .eq("id", referredBy);
           }
         } catch (rewardError) {

@@ -3,15 +3,15 @@
 import { use, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-const ORANGE = '#F97316';
-const ORANGE_BG = 'rgba(249, 115, 22, 0.1)';
-const BG = '#090E17';
-const CARD = '#121826';
-const TEXT_LIGHT = '#F8FAFC';
-const MUTED = '#94A3B8';
-const INPUT_BG = '#1E293B';
-const BORDER = 'rgba(255,255,255,0.05)';
-const SECONDARY_BUBBLE = '#334155';
+const ORANGE = 'var(--color-accent)';
+const ORANGE_BG = 'rgba(245, 158, 11, 0.1)';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-bg)'; // Unified with BG
+const TEXT_LIGHT = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const INPUT_BG = 'var(--color-surface)';
+const BORDER = 'var(--color-border)';
+const SECONDARY_BUBBLE = 'var(--color-surface-soft)';
 
 const QUICK_REPLIES = [
   '你好，我想先了解課程安排。',
@@ -196,8 +196,7 @@ export default function ChatRoomPage({ params }) {
           borderBottom: `1px solid ${BORDER}`,
           position: 'sticky',
           top: 0,
-          zIndex: 100,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
+          boxShadow: 'var(--shadow-sm, 0 4px 10px rgba(0,0,0,0.05))',
         }}
       >
         <button
@@ -433,10 +432,11 @@ export default function ChatRoomPage({ params }) {
                       padding: '12px 14px',
                       borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       background: isMe ? ORANGE : SECONDARY_BUBBLE,
-                      color: '#FFF',
+                      color: isMe ? '#FFF' : 'var(--color-text)',
                       fontSize: 14,
                       lineHeight: 1.5,
-                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : '0 4px 12px rgba(0,0,0,0.3)',
+                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : 'var(--shadow-card)',
+                      border: isMe ? 'none' : '1px solid var(--color-border)',
                     }}
                   >
                     {message.message}

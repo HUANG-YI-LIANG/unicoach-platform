@@ -2,11 +2,11 @@
 import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 
-const BLUE  = '#2563EB';
-const DARK  = '#0F172A';
-const MUTED = '#94A3B8';
-const BG    = '#F1F5F9';
-const WHITE = '#FFFFFF';
+const BLUE  = 'var(--color-primary)';
+const DARK  = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const BG    = 'var(--color-bg)';
+const WHITE = 'var(--color-surface)';
 
 function ScoreButton({ value, selected, onClick }) {
   return (
@@ -175,12 +175,12 @@ export default function ReportPage({ params }) {
             placeholder="例：完成基礎發球練習 3 組、腳步移動訓練、反手側身練習..."
             rows={3}
             style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid #E2E8F0',
+              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
               borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
               outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
             }}
             onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
           />
         </div>
 
@@ -207,8 +207,8 @@ export default function ReportPage({ params }) {
                 onClick={() => setForm(f => ({ ...f, progressLevel: key }))}
                 style={{
                   padding: '8px 16px', borderRadius: 100, border: 'none',
-                  background: form.progressLevel === key ? BLUE : '#F1F5F9',
-                  color: form.progressLevel === key ? WHITE : '#475569',
+                  background: form.progressLevel === key ? BLUE : 'var(--color-surface-soft)',
+                  color: form.progressLevel === key ? 'white' : 'var(--color-text)',
                   fontWeight: 700, fontSize: 13, cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -228,12 +228,12 @@ export default function ReportPage({ params }) {
             placeholder="學員動作習慣、需注意的地方（選填）"
             rows={2}
             style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid #E2E8F0',
+              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
               borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
               outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
             }}
             onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
           />
           <p style={{ margin: '14px 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>💪 下堂建議</p>
           <textarea
@@ -242,12 +242,12 @@ export default function ReportPage({ params }) {
             placeholder="下次上課可以加強的方向（選填）"
             rows={2}
             style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid #E2E8F0',
+              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
               borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
               outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
             }}
             onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = '#E2E8F0'}
+            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
           />
           
 
@@ -303,7 +303,7 @@ export default function ReportPage({ params }) {
           disabled={!canSubmit || submitting}
           style={{
             padding: '16px', borderRadius: 16, border: 'none',
-            background: canSubmit && !submitting ? BLUE : '#CBD5E1',
+            background: canSubmit && !submitting ? BLUE : 'var(--color-surface-soft)',
             color: WHITE, fontWeight: 800, fontSize: 16, cursor: canSubmit ? 'pointer' : 'not-allowed',
             boxShadow: canSubmit ? '0 8px 24px rgba(37,99,235,0.25)' : 'none',
             transition: 'all 0.2s',

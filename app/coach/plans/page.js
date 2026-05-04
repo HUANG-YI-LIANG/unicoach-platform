@@ -120,28 +120,28 @@ export default function CoachPlansPage() {
   }
 
   if (authLoading || loading) {
-    return <div style={{ padding: 32, color: '#64748B' }}>載入方案資料中...</div>;
+    return <div style={{ padding: 32, color: 'var(--text-muted)' }}>載入方案資料中...</div>;
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: '24px 16px 96px' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', padding: '24px 16px 96px' }}>
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
         <button
           onClick={() => router.push('/dashboard/coach')}
-          style={{ border: 'none', background: 'transparent', color: '#2563EB', fontWeight: 800, cursor: 'pointer', marginBottom: 18 }}
+          style={{ border: 'none', background: 'transparent', color: 'var(--primary)', fontWeight: 800, cursor: 'pointer', marginBottom: 18 }}
         >
           ← 回教練中心
         </button>
 
         <header style={{ marginBottom: 20 }}>
-          <h1 style={{ margin: 0, color: '#0F172A', fontSize: 28, fontWeight: 900 }}>方案管理</h1>
-          <p style={{ margin: '8px 0 0', color: '#64748B', fontSize: 14 }}>
+          <h1 style={{ margin: 0, color: 'var(--text-main)', fontSize: 28, fontWeight: 900 }}>方案管理</h1>
+          <p style={{ margin: '8px 0 0', color: 'var(--text-muted)', fontSize: 14 }}>
             設定學生可選擇的課程長度與價格。預約成立時會保存方案快照，之後改價不會影響歷史訂單。
           </p>
         </header>
 
         {usingDefaults && (
-          <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1D4ED8', borderRadius: 16, padding: 14, marginBottom: 18, fontSize: 13, fontWeight: 700 }}>
+          <div style={{ background: 'var(--primary-bg)', border: '1px solid var(--border-active)', color: 'var(--primary)', borderRadius: 16, padding: 14, marginBottom: 18, fontSize: 13, fontWeight: 700 }}>
             目前正在使用系統預設方案。新增任一自訂方案後，前台會改顯示你的自訂方案。
           </div>
         )}
@@ -149,31 +149,31 @@ export default function CoachPlansPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: 18 }}>
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {plans.map((plan) => (
-              <div key={plan.id} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, padding: 18, boxShadow: '0 2px 12px rgba(15,23,42,0.04)' }}>
+              <div key={plan.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 18, padding: 18, boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      <h2 style={{ margin: 0, fontSize: 17, color: '#0F172A', fontWeight: 900 }}>{plan.title}</h2>
+                      <h2 style={{ margin: 0, fontSize: 17, color: 'var(--text-main)', fontWeight: 900 }}>{plan.title}</h2>
                       {String(plan.id).startsWith('default-') && (
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#2563EB', background: '#DBEAFE', borderRadius: 999, padding: '3px 8px' }}>預設</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--primary)', background: 'var(--primary-bg)', borderRadius: 999, padding: '3px 8px' }}>預設</span>
                       )}
                       {!plan.is_active && (
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#991B1B', background: '#FEE2E2', borderRadius: 999, padding: '3px 8px' }}>停用</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--error)', background: 'var(--danger-bg)', borderRadius: 999, padding: '3px 8px' }}>停用</span>
                       )}
                     </div>
-                    <p style={{ margin: 0, color: '#64748B', fontSize: 13 }}>{plan.description || '未填寫方案說明'}</p>
+                    <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13 }}>{plan.description || '未填寫方案說明'}</p>
                   </div>
                   <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    <div style={{ color: '#0F172A', fontWeight: 900, fontSize: 18 }}>NT${Number(plan.price).toLocaleString()}</div>
-                    <div style={{ color: '#64748B', fontWeight: 700, fontSize: 12 }}>{plan.duration_minutes} 分鐘</div>
+                    <div style={{ color: 'var(--text-main)', fontWeight: 900, fontSize: 18 }}>NT${Number(plan.price).toLocaleString()}</div>
+                    <div style={{ color: 'var(--text-muted)', fontWeight: 700, fontSize: 12 }}>{plan.duration_minutes} 分鐘</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button onClick={() => startEdit(plan)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#0F172A', fontWeight: 800, cursor: 'pointer' }}>
+                  <button onClick={() => startEdit(plan)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', fontWeight: 800, cursor: 'pointer' }}>
                     {String(plan.id).startsWith('default-') ? '複製成自訂' : '編輯'}
                   </button>
                   {!String(plan.id).startsWith('default-') && (
-                    <button onClick={() => deletePlan(plan)} style={{ padding: '9px 14px', borderRadius: 10, border: 'none', background: '#FEE2E2', color: '#991B1B', fontWeight: 800, cursor: 'pointer' }}>
+                    <button onClick={() => deletePlan(plan)} style={{ padding: '9px 14px', borderRadius: 10, border: 'none', background: 'var(--danger-bg)', color: 'var(--error)', fontWeight: 800, cursor: 'pointer' }}>
                       刪除
                     </button>
                   )}
@@ -182,11 +182,11 @@ export default function CoachPlansPage() {
             ))}
           </section>
 
-          <form onSubmit={savePlan} style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: 18, padding: 18, alignSelf: 'start', boxShadow: '0 2px 12px rgba(15,23,42,0.04)' }}>
-            <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 900, color: '#0F172A' }}>
+          <form onSubmit={savePlan} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 18, padding: 18, alignSelf: 'start', boxShadow: 'var(--shadow-sm)' }}>
+            <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 900, color: 'var(--text-main)' }}>
               {editingId ? '編輯方案' : '新增方案'}
             </h2>
-            <label style={{ display: 'block', fontSize: 12, color: '#64748B', fontWeight: 800, marginBottom: 6 }}>方案名稱</label>
+            <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', fontWeight: 800, marginBottom: 6 }}>方案名稱</label>
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} style={inputStyle} placeholder="例如：基礎單堂課" />
 
             <label style={labelStyle}>方案說明</label>
@@ -200,16 +200,16 @@ export default function CoachPlansPage() {
             <label style={labelStyle}>價格</label>
             <input type="number" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} style={inputStyle} min="100" max="50000" />
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, color: '#0F172A', fontWeight: 800, fontSize: 13 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, color: 'var(--text-main)', fontWeight: 800, fontSize: 13 }}>
               <input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} />
               啟用此方案
             </label>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button disabled={saving} type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: '#2563EB', color: '#FFFFFF', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+              <button disabled={saving} type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: 'var(--primary)', color: '#FFFFFF', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? '儲存中...' : '儲存方案'}
               </button>
-              <button type="button" onClick={startCreate} style={{ padding: 12, borderRadius: 12, border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#64748B', fontWeight: 900, cursor: 'pointer' }}>
+              <button type="button" onClick={startCreate} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-muted)', fontWeight: 900, cursor: 'pointer' }}>
                 清空
               </button>
             </div>
@@ -223,17 +223,18 @@ export default function CoachPlansPage() {
 const labelStyle = {
   display: 'block',
   fontSize: 12,
-  color: '#64748B',
+  color: 'var(--text-muted)',
   fontWeight: 800,
   margin: '14px 0 6px',
 };
 
 const inputStyle = {
   width: '100%',
-  border: '1px solid #CBD5E1',
+  border: '1px solid var(--border-input)',
+  background: 'var(--bg-input)',
   borderRadius: 12,
   padding: '11px 12px',
-  color: '#0F172A',
+  color: 'var(--text-main)',
   fontSize: 14,
   outline: 'none',
 };

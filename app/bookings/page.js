@@ -4,11 +4,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet } from 'lucide-react';
 
-const BLUE  = '#2563EB';
-const DARK  = '#0F172A';
-const MUTED = '#94A3B8';
-const BG    = '#F8FAFC';
-const WHITE = '#FFFFFF';
+const BLUE  = 'var(--primary)';
+const DARK  = 'var(--text-main)';
+const MUTED = 'var(--text-muted)';
+const BG    = 'transparent';
+const WHITE = 'var(--bg-surface)';
 const PAYMENT_SETTINGS_FALLBACK = {
   bank_name: '',
   bank_code: '',
@@ -28,11 +28,11 @@ const STATUS_MAP = {
 };
 
 const STATUS_STYLE = {
-  pending_payment: { bg: '#FEF3C7', color: '#92400E' },
-  completed:   { bg: '#D1FAE5', color: '#065F46' },
-  scheduled:   { bg: '#DBEAFE', color: '#1D4ED8' },
-  in_progress: { bg: '#FEF9C3', color: '#854D0E' },
-  default:     { bg: '#FEE2E2', color: '#991B1B' },
+  pending_payment: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  completed:   { bg: 'var(--success-bg)', color: 'var(--success)' },
+  scheduled:   { bg: 'var(--primary-bg)', color: 'var(--primary)' },
+  in_progress: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  default:     { bg: 'var(--danger-bg)', color: 'var(--error)' },
 };
 
 function statusStyle(status) {
@@ -295,7 +295,7 @@ export default function BookingsPage() {
       {bookings.length === 0 ? (
         <div style={{
           background: WHITE, borderRadius: 20, padding: '48px 20px',
-          textAlign: 'center', boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
+          textAlign: 'center', boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-main)'
         }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
           <p style={{ fontSize: 16, fontWeight: 700, color: DARK, margin: '0 0 6px' }}>目前沒有訂單</p>
@@ -330,14 +330,14 @@ export default function BookingsPage() {
             return (
               <div key={b.id} style={{
                 background: WHITE, borderRadius: 20, padding: 18,
-                boxShadow: '0 2px 12px rgba(0,0,0,0.05)',
-                border: '1px solid #F1F5F9',
+                boxShadow: 'var(--shadow-sm)',
+                border: '1px solid var(--border-main)',
               }}>
                 {/* Top row: person + status */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
-                      width: 44, height: 44, background: '#DBEAFE', color: '#1E40AF',
+                      width: 44, height: 44, background: 'var(--primary-bg)', color: 'var(--primary)',
                       borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 900, fontSize: 16,
                     }}>
@@ -363,7 +363,7 @@ export default function BookingsPage() {
                 {/* Meta row: date + price */}
                 <div style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  borderTop: '1px solid #F1F5F9', paddingTop: 12, marginBottom: canStartReport || isCompleted || isPendingPayment ? 12 : 0,
+                  borderTop: '1px solid var(--border-main)', paddingTop: 12, marginBottom: canStartReport || isCompleted || isPendingPayment ? 12 : 0,
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: DARK, fontSize: 13, fontWeight: 700 }}>
                     <Calendar size={13} color={BLUE} />
@@ -388,9 +388,9 @@ export default function BookingsPage() {
 
                 {isPendingPayment && (
                   <div style={{
-                    borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 12,
-                    background: '#FFFBEB', borderRadius: 14, padding: 12,
-                    color: '#92400E', fontSize: 12, fontWeight: 700, lineHeight: 1.5,
+                    borderTop: '1px solid var(--border-main)', paddingTop: 12, marginTop: 12,
+                    background: 'var(--warning-bg)', borderRadius: 14, padding: 12,
+                    color: 'var(--warning)', fontSize: 12, fontWeight: 700, lineHeight: 1.5,
                   }}>
                     {isCoach
                       ? '此訂單尚未付款確認，請勿視為正式排程。'
@@ -407,7 +407,7 @@ export default function BookingsPage() {
                         href={b.payment_reference}
                         target="_blank"
                         rel="noreferrer"
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, color: '#92400E', fontWeight: 800, textDecoration: 'none' }}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, color: 'var(--warning)', fontWeight: 800, textDecoration: 'none' }}
                       >
                         <ExternalLink size={14} />
                         查看已上傳截圖
@@ -417,7 +417,7 @@ export default function BookingsPage() {
                 )}
 
                 {!isCoach && isPendingPayment && (
-                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #F1F5F9', paddingTop: 12, marginTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-main)', paddingTop: 12, marginTop: 12 }}>
                     <button
                       onClick={() => openPaymentModal(b)}
                       style={{
@@ -444,7 +444,7 @@ export default function BookingsPage() {
 
                 {/* Price Adjust Actions (Coach Only) */}
                 {isCoach && !isCompleted && !isPendingPayment && b.status !== 'cancelled' && (
-                  <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 12, paddingTop: 12 }}>
+                  <div style={{ borderTop: '1px solid var(--border-main)', marginTop: 12, paddingTop: 12 }}>
                     {adjustingId === b.id ? (
                       <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                          <div style={{ flex: 1, position:'relative' }}>
@@ -454,7 +454,7 @@ export default function BookingsPage() {
                               value={adjustmentValue}
                               onChange={e => setAdjustmentValue(e.target.value)}
                               placeholder="金額 (限制 ±200)"
-                              style={{ width:'100%', padding:'8px 8px 8px 24px', borderRadius:8, border:`1px solid ${BLUE}`, fontSize:13 }}
+                              style={{ width:'100%', padding:'8px 8px 8px 24px', borderRadius:8, border:`1px solid var(--border-input)`, background: 'var(--bg-input)', color: DARK, fontSize:13 }}
                             />
                          </div>
                          <button 
@@ -466,7 +466,7 @@ export default function BookingsPage() {
                          </button>
                          <button 
                            onClick={() => setAdjustingId(null)}
-                           style={{ padding:'8px 12px', borderRadius:8, background:'#F1F5F9', color:MUTED, fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
+                           style={{ padding:'8px 12px', borderRadius:8, background:'var(--bg-input)', color:MUTED, fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
                          >
                            取消
                          </button>
@@ -474,7 +474,7 @@ export default function BookingsPage() {
                     ) : (
                       <button 
                         onClick={() => { setAdjustingId(b.id); setAdjustmentValue(b.price_adjustment || 0); }}
-                        style={{ background:'none', border:`1px solid #E2E8F0`, padding:'6px 12px', borderRadius:8, fontSize:12, fontWeight:700, color:DARK, cursor:'pointer' }}
+                        style={{ background:'none', border:`1px solid var(--border-input)`, padding:'6px 12px', borderRadius:8, fontSize:12, fontWeight:700, color:DARK, cursor:'pointer' }}
                       >
                         📝 議價 / 調整金額
                       </button>
@@ -484,13 +484,13 @@ export default function BookingsPage() {
 
                 {/* Coach action buttons */}
                 {isCoach && !isCompleted && (
-                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #F1F5F9', paddingTop: 12 }}>
+                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border-main)', paddingTop: 12 }}>
                     {user?.role === 'admin' && isPendingPayment && (
                       <button
                         onClick={() => handleConfirmPayment(b.id)}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 12, border: 'none',
-                          background: '#059669', color: WHITE, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: 'var(--success)', color: '#FFFFFF', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                         }}
                       >
                         確認付款
@@ -501,7 +501,7 @@ export default function BookingsPage() {
                         onClick={() => handleStatusUpdate(b.id, 'in_progress')}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 12, border: 'none',
-                          background: '#FEF9C3', color: '#854D0E', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: 'var(--warning-bg)', color: 'var(--warning)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                         }}
                       >
                         ▶ 開始上課
@@ -512,9 +512,9 @@ export default function BookingsPage() {
                         onClick={() => router.push(`/reports/${b.id}`)}
                         style={{
                           flex: 2, padding: '10px', borderRadius: 12, border: 'none',
-                          background: BLUE, color: WHITE, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: BLUE, color: '#FFFFFF', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                          boxShadow: '0 4px 12px rgba(37,99,235,0.2)',
+                          boxShadow: `var(--shadow-sm)`,
                         }}
                       >
                         <FileText size={14} /> 填寫學習紀錄卡
@@ -525,7 +525,7 @@ export default function BookingsPage() {
 
                 {/* Completed badge and review actions */}
                 {isCompleted && (
-                  <div style={{ borderTop: '1px solid #F1F5F9', paddingTop: 12 }}>
+                  <div style={{ borderTop: '1px solid var(--border-main)', paddingTop: 12 }}>
                     {!isCoach && !b.review_id ? (
                       <button
                         onClick={() => setReviewingBooking(b)}
@@ -539,7 +539,7 @@ export default function BookingsPage() {
                       </button>
                     ) : (
                       <div style={{
-                        fontSize: 12, color: '#059669', fontWeight: 700, textAlign: 'center',
+                        fontSize: 12, color: 'var(--success)', fontWeight: 700, textAlign: 'center',
                       }}>
                         ✅ {isCoach ? '課程已完成，學習紀錄卡已歸檔' : (b.review_id ? '感謝您的評價！' : '課程已完成')}
                       </div>
@@ -549,13 +549,13 @@ export default function BookingsPage() {
 
                 {!isCoach && b.status === 'scheduled' && (
                   <div style={{
-                    borderTop: '1px solid #F1F5F9',
+                    borderTop: '1px solid var(--border-main)',
                     paddingTop: 12,
                     marginTop: 12,
                     fontSize: 12,
                     fontWeight: 800,
-                    color: '#047857',
-                    background: '#ECFDF5',
+                    color: 'var(--success)',
+                    background: 'var(--success-bg)',
                     borderRadius: 14,
                     padding: 12,
                   }}>
@@ -577,7 +577,7 @@ export default function BookingsPage() {
         }}>
           <div style={{
             background: WHITE, borderRadius: 24, width: '100%', maxWidth: 400, padding: 24,
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-main)'
           }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: DARK }}>撰寫評價</h2>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: MUTED }}>
@@ -591,7 +591,7 @@ export default function BookingsPage() {
                   onClick={() => setReviewData({ ...reviewData, rating: star })}
                   style={{
                     background: 'none', border: 'none', fontSize: 32, cursor: 'pointer',
-                    color: star <= reviewData.rating ? '#F59E0B' : '#E2E8F0',
+                    color: star <= reviewData.rating ? '#F59E0B' : 'var(--border-input)',
                     transition: 'transform 0.1s',
                     transform: star <= reviewData.rating ? 'scale(1.1)' : 'scale(1)',
                   }}
@@ -606,15 +606,15 @@ export default function BookingsPage() {
               value={reviewData.comment}
               onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
               style={{
-                width: '100%', minHeight: 100, padding: 16, borderRadius: 16, border: '1px solid #E2E8F0',
-                fontSize: 14, marginBottom: 20, resize: 'none',
+                width: '100%', minHeight: 100, padding: 16, borderRadius: 16, border: '1px solid var(--border-input)',
+                background: 'var(--bg-input)', color: DARK, fontSize: 14, marginBottom: 20, resize: 'none',
               }}
             />
 
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={() => { setReviewingBooking(null); setReviewData({ rating: 5, comment: '' }); }}
-                style={{ flex: 1, padding: 14, borderRadius: 12, border: 'none', background: '#F1F5F9', color: MUTED, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
+                style={{ flex: 1, padding: 14, borderRadius: 12, border: 'none', background: 'var(--bg-input)', color: MUTED, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}
               >
                 取消
               </button>
@@ -622,7 +622,7 @@ export default function BookingsPage() {
                 onClick={handleSubmitReview}
                 disabled={submittingReview}
                 style={{
-                  flex: 2, padding: 14, borderRadius: 12, border: 'none', background: BLUE, color: WHITE,
+                  flex: 2, padding: 14, borderRadius: 12, border: 'none', background: BLUE, color: '#FFFFFF',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: submittingReview ? 0.7 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
@@ -637,12 +637,12 @@ export default function BookingsPage() {
       {paymentModalBooking && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'var(--backdrop)', display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 120, padding: 16,
         }}>
           <div style={{
             width: '100%', maxWidth: 480, background: WHITE, borderRadius: 24, padding: 24,
-            boxShadow: '0 20px 50px rgba(15,23,42,0.2)',
+            boxShadow: 'var(--shadow-lg)', border: '1px solid var(--border-main)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
               <div>
@@ -656,20 +656,20 @@ export default function BookingsPage() {
               </div>
               <button
                 onClick={resetPaymentModal}
-                style={{ border: 'none', background: '#F1F5F9', color: MUTED, width: 36, height: 36, borderRadius: 12, cursor: 'pointer', fontWeight: 900 }}
+                style={{ border: 'none', background: 'var(--bg-input)', color: MUTED, width: 36, height: 36, borderRadius: 12, cursor: 'pointer', fontWeight: 900 }}
               >
                 ×
               </button>
             </div>
 
-            <div style={{ background: '#F8FAFC', borderRadius: 18, padding: 16, marginBottom: 16, display: 'grid', gap: 10 }}>
+            <div style={{ background: 'var(--bg-input)', borderRadius: 18, padding: 16, marginBottom: 16, display: 'grid', gap: 10 }}>
               <div style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>平台收款帳號</div>
               <div style={{ display: 'grid', gap: 8, color: DARK, fontSize: 14, fontWeight: 700 }}>
                 <div>銀行代碼：{paymentSettings.bank_code || '尚未設定'}</div>
                 <div>帳號：{paymentSettings.bank_account_number || '尚未設定'}</div>
               </div>
               {!hasPaymentAccountInfo && (
-                <div style={{ fontSize: 12, color: '#B45309', fontWeight: 700, lineHeight: 1.6 }}>
+                <div style={{ fontSize: 12, color: 'var(--warning)', fontWeight: 700, lineHeight: 1.6 }}>
                   管理員尚未設定正式收款帳號。請先補齊後台付款設定，再請學員進行匯款。
                 </div>
               )}
@@ -680,8 +680,8 @@ export default function BookingsPage() {
                 訂單金額：NT${paymentModalBooking.final_price?.toLocaleString() ?? '--'}
               </div>
               <label style={{
-                display: 'block', border: '1px dashed #93C5FD', borderRadius: 18, padding: 18,
-                background: '#EFF6FF', cursor: 'pointer', textAlign: 'center',
+                display: 'block', border: '1px dashed var(--primary)', borderRadius: 18, padding: 18,
+                background: 'var(--primary-bg)', cursor: 'pointer', textAlign: 'center',
               }}>
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleReceiptChange} />
                 <div style={{ color: BLUE, fontWeight: 800, fontSize: 14 }}>選擇轉帳截圖</div>
@@ -694,7 +694,7 @@ export default function BookingsPage() {
                 <img
                   src={paymentReceiptPreview}
                   alt="付款截圖預覽"
-                  style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 18, border: '1px solid #E2E8F0' }}
+                  style={{ width: '100%', height: 220, objectFit: 'cover', borderRadius: 18, border: '1px solid var(--border-input)' }}
                 />
               </div>
             )}
@@ -702,7 +702,7 @@ export default function BookingsPage() {
             <div style={{ display: 'flex', gap: 12 }}>
               <button
                 onClick={resetPaymentModal}
-                style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: '#F1F5F9', color: MUTED, fontWeight: 800, cursor: 'pointer' }}
+                style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'var(--bg-input)', color: MUTED, fontWeight: 800, cursor: 'pointer' }}
               >
                 取消
               </button>
@@ -715,7 +715,7 @@ export default function BookingsPage() {
                   borderRadius: 14,
                   border: 'none',
                   background: BLUE,
-                  color: WHITE,
+                  color: '#FFFFFF',
                   fontWeight: 800,
                   cursor: 'pointer',
                   opacity: !hasPaymentAccountInfo || uploadingReceipt || reportingPayment ? 0.65 : 1,

@@ -16,11 +16,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 
-const BLUE = '#2563EB';
-const BG = '#0F172A'; // Dark
-const CARD = 'rgba(255, 255, 255, 0.05)';
-const BORDER = 'rgba(255, 255, 255, 0.1)';
-const WHITE = '#FFFFFF';
+const BLUE = 'var(--primary)';
+const BG = 'var(--bg-page)'; // Dark
+const CARD = 'var(--bg-surface)';
+const BORDER = 'var(--border-main)';
+const WHITE = 'var(--text-main)';
 
 const SPORTS = [
   { id: 'badminton', label: '羽球', icon: Zap, color: '#FCD34D' },
@@ -128,14 +128,14 @@ export default function Onboarding() {
         {[1, 2, 3].map(i => (
           <div key={i} style={{ 
             width: 8, height: 8, borderRadius: '50%', 
-            background: i <= step ? BLUE : 'rgba(255,255,255,0.2)',
+            background: i <= step ? BLUE : 'var(--border-main)',
             transition: 'background 0.3s'
           }} />
         ))}
         {step < 3 && (
           <button onClick={handleSkip} style={{ 
             marginLeft: 'auto', background: 'none', border: 'none', 
-            color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: 600 
+            color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 
           }}>跳過</button>
         )}
       </div>
@@ -148,7 +148,7 @@ export default function Onboarding() {
             <h2 style={{ fontSize: 28, fontWeight: 900, color: WHITE, margin: '20px 0 10px', lineHeight: 1.2 }}>
               Hi! 很高興見到你<br/>想上什麼樣的課？
             </h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 15, marginBottom: 40 }}>10 秒內為您媒合最合適的大學生教練</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 40 }}>10 秒內為您媒合最合適的大學生教練</p>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               {SPORTS.map(s => (
@@ -176,8 +176,8 @@ export default function Onboarding() {
                   justifyContent: 'center', gap: 8, marginTop: 10
                 }}
               >
-                <HelpCircle size={18} color="rgba(255,255,255,0.5)" />
-                <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, fontWeight: 600 }}>🤔 不確定，幫我選</span>
+                <HelpCircle size={18} color="var(--text-muted)" />
+                <span style={{ color: 'var(--text-muted)', fontSize: 14, fontWeight: 600 }}>🤔 不確定，幫我選</span>
               </button>
             </div>
           </>
@@ -189,10 +189,10 @@ export default function Onboarding() {
             </h2>
 
             <div style={{ 
-              background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%)',
+              background: 'var(--bg-surface)',
               border: `1px solid ${BORDER}`, borderRadius: 32, padding: '4px', overflow: 'hidden'
             }}>
-              <div style={{ position: 'relative', borderRadius: 28, overflow: 'hidden', height: 280, background: '#111' }}>
+              <div style={{ position: 'relative', borderRadius: 28, overflow: 'hidden', height: 280, background: 'var(--bg-input)' }}>
                 <div style={{ 
                   position: 'absolute', bottom: 0, left: 0, width: '100%', 
                   background: 'linear-gradient(0deg, rgba(0,0,0,0.8) 0%, transparent 100%)',
@@ -204,7 +204,7 @@ export default function Onboarding() {
                   <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: WHITE }}>{recommendation?.name || '菁英教練'}</h3>
                 </div>
                 {/* Display Coach Avatar or Placeholder */}
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#222' }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)' }}>
                   {recommendation?.avatar_url ? (
                     <img 
                       src={recommendation.avatar_url} 
@@ -226,12 +226,12 @@ export default function Onboarding() {
                     <span style={{ color: WHITE, fontWeight: 700, fontSize: 14 }}>{recommendation?.rating_avg || '5.0'}</span>
                   </div>
                   <div style={{ width: 1, height: 12, background: BORDER }} />
-                  <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>完課數：{recommendation?.review_count || recommendation?.completions || '12'}＋</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>完課數：{recommendation?.review_count || recommendation?.completions || '12'}＋</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: 8, background: 'rgba(59,130,246,0.1)', padding: '12px 16px', borderRadius: 16, marginBottom: 20 }}>
+                <div style={{ display: 'flex', gap: 8, background: 'var(--primary-bg)', padding: '12px 16px', borderRadius: 16, marginBottom: 20 }}>
                   <CheckCircle2 size={18} color={BLUE} style={{ flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.8)', lineHeight: 1.4 }}>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-main)', lineHeight: 1.4 }}>
                     {selectedSport === 'unsure' 
                       ? '✅ 適合：想找到適合自己的運動的人' 
                       : '✅ 適合：完全沒基礎 / 想從0開始的人'}
@@ -240,13 +240,12 @@ export default function Onboarding() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                   <div>
-                    <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase' }}>體驗課價格</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>體驗課價格</p>
                     <p style={{ margin: 0, fontSize: 18, color: WHITE, fontWeight: 900 }}>${recommendation?.base_price || '1,000'}</p>
                   </div>
-                  <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.4)', textAlign: 'right' }}>只需支付 30% 訂金<br/>即可保留名額</p>
                 </div>
 
-                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 12, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600 }}>
                   <TrendingUp size={14} color={BLUE} /> 大多數人會先試這位教練 👍
                 </p>
 
@@ -265,7 +264,7 @@ export default function Onboarding() {
                 <button 
                   onClick={() => setStep(1)}
                   style={{ 
-                    width: '100%', background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', 
+                    width: '100%', background: 'none', border: 'none', color: 'var(--text-muted)', 
                     fontSize: 13, fontWeight: 600, marginTop: 16 
                   }}
                 >

@@ -54,6 +54,11 @@ export async function POST(request) {
       return NextResponse.json({ error: draftUpsertPermission.error }, { status: draftUpsertPermission.status });
     }
 
+    // 防護：檢查是否已有「已完成」的正式報告，避免被草稿覆蓋
+    if (existingReport && existingReport.completed_items !== '__AI_DRAFT__') {
+      return NextResponse.json({ error: '此預約已經提交過正式報告，無法再重新產生 AI 草稿。' }, { status: 409 });
+    }
+
     const prompt = `
 你是一位專業且充滿熱情的大學運動與技能指導教練。
 你的任務是幫其他的教練將他們隨手寫下的「課堂觀察」與「下堂建議」關鍵字，擴寫成一段給學員看的、語氣專業、正向且鼓勵人的「學習紀錄卡評語」。

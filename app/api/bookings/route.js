@@ -287,6 +287,7 @@ export async function POST(request) {
     const globalCommission = Number.isFinite(parsedGlobalCommission) && parsedGlobalCommission >= 0
       ? parsedGlobalCommission
       : 20;
+
     const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
       ? coach.commission_rate 
       : globalCommission;
