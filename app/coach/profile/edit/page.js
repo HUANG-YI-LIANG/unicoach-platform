@@ -8,15 +8,15 @@ import {
   ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
 } from 'lucide-react';
 
-const ORANGE = '#F97316';
-const BG     = '#090E17';
-const CARD   = '#121826';
-const MUTED  = '#94A3B8';
-const TEXT_LIGHT = '#F8FAFC';
+const ORANGE = 'var(--cta, #F97316)';
+const BG     = 'var(--bg-page)';
+const CARD   = 'var(--bg-surface)';
+const MUTED  = 'var(--text-muted)';
+const TEXT_LIGHT = 'var(--text-main)';
 const RADIUS = '20px';
-const SHADOW = '0 8px 30px rgba(0,0,0,0.3)';
-const INPUT_BG = '#1E293B';
-const BORDER = 'rgba(255,255,255,0.05)';
+const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
+const INPUT_BG = 'var(--bg-input)';
+const BORDER = 'var(--border-main)';
 
 export default function CoachProfileEdit() {
   const { user, loading: authLoading } = useAuth();
