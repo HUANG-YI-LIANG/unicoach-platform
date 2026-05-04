@@ -55,12 +55,6 @@ export async function POST(request) {
     }
 
     // 防護：檢查是否已有「已完成」的正式報告，避免被草稿覆蓋
-    const { data: existingReport } = await adminSupabase
-      .from('learning_reports')
-      .select('completed_items')
-      .eq('booking_id', bookingId)
-      .maybeSingle();
-
     if (existingReport && existingReport.completed_items !== '__AI_DRAFT__') {
       return NextResponse.json({ error: '此預約已經提交過正式報告，無法再重新產生 AI 草稿。' }, { status: 409 });
     }

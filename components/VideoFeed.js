@@ -328,6 +328,7 @@ function VideoItem({ video, isVisible, onLike, onView }) {
   );
 }
 
+export default function VideoFeed() {
   const [videos, setVideos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
