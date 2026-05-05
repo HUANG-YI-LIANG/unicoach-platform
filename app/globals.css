@@ -165,7 +165,7 @@ input:focus, textarea:focus, select:focus {
 /* === PREMIUM LANDING PAGE === */
 .premium-landing {
   min-height: 100vh;
-  background-color: var(--bg-page);
+  background-color: var(--color-bg);
   padding-bottom: 40px;
 }
 
@@ -297,9 +297,9 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-trust-card {
-  background: var(--bg-surface);
+  background: var(--color-surface);
   border-radius: 16px;
-  border: 1px solid var(--border-main);
+  border: 1px solid var(--color-border);
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -313,7 +313,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .trust-title {
-  color: var(--text-main);
+  color: var(--color-text);
   font-size: 16px;
   font-weight: 800;
   display: flex;
@@ -322,7 +322,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .trust-desc {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 13px;
   font-weight: 500;
   line-height: 1.5;
@@ -347,7 +347,7 @@ input:focus, textarea:focus, select:focus {
 .sports-title {
   font-size: 22px;
   font-weight: 900;
-  color: var(--text-main);
+  color: var(--color-text);
   margin: 0 0 4px 0;
 }
 
@@ -429,7 +429,7 @@ input:focus, textarea:focus, select:focus {
 .premium-footer-brand {
   font-size: 18px;
   font-weight: 900;
-  color: var(--text-main);
+  color: var(--color-text);
   margin-bottom: 8px;
   display: block;
 }
@@ -485,7 +485,7 @@ input:focus, textarea:focus, select:focus {
 
 /* === USER HOME & PROFILE === */
 .user-home-wrapper {
-  background-color: var(--bg-page);
+  background-color: var(--color-bg);
   min-height: calc(100vh - 120px);
 }
 .user-card-header {
@@ -543,7 +543,7 @@ input:focus, textarea:focus, select:focus {
 .section-title {
   font-size: 17px;
   font-weight: 800;
-  color: var(--text-main);
+  color: var(--color-text);
   margin-bottom: 12px;
   padding: 0 4px;
 }
@@ -558,8 +558,8 @@ input:focus, textarea:focus, select:focus {
 .coupon-list::-webkit-scrollbar { display: none; }
 .coupon-card {
   min-width: 140px;
-  background: var(--bg-surface);
-  border: 2px dashed var(--border-input);
+  background: var(--color-surface);
+  border: 2px dashed var(--color-border);
   padding: 16px;
   border-radius: 16px;
   text-align: center;
@@ -567,16 +567,16 @@ input:focus, textarea:focus, select:focus {
 .coupon-discount {
   font-size: 20px;
   font-weight: 900;
-  color: #E11D48;
+  color: var(--color-danger);
 }
 .coupon-label {
   font-size: 12px;
-  color: #64748B;
+  color: var(--color-text-muted);
 }
 
 .profile-details-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-main);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: 24px;
   padding: 20px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.03);
@@ -585,23 +585,23 @@ input:focus, textarea:focus, select:focus {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--color-border);
 }
 .detail-item:last-child { border: none; }
 .detail-label {
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-size: 14px;
   font-weight: 600;
 }
 .detail-value {
-  color: var(--text-main);
+  color: var(--color-text);
   font-size: 14px;
   font-weight: 700;
 }
 .btn-edit-profile {
   width: 100%;
-  background-color: #F1F5F9;
-  color: #475569;
+  background-color: var(--color-surface-soft);
+  color: var(--color-text-muted);
   border-radius: 12px;
   margin-top: 16px;
   font-size: 14px;

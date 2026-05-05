@@ -51,11 +51,11 @@ const EMPTY_PROFILE = {
 };
 
 const BOOKING_STATUS = {
-  pending_payment: { label: '待付款', bg: '#FEF3C7', color: '#92400E' },
-  scheduled: { label: '已排程', bg: '#DBEAFE', color: '#1D4ED8' },
-  in_progress: { label: '進行中', bg: '#FEF9C3', color: '#854D0E' },
-  completed: { label: '已完成', bg: '#D1FAE5', color: '#065F46' },
-  cancelled: { label: '已取消', bg: '#FEE2E2', color: '#991B1B' },
+  pending_payment: { label: '待付款', bg: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' },
+  scheduled: { label: '已排程', bg: 'rgba(96, 165, 250, 0.15)', color: 'var(--color-primary)' },
+  in_progress: { label: '進行中', bg: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' },
+  completed: { label: '已完成', bg: 'rgba(34, 197, 94, 0.15)', color: 'var(--color-success)' },
+  cancelled: { label: '已取消', bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)' },
 };
 
 function bookingStatus(status) {
@@ -456,7 +456,7 @@ export default function UserDashboard() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, background: BORDER, margin: '16px 0 0', borderTop: `1px solid ${BORDER}` }}>
               {[
                 { label: '會員等級', value: `Lv ${profile.level ?? 1}`, color: ORANGE },
-                { label: '等級折扣', value: `${levelDiscount} OFF`, color: '#10B981' },
+                { label: '等級折扣', value: `${levelDiscount} OFF`, color: 'var(--color-success)' },
               ].map((item) => (
                 <div key={item.label} style={{ background: CARD, padding: '14px 0', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{item.label}</p>
@@ -473,7 +473,7 @@ export default function UserDashboard() {
         {/* ── REFERRAL CARD (Integrated directly into dashboard) ── */}
         <div style={{ padding: '20px 16px 0' }}>
           <div style={{ background: CARD, borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #1E293B, #0F172A)', padding: '16px 20px', borderRadius: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-soft)', border: '1px solid var(--color-border)', padding: '16px 20px', borderRadius: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Wallet size={20} color={ORANGE} />
@@ -493,7 +493,7 @@ export default function UserDashboard() {
                   type="text"
                   readOnly
                   value={profile.promotion_code || '尚未建立'}
-                  style={{ flex: 1, padding: '12px 16px', background: 'var(--bg-input)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
+                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
                 {profile.promotion_code && (
                   <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'white' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
@@ -507,7 +507,7 @@ export default function UserDashboard() {
             </div>
 
             {promotionUrl && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--bg-surface)', borderRadius: 20, border: `1px solid ${BORDER}`, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--color-surface-soft)', borderRadius: 20, border: `1px solid ${BORDER}` }}>
                 <label style={{ fontSize: 13, fontWeight: 800, color: TEXT_LIGHT, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: ORANGE }}>✨</span> 推廣專屬 QR Code
                 </label>
@@ -543,7 +543,7 @@ export default function UserDashboard() {
                   placeholder="請輸入代碼"
                   value={promoCodeInput}
                   onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
-                  style={{ flex: 1, padding: '12px 16px', background: 'var(--bg-input)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 14, fontWeight: 700, outline: 'none', color: TEXT_LIGHT }}
+                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 14, fontWeight: 700, outline: 'none', color: TEXT_LIGHT }}
                 />
                 <button
                   onClick={handleApplyCode}
@@ -556,12 +556,12 @@ export default function UserDashboard() {
             </div>
 
             {/* Discount Preview Area */}
-            <div style={{ padding: '20px', background: 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ padding: '20px', background: 'var(--color-surface-soft)', borderBottom: `1px solid ${BORDER}` }}>
               <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, marginBottom: 12 }}>你目前可享：</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, color: TEXT_LIGHT, fontWeight: 600 }}>會員等級折扣（自動）</span>
-                  <span style={{ fontSize: 14, color: '#10B981', fontWeight: 800 }}>{levelDiscount} OFF</span>
+                  <span style={{ fontSize: 14, color: 'var(--color-success)', fontWeight: 800 }}>{levelDiscount} OFF</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 14, color: TEXT_LIGHT, fontWeight: 600 }}>已選優惠券</span>
@@ -611,7 +611,7 @@ export default function UserDashboard() {
                   usableCoupons.length > 0 ? usableCoupons.map((coupon) => {
                     const isSelected = profile.active_coupon?.id === coupon.id;
                     return (
-                      <div key={coupon.id} style={{ background: 'var(--bg-input)', borderRadius: 16, padding: '16px', borderLeft: `4px solid ${ORANGE}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div key={coupon.id} style={{ background: 'var(--color-surface-soft)', borderRadius: 16, padding: '16px', borderLeft: `4px solid ${ORANGE}`, display: 'flex', flexDirection: 'column', gap: 12 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div>
                             <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: ORANGE }}>{coupon.discount}%</p>
@@ -621,8 +621,8 @@ export default function UserDashboard() {
                             onClick={() => handleUseCoupon(coupon.id)}
                             disabled={usingCouponId === coupon.id || isSelected}
                             style={{
-                              padding: '6px 14px', background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
-                              color: isSelected ? '#10B981' : ORANGE, border: `1.5px solid ${isSelected ? '#10B981' : ORANGE}`,
+                              padding: '6px 14px', background: isSelected ? 'rgba(34, 197, 94, 0.1)' : 'transparent',
+                              color: isSelected ? 'var(--color-success)' : ORANGE, border: `1.5px solid ${isSelected ? 'var(--color-success)' : ORANGE}`,
                               borderRadius: 100, fontSize: 12, fontWeight: 800,
                               cursor: isSelected ? 'default' : 'pointer', opacity: usingCouponId === coupon.id ? 0.7 : 1,
                               display: 'flex', alignItems: 'center', gap: 4
@@ -655,7 +655,7 @@ export default function UserDashboard() {
 
                 {couponTab === 'expired' && (
                   expiredCoupons.length > 0 ? expiredCoupons.map((coupon) => (
-                    <div key={coupon.id} style={{ background: 'var(--bg-input)', borderRadius: 16, padding: '16px', borderLeft: `4px solid ${MUTED}`, opacity: 0.6, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <div key={coupon.id} style={{ background: 'var(--color-surface-soft)', borderRadius: 16, padding: '16px', borderLeft: `4px solid ${MUTED}`, opacity: 0.6, display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         <div>
                           <p style={{ margin: 0, fontSize: 22, fontWeight: 900, color: MUTED }}>{coupon.discount}%</p>
@@ -754,7 +754,7 @@ export default function UserDashboard() {
         </div>
 
         <div style={{ padding: '28px 16px 0' }}>
-          <button onClick={logout} style={{ width: '100%', padding: 14, background: 'var(--bg-input)', borderRadius: 16, color: '#EF4444', fontWeight: 800, fontSize: 14, cursor: 'pointer', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
+          <button onClick={logout} style={{ width: '100%', padding: 14, background: 'var(--color-surface-soft)', borderRadius: 16, color: 'var(--color-danger)', fontWeight: 800, fontSize: 14, cursor: 'pointer', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
             登出
           </button>
         </div>

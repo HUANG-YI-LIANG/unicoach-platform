@@ -244,7 +244,7 @@ export default function CoachDashboard() {
         {/* Refer a Fellow Coach */}
         <div style={{ padding: '0 0 32px 0' }}>
           <div style={{ background: CARD, borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #1E293B, #0F172A)', padding: '16px 20px', borderRadius: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-soft)', border: '1px solid var(--color-border)', padding: '16px 20px', borderRadius: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Wallet size={20} color={ORANGE} />
@@ -264,9 +264,9 @@ export default function CoachDashboard() {
                   type="text"
                   readOnly
                   value={referralCode}
-                  style={{ flex: 1, padding: '12px 16px', background: '#1E293B', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
+                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
-                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? '#10B981' : 'rgba(249, 115, 22, 0.1)', color: copiedCode ? '#fff' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
+                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? '#fff' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
                   {copiedCode ? <Check size={18} /> : <Copy size={18} />}
                 </button>
               </div>
@@ -276,7 +276,7 @@ export default function CoachDashboard() {
             </div>
 
             {promotionUrl && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: '#1E293B', borderRadius: 16, border: `1px dashed ${MUTED}` }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--color-surface-soft)', borderRadius: 16, border: `1px dashed ${BORDER}` }}>
                 <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 16 }}>推廣 QR Code</label>
                 <div style={{ background: '#FFF', padding: 12, borderRadius: 16, boxShadow: `0 0 20px rgba(249, 115, 22, 0.2)` }}>
                   <QRCodeSVG
@@ -383,7 +383,7 @@ export default function CoachDashboard() {
         {/* SIGN OUT */}
         <div style={{ paddingBottom: 40 }}>
           <button onClick={logout} style={{
-            width: '100%', padding: '16px', background: 'transparent', color: '#FCA5A5', border: '1px solid #7F1D1D',
+            width: '100%', padding: '16px', background: 'var(--color-surface-soft)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)',
             borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: '0.2s',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
           }}>
