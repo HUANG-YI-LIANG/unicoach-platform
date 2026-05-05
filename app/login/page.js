@@ -99,7 +99,7 @@ export default function Login() {
         </form>
         <p style={{ marginTop: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--color-text-muted)' }}>
           還沒有帳號？{' '}
-          <Link href="/register" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 700 }}>
+          <Link href={`/register${searchParams.toString() ? `?${searchParams.toString()}` : ''}`} style={{ color: 'var(--color-primary)', textDecoration: 'none', fontWeight: 700 }}>
             註冊帳號
           </Link>
         </p>

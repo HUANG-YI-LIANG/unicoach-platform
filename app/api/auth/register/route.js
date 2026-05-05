@@ -162,6 +162,22 @@ export async function POST(request) {
       throw profileError;
     }
 
+    // 發放註冊推薦折價券
+    if (referredById) {
+      const validUntil = new Date();
+      validUntil.setDate(validUntil.getDate() + 30);
+      
+      const { error: couponError } = await adminSupabase.from('coupons').insert([{
+        user_id: userProfile.id,
+        type: 'referral',
+        discount_percent: 10,
+        max_amount: 150,
+        valid_until: validUntil.toISOString()
+      }]);
+      
+      if (couponError) console.error('[REGISTER COUPON ERROR]', couponError);
+    }
+
     // 6. 核心記錄：法律同意存檔 (terms_consents)
     const consentTimestamp = new Date().toISOString();
     const termsVersion = "v1.0.2024.Apr";

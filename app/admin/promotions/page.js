@@ -20,7 +20,7 @@ const MUTED = 'var(--color-text-muted)';
 const WHITE = 'var(--text-light)';
 const BG = 'var(--color-bg)';
 
-const DEFAULT_LEVEL_DISCOUNTS = { 1: 5, 2: 10, 3: 15, 4: 20 };
+const DEFAULT_LEVEL_DISCOUNTS = { 1: 0, 2: 3, 3: 6, 4: 12 };
 
 export default function PromotionsAdmin() {
   const router = useRouter();
@@ -622,9 +622,7 @@ export default function PromotionsAdmin() {
                           fontWeight: 900, 
                           color: userItem.custom_discount !== null ? '#D97706' : BLUE 
                         }}>
-                          {userItem.custom_discount !== null 
-                            ? userItem.custom_discount 
-                            : (levelDiscounts[userItem.level || 1] ?? 5)}%
+                          {(levelDiscounts[userItem.level || 1] ?? 0) + (userItem.custom_discount ?? 0)}%
                         </div>
                       </td>
                     </tr>

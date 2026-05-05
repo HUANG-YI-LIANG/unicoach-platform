@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -960,6 +960,11 @@ export default function CoachDetailPage({ params }) {
                   <select className="select" value={bookingForm.attendeesCount} onChange={(event) => setBookingForm((current) => ({ ...current, attendeesCount: Number(event.target.value) }))}>
                     {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count} 人</option>)}
                   </select>
+                  {bookingForm.attendeesCount > 1 && (
+                    <div style={{ fontSize: 12, color: '#10b981', fontWeight: 800, marginTop: 4 }}>
+                      *(多人優惠：每人單價 NT${Math.max(0, (selectedPlan?.price || coach?.base_price || 0) - 50 * (Math.min(bookingForm.attendeesCount, 5) - 1)).toLocaleString()}，總計 NT${(Math.max(0, (selectedPlan?.price || coach?.base_price || 0) - 50 * (Math.min(bookingForm.attendeesCount, 5) - 1)) * bookingForm.attendeesCount).toLocaleString()})*
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="field-label">學習狀態</label>
@@ -1028,10 +1033,15 @@ export default function CoachDetailPage({ params }) {
               const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscountPercent);
 
               const basePrice = (selectedPlan?.price || coach?.base_price || 0);
-              const weeks = bookingForm.isRecurring ? bookingForm.recurringWeeks : 1;
-              const rawTotal = basePrice * weeks;
+              const count = bookingForm.attendeesCount || 1;
+              const effectiveCount = Math.min(count, 5);
+              const perPersonPrice = Math.max(0, basePrice - 50 * (effectiveCount - 1));
+              const totalBasePrice = perPersonPrice * count;
 
-              const perSessionDiscount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300);
+              const weeks = bookingForm.isRecurring ? bookingForm.recurringWeeks : 1;
+              const rawTotal = totalBasePrice * weeks;
+
+              const perSessionDiscount = Math.min(Math.round(totalBasePrice * (totalDiscountPercent / 100)), 300);
               const totalDiscountAmount = perSessionDiscount * weeks;
               const finalTotal = rawTotal - totalDiscountAmount;
 

@@ -23,7 +23,24 @@ function timeAgo(dateStr) {
   return `${Math.floor(hours / 24)} 天前`;
 }
 
-function Avatar({ name, size = 46 }) {
+function Avatar({ name, src, size = 46 }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: '50%',
+          flexShrink: 0,
+          objectFit: 'cover',
+          boxShadow: `0 0 15px rgba(0, 0, 0, 0.1)`
+        }}
+      />
+    );
+  }
+
   return (
     <div
       style={{
@@ -68,7 +85,7 @@ function RoomCard({ room, onClick }) {
         border: hovered ? `1px solid ${ORANGE}` : `1px solid ${BORDER}`,
       }}
     >
-      <Avatar name={room.other_party_name} size={48} />
+      <Avatar name={room.other_party_name} src={room.other_party_avatar} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: TEXT_LIGHT }}>
           {room.other_party_name || '未命名聊天室'}

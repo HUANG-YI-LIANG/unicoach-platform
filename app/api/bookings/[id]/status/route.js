@@ -40,7 +40,7 @@ export async function POST(request, { params }) {
     // 1. 讀取預約現況並驗證身份
     const { data: booking, error: bError } = await adminSupabase
       .from('bookings')
-      .select('*')
+      .select('*, users!bookings_user_id_fkey(referred_by, referral_completed)')
       .eq('id', id)
       .single();
 
@@ -87,7 +87,14 @@ export async function POST(request, { params }) {
 
     // 3. 執行更新
     const updateData = { status: newStatus };
-    if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
+    
+    if (newStatus === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    } else if (newStatus === 'cancelled') {
+      updateData.cancelled_at = new Date().toISOString();
+    } else if (newStatus === 'refunded') {
+      updateData.refunded_at = new Date().toISOString();
+    }
 
     const { error: updateError } = await adminSupabase
       .from('bookings')
@@ -95,6 +102,49 @@ export async function POST(request, { params }) {
       .eq('id', id);
 
     if (updateError) throw updateError;
+
+    // 4. 防作弊機制：推薦獎勵處理
+    if (newStatus === 'completed') {
+      const student = booking.users;
+      // 規則 2 & 3：有推薦人且是首次完課
+      if (student && student.referred_by && student.referral_completed === false) {
+        // 更新學員標記，避免後續重複發放
+        await adminSupabase.from('users').update({ referral_completed: true }).eq('id', booking.user_id);
+        
+        // 規則 4 & 8：產生 pending 狀態日誌，24小時後發放，記錄 IP
+        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+        const suspiciousFlags = { ip };
+        const releaseTime = new Date();
+        releaseTime.setHours(releaseTime.getHours() + 24);
+        
+        await adminSupabase.from('reward_logs').insert([{
+          referrer_user_id: student.referred_by,
+          referred_user_id: booking.user_id,
+          order_id: id,
+          reward_type: 'referral_bonus',
+          reward_amount: 100, // 暫定推薦獎金 100，可後續從設定讀取
+          status: 'pending',
+          release_time: releaseTime.toISOString(),
+          suspicious_flags: suspiciousFlags
+        }]);
+      }
+    } else if (newStatus === 'cancelled' || newStatus === 'refunded') {
+      // 規則 5：退款追回機制
+      const { data: logs } = await adminSupabase.from('reward_logs').select('id, status').eq('order_id', id);
+      if (logs && logs.length > 0) {
+        for (const log of logs) {
+          if (log.status === 'pending') {
+            await adminSupabase.from('reward_logs')
+              .update({ status: 'cancelled', cancelled_reason: `Order ${newStatus}` })
+              .eq('id', log.id);
+          } else if (log.status === 'released') {
+            await adminSupabase.from('reward_logs')
+              .update({ status: 'reversed', cancelled_reason: `Order ${newStatus} after release` })
+              .eq('id', log.id);
+          }
+        }
+      }
+    }
 
     // 6. 管理員審計日誌
     if (role === 'admin') {

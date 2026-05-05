@@ -16,8 +16,8 @@ export async function GET(request, { params }) {
         id,
         user_id,
         coach_id,
-        users!chat_rooms_user_id_fkey(id, name, grade),
-        coaches:users!chat_rooms_coach_id_fkey(id, name, coaches(philosophy))
+        users!chat_rooms_user_id_fkey(id, name, grade, avatar_url),
+        coaches:users!chat_rooms_coach_id_fkey(id, name, avatar_url, coaches(philosophy))
       `)
       .eq('id', id)
       .single();
@@ -41,6 +41,7 @@ export async function GET(request, { params }) {
         user_name: room.users?.name || null,
         user_grade: room.users?.grade || null,
         other_name: isCoach ? room.users?.name : room.coaches?.name,
+        other_avatar: isCoach ? room.users?.avatar_url : room.coaches?.avatar_url,
         other_is_coach: !isCoach,
       },
     });

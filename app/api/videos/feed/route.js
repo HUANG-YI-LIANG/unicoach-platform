@@ -45,15 +45,28 @@ export async function GET() {
 
     const videoIds = populatedVideos.map((video) => video.id);
     let likedVideoIds = new Set();
+    let favoriteCoachIds = new Set();
 
-    if (!auth.error && auth.user?.id && videoIds.length > 0) {
-      const { data: likes } = await adminSupabase
-        .from('video_likes')
-        .select('video_id')
-        .eq('user_id', auth.user.id)
-        .in('video_id', videoIds);
+    if (!auth.error && auth.user?.id) {
+      if (videoIds.length > 0) {
+        const { data: likes } = await adminSupabase
+          .from('video_likes')
+          .select('video_id')
+          .eq('user_id', auth.user.id)
+          .in('video_id', videoIds);
 
-      likedVideoIds = new Set((likes || []).map((like) => like.video_id));
+        likedVideoIds = new Set((likes || []).map((like) => like.video_id));
+      }
+
+      if (coachIds.length > 0) {
+        const { data: favorites } = await adminSupabase
+          .from('favorite_coaches')
+          .select('coach_id')
+          .eq('user_id', auth.user.id)
+          .in('coach_id', coachIds);
+        
+        favoriteCoachIds = new Set((favorites || []).map((fav) => fav.coach_id));
+      }
     }
 
     const formattedVideos = populatedVideos.map(v => ({
@@ -68,7 +81,8 @@ export async function GET() {
       view_count: v.view_count || 0,
       like_count: v.like_count || 0,
       share_count: v.share_count || 0,
-      liked: likedVideoIds.has(v.id)
+      liked: likedVideoIds.has(v.id),
+      is_favorite: favoriteCoachIds.has(v.coach_id)
     }));
 
     return NextResponse.json({ videos: formattedVideos });

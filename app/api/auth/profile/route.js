@@ -61,18 +61,23 @@ export async function GET(request) {
     }, {});
 
     // 5. 計算總折扣
-    let baseDiscount = 0; // 預設 0%
+    let levelDiscount = 0;
     const levelKey = `level_${user.level || 1}_discount`;
     
-    if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
-      baseDiscount = Number(userMetadata.custom_discount);
-    } else if (settingsObj[levelKey] !== undefined) {
-      baseDiscount = settingsObj[levelKey];
+    if (settingsObj[levelKey] !== undefined) {
+      levelDiscount = settingsObj[levelKey];
     } else {
-      // 如果還沒有全域設定，使用預設值：Lv1=0, Lv2=5, Lv3=10, Lv4=12
-      const defaultDiscounts = { 1: 0, 2: 5, 3: 10, 4: 12 };
-      baseDiscount = defaultDiscounts[user.level || 1] ?? 12;
+      // 如果還沒有全域設定，使用預設值
+      const defaultDiscounts = { 1: 0, 2: 3, 3: 6, 4: 12 };
+      levelDiscount = defaultDiscounts[user.level || 1] ?? 12;
     }
+
+    let customDiscount = 0;
+    if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
+      customDiscount = Number(userMetadata.custom_discount);
+    }
+
+    let baseDiscount = levelDiscount + customDiscount;
 
     const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
 

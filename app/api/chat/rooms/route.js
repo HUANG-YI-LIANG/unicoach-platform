@@ -48,8 +48,8 @@ export async function GET() {
         user_id,
         coach_id,
         created_at,
-        users!chat_rooms_user_id_fkey(name),
-        coaches:users!chat_rooms_coach_id_fkey(name, coaches(philosophy))
+        users!chat_rooms_user_id_fkey(name, avatar_url),
+        coaches:users!chat_rooms_coach_id_fkey(name, avatar_url, coaches(philosophy))
       `)
       .or(`user_id.eq.${auth.user.id},coach_id.eq.${auth.user.id}`)
       .order('created_at', { ascending: false });
@@ -64,6 +64,7 @@ export async function GET() {
           id: room.id,
           booking_id: room.booking_id,
           other_party_name: auth.user.role === 'coach' ? room.users?.name : room.coaches?.name,
+          other_party_avatar: auth.user.role === 'coach' ? room.users?.avatar_url : room.coaches?.avatar_url,
           coach_philosophy: room.coaches?.coaches?.[0]?.philosophy || null,
           last_message: stats.lastMessage,
           unread_count: stats.unreadCount,

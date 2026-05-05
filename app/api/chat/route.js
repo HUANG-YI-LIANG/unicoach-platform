@@ -96,7 +96,7 @@ export async function GET(request) {
 
     const { data: messages, error } = await adminSupabase
       .from("chat_messages")
-      .select("*, users!chat_messages_sender_id_fkey(name, role)")
+      .select("*, users!chat_messages_sender_id_fkey(name, role, avatar_url)")
       .eq("room_id", roomId)
       .order("created_at", { ascending: true })
       .limit(100);
@@ -107,6 +107,7 @@ export async function GET(request) {
       ...message,
       sender_name: message.users?.name,
       sender_role: message.users?.role,
+      sender_avatar: message.users?.avatar_url,
     }));
 
     const unreadMessageIds = formattedMessages

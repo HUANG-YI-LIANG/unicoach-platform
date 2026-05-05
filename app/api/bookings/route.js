@@ -270,7 +270,31 @@ export async function POST(request) {
     }
     
     const isFirst = (userBookingsCount || 0) === 0;
-    const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
+    // Fetch global level settings
+    const { data: settings } = await adminSupabase
+      .from('platform_settings')
+      .select('*')
+      .like('key', 'level_%_discount');
+      
+    const settingsObj = (settings || []).reduce((acc, curr) => {
+      acc[curr.key] = Number(curr.value);
+      return acc;
+    }, {});
+
+    const levelKey = `level_${userData?.level || 1}_discount`;
+    let levelDiscount = 0;
+    if (settingsObj[levelKey] !== undefined) {
+      levelDiscount = settingsObj[levelKey];
+    } else {
+      const defaultDiscounts = { 1: 0, 2: 3, 3: 6, 4: 12 };
+      levelDiscount = defaultDiscounts[userData?.level || 1] ?? 12;
+    }
+
+    const customDiscount = metadata.custom_discount !== undefined && metadata.custom_discount !== null 
+      ? Number(metadata.custom_discount) 
+      : 0;
+
+    const baseDiscountPercent = calcBaseDiscount(levelDiscount + customDiscount, isFirst);
 
     // Fetch global commission setting from platform key/value store
     const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
@@ -296,6 +320,7 @@ export async function POST(request) {
     const couponDiscountPercent = couponResult.percent;
     const pricing = calculateBookingPrice({
       basePrice,
+      attendeesCount,
       baseDiscountPercent,
       couponDiscountPercent,
       coachCommission,

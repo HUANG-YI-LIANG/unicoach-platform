@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX, X } from 'lucide-react';
+import { Eye, Heart, Share2, Calendar, User, ChevronLeft, Loader2, Volume2, VolumeX, X, Bookmark } from 'lucide-react';
 
 function formatCount(value) {
   const count = Number(value || 0);
@@ -16,7 +16,7 @@ function isPotentiallyUnsupportedVideoUrl(url = '') {
   return /\.(mov|qt)(\?|#|$)/i.test(String(url)) || /quicktime/i.test(String(url));
 }
 
-function VideoItem({ video, isVisible, onLike, onView }) {
+function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
   const router = useRouter();
   const videoRef = useRef(null);
   const viewedRef = useRef(false);
@@ -328,6 +328,38 @@ function VideoItem({ video, isVisible, onLike, onView }) {
             </span>
           )}
         </div>
+
+        {/* Favorite (Bookmark) Button */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+          <button
+            onClick={() => {
+              if (!video.is_favorite) {
+                const btn = document.getElementById(`fav-btn-${video.id}`);
+                if (btn) {
+                  btn.style.animation = 'none';
+                  void btn.offsetWidth;
+                  btn.style.animation = 'bounce 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                }
+              }
+              onFavorite();
+            }}
+            id={`fav-btn-${video.id}`}
+            style={{
+              background: 'rgba(0,0,0,0.2)',
+              backdropFilter: 'blur(8px)',
+              border: 'none',
+              color: video.is_favorite ? '#F59E0B' : 'var(--text-light)',
+              cursor: 'pointer',
+              padding: '12px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Bookmark size={28} fill={video.is_favorite ? '#F59E0B' : 'rgba(0,0,0,0.5)'} strokeWidth={video.is_favorite ? 0 : 2} />
+          </button>
+        </div>
       </div>
 
       {/* Bottom Info & CTA */}
@@ -439,6 +471,27 @@ export default function VideoFeed() {
       )));
     } catch (err) {
       alert(err.message || '請先登入後再按讚');
+    }
+  }
+
+  async function handleFavorite(coachId, videoId) {
+    try {
+      const response = await fetch('/api/user/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ coachId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || '收藏失敗');
+
+      // Update local state for all videos of this coach
+      setVideos((current) => current.map((video) => (
+        video.coach_id === coachId
+          ? { ...video, is_favorite: data.is_favorite }
+          : video
+      )));
+    } catch (err) {
+      alert(err.message || '請先登入後再收藏');
     }
   }
 
@@ -558,6 +611,7 @@ export default function VideoFeed() {
           video={video}
           isVisible={index === currentIndex && !showConversion && !showAntiAddiction}
           onLike={handleLike}
+          onFavorite={() => handleFavorite(video.coach_id, video.id)}
           onShare={handleShare}
           onView={handleView}
         />

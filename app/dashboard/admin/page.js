@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, Users, TrendingUp, Calendar
 } from 'lucide-react';
 
 const BLUE = 'var(--color-primary)';
@@ -16,6 +16,7 @@ const WHITE = 'var(--text-light)';
 export default function AdminDashboard() {
   const [profile, setProfile] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { logout } = useAuth();
@@ -23,8 +24,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     Promise.all([
       fetch('/api/auth/profile'),
-      fetch('/api/bookings')
-    ]).then(async ([profRes, bookRes]) => {
+      fetch('/api/bookings'),
+      fetch('/api/admin/analytics')
+    ]).then(async ([profRes, bookRes, analyticsRes]) => {
       if (!profRes.ok) return router.push('/login');
       const pData = await profRes.json();
       if (!pData.profile) return router.replace('/login');
@@ -35,6 +37,10 @@ export default function AdminDashboard() {
       const bData = await bookRes.json();
       setProfile(pData.profile);
       if (bData.bookings) setBookings(bData.bookings);
+      if (analyticsRes.ok) {
+        const aData = await analyticsRes.json();
+        if (aData.success) setAnalytics(aData);
+      }
       setLoading(false);
     }).catch(err => {
       console.error('[ADMIN DASHBOARD LOAD ERROR]', err);
@@ -70,6 +76,44 @@ export default function AdminDashboard() {
           登出
         </button>
       </div>
+
+      {/* -- Analytics Section -- */}
+      {analytics && (
+        <div style={{ marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 800, padding: '0 8px', color: DARK, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <TrendingUp size={20} color={BLUE} />
+            平台活躍度與使用狀況
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--color-surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--color-surface-soft)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: MUTED, marginBottom: '8px', fontSize: '14px', fontWeight: 700 }}>
+                <Users size={18} color="#10B981" /> 活躍用戶數 (DAU)
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: DARK }}>{analytics.dau} <span style={{ fontSize: '14px', color: MUTED, fontWeight: 600 }}>人</span></div>
+              <div style={{ fontSize: '12px', color: MUTED, marginTop: '4px' }}>過去 24 小時內登入</div>
+            </div>
+            
+            <div style={{ background: 'var(--color-surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--color-surface-soft)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: MUTED, marginBottom: '8px', fontSize: '14px', fontWeight: 700 }}>
+                <Users size={18} color="#3B82F6" /> 本週活躍數 (WAU)
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: DARK }}>{analytics.wau} <span style={{ fontSize: '14px', color: MUTED, fontWeight: 600 }}>人</span></div>
+              <div style={{ fontSize: '12px', color: MUTED, marginTop: '4px' }}>過去 7 天內登入</div>
+            </div>
+
+            <div style={{ background: 'var(--color-surface)', padding: '20px', borderRadius: '16px', border: '1px solid var(--color-surface-soft)', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: MUTED, marginBottom: '8px', fontSize: '14px', fontWeight: 700 }}>
+                <Calendar size={18} color="#F59E0B" /> 今日新增預約
+              </div>
+              <div style={{ fontSize: '28px', fontWeight: 900, color: DARK }}>
+                {bookings.filter(b => b.created_at && new Date(b.created_at).toDateString() === new Date().toDateString()).length} 
+                <span style={{ fontSize: '14px', color: MUTED, fontWeight: 600 }}>筆</span>
+              </div>
+              <div style={{ fontSize: '12px', color: MUTED, marginTop: '4px' }}>今日建立的課程數量</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* -- Admin Management Center -- */}
       <div style={{ 
