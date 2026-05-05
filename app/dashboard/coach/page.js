@@ -163,7 +163,7 @@ export default function CoachDashboard() {
             {profile?.avatar_url ? (
               <img src={profile.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
-              <div style={{ width: '100%', height: '100%', background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontWeight: 800 }}>
+              <div style={{ width: '100%', height: '100%', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontWeight: 800 }}>
                 {profile?.name?.charAt(0) ?? 'C'}
               </div>
             )}
@@ -175,7 +175,7 @@ export default function CoachDashboard() {
           <div style={{ position: 'relative', marginBottom: 16 }}>
             <div style={{
               width: 100, height: 100, borderRadius: '50%', border: `3px solid ${ORANGE}`,
-              overflow: 'hidden', background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`
             }}>
               {profile?.avatar_url ? (
@@ -201,7 +201,7 @@ export default function CoachDashboard() {
 
         {/* Stats Row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-          <div style={{ background: CARD, borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               MEMBER LEVEL
             </p>
@@ -210,7 +210,7 @@ export default function CoachDashboard() {
             </p>
             <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>Level {coachDetail?.level || 4} Coach</p>
           </div>
-          <div style={{ background: CARD, borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
               DISCOUNT
             </p>
@@ -222,7 +222,7 @@ export default function CoachDashboard() {
         </div>
 
         {/* Wallet Balance Card */}
-        <div style={{ background: CARD, borderRadius: 16, padding: '20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Wallet size={16} color={ORANGE} />
@@ -254,7 +254,7 @@ export default function CoachDashboard() {
 
         {/* Refer a Fellow Coach */}
         <div style={{ padding: '0 0 32px 0' }}>
-          <div style={{ background: CARD, borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-soft)', border: '1px solid var(--color-border)', padding: '16px 20px', borderRadius: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -277,7 +277,7 @@ export default function CoachDashboard() {
                   value={referralCode}
                   style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
-                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? '#fff' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
+                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'var(--text-light)' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
                   {copiedCode ? <Check size={18} /> : <Copy size={18} />}
                 </button>
               </div>
@@ -289,7 +289,7 @@ export default function CoachDashboard() {
             {promotionUrl && (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--color-surface-soft)', borderRadius: 16, border: `1px dashed ${BORDER}` }}>
                 <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 16 }}>推廣 QR Code</label>
-                <div style={{ background: '#FFF', padding: 12, borderRadius: 16, boxShadow: `0 0 20px rgba(249, 115, 22, 0.2)` }}>
+                <div style={{ background: 'var(--color-surface)', padding: 12, borderRadius: 16, boxShadow: `0 0 20px rgba(249, 115, 22, 0.2)` }}>
                   <QRCodeSVG
                     value={promotionUrl}
                     size={160}
@@ -318,7 +318,7 @@ export default function CoachDashboard() {
           <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 800, color: MUTED, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
             ACCOUNT SETTINGS
           </p>
-          <div style={{ background: CARD, borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
             {[
               { icon: User, label: 'Personal Information', onClick: () => router.push('/coach/profile/edit') },
               { icon: Shield, label: 'Security & Password', onClick: () => router.push('/coach/profile/edit') },
@@ -361,7 +361,7 @@ export default function CoachDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {bookings.slice(0, 2).map((booking, idx) => (
               <div key={booking.id} onClick={() => router.push('/bookings')} style={{
-                background: CARD, borderRadius: 16, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.05)',
+                background: 'var(--color-surface)', borderRadius: 16, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.05)',
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -384,7 +384,7 @@ export default function CoachDashboard() {
               </div>
             ))}
             {bookings.length === 0 && (
-              <div style={{ padding: 20, textAlign: 'center', background: CARD, borderRadius: 16 }}>
+              <div style={{ padding: 20, textAlign: 'center', background: 'var(--color-surface)', borderRadius: 16 }}>
                 <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>No recent activity.</p>
               </div>
             )}

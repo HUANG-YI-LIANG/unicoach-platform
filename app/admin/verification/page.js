@@ -72,7 +72,7 @@ export default function VerificationAdmin() {
   };
 
   if (loading && pendingFiles.length === 0 && coaches.length === 0) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0a0a0f', color: '#888899' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text-muted)' }}>
       <Loader2 className="animate-spin" size={40} style={{ marginBottom: 16 }} />
       <p>正在載入資料...</p>
     </div>
@@ -87,8 +87,8 @@ export default function VerificationAdmin() {
             <ShieldCheck size={28} className="text-blue-400" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white">信任與安全中心</h1>
-            <p className="text-sm text-[#888899]">教練資歷審核與帳號狀態管理</p>
+            <h1 className="text-2xl font-black text-[var(--text-light)]">信任與安全中心</h1>
+            <p className="text-sm text-[var(--color-text-muted)]">教練資歷審核與帳號狀態管理</p>
           </div>
         </div>
         
@@ -114,8 +114,8 @@ export default function VerificationAdmin() {
           pendingFiles.length === 0 ? (
             <div className="empty-state">
               <CheckCircle2 size={64} className="text-green-500/20 mb-4" />
-              <h2 className="text-xl font-bold text-white">暫無待處理文件</h2>
-              <p className="text-[#888899]">目前的信譽防護牆非常穩固！</p>
+              <h2 className="text-xl font-bold text-[var(--text-light)]">暫無待處理文件</h2>
+              <p className="text-[var(--color-text-muted)]">目前的信譽防護牆非常穩固！</p>
             </div>
           ) : (
             pendingFiles.map(file => (
@@ -137,8 +137,8 @@ export default function VerificationAdmin() {
                         <div className="user-avatar">{file.user?.name?.charAt(0)}</div>
                      )}
                      <div>
-                       <h3 className="font-bold text-white">{file.user?.name}</h3>
-                       <p className="text-xs text-[#888899]">{file.user?.email}</p>
+                       <h3 className="font-bold text-[var(--text-light)]">{file.user?.name}</h3>
+                       <p className="text-xs text-[var(--color-text-muted)]">{file.user?.email}</p>
                      </div>
                   </div>
 
@@ -201,7 +201,7 @@ export default function VerificationAdmin() {
                         <span style={{ fontWeight: 'bold' }}>{coach.user?.name}</span>
                       </div>
                     </td>
-                    <td><span style={{ fontSize: '12px', color: '#888899' }}>{coach.user?.email}</span></td>
+                    <td><span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{coach.user?.email}</span></td>
                     <td>
                       <span className={`status-badge ${coach.approval_status}`}>
                         {coach.approval_status === 'approved' ? '已核准' : 
@@ -225,7 +225,7 @@ export default function VerificationAdmin() {
                               handleReview(null, coach.user_id, 'delete_coach');
                             }
                           }} 
-                          style={{ fontSize: '12px', color: '#888899', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
+                          style={{ fontSize: '12px', color: 'var(--color-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
                         >
                           刪除
                         </button>
@@ -252,12 +252,12 @@ export default function VerificationAdmin() {
           border-radius: 8px;
           font-size: 13px;
           font-weight: 700;
-          color: #888899;
+          color: var(--color-text-muted);
           transition: 0.2s;
         }
         .tab-btn.active {
           background: #4cc9f0;
-          color: #000;
+          color: var(--color-text);
         }
         .user-avatar-img {
           width: 40px;
@@ -268,8 +268,8 @@ export default function VerificationAdmin() {
         }
         .coach-list-full {
           grid-column: 1 / -1;
-          background: #111118;
-          border: 1px solid #2a2a35;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
           border-radius: 24px;
           overflow-x: auto;
         }
@@ -282,12 +282,12 @@ export default function VerificationAdmin() {
           text-align: left;
           padding: 16px 24px;
           background: rgba(255, 255, 255, 0.02);
-          color: #888899;
+          color: var(--color-text-muted);
           font-weight: 500;
         }
         .admin-table td {
           padding: 16px 24px;
-          border-top: 1px solid #2a2a35;
+          border-top: 1px solid var(--color-border);
         }
         .status-badge {
           padding: 4px 10px;
@@ -298,13 +298,13 @@ export default function VerificationAdmin() {
         .status-badge.approved { background: rgba(6, 214, 160, 0.1); color: #06d6a0; }
         .status-badge.pending { background: rgba(255, 140, 66, 0.1); color: #ff8c42; }
         .status-badge.rejected { background: rgba(255, 59, 92, 0.1); color: #ff3b5c; }
-        .status-badge.suspended { background: rgba(136, 136, 153, 0.1); color: #888899; }
+        .status-badge.suspended { background: rgba(136, 136, 153, 0.1); color: var(--color-text-muted); }
 
         .admin-trust-center {
           min-height: 100vh;
-          background: #0a0a0f;
+          background: var(--color-bg);
           padding: 40px 24px;
-          color: #e8e8f0;
+          color: var(--color-text);
           font-family: 'Noto Sans TC', sans-serif;
         }
         .page-header {
@@ -359,8 +359,8 @@ export default function VerificationAdmin() {
           border-radius: 32px;
         }
         .verification-card-v2 {
-          background: #111118;
-          border: 1px solid #2a2a35;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
           border-radius: 24px;
           overflow: hidden;
           transition: transform 0.3s;
@@ -372,7 +372,7 @@ export default function VerificationAdmin() {
         .card-preview {
           position: relative;
           height: 200px;
-          background: #000;
+          background: var(--color-text);
         }
         .preview-img {
           width: 100%;
@@ -395,8 +395,8 @@ export default function VerificationAdmin() {
         .view-link {
           width: 48px;
           height: 48px;
-          background: #fff;
-          color: #000;
+          background: var(--color-surface);
+          color: var(--color-text);
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -415,7 +415,7 @@ export default function VerificationAdmin() {
           width: 40px;
           height: 40px;
           background: #4cc9f0;
-          color: #000;
+          color: var(--color-text);
           border-radius: 12px;
           display: flex;
           align-items: center;
@@ -435,7 +435,7 @@ export default function VerificationAdmin() {
           align-items: center;
           gap: 6px;
           font-size: 12px;
-          color: #888899;
+          color: var(--color-text-muted);
         }
         .card-actions {
           display: flex;
@@ -448,7 +448,7 @@ export default function VerificationAdmin() {
           justify-content: center;
           gap: 8px;
           background: #06d6a0;
-          color: #000;
+          color: var(--color-text);
           padding: 12px;
           border-radius: 12px;
           font-weight: 700;
@@ -472,7 +472,7 @@ export default function VerificationAdmin() {
         }
         .btn-reject:hover {
           background: #ff3b5c;
-          color: #fff;
+          color: var(--text-light);
         }
       `}</style>
     </div>

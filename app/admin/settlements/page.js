@@ -91,13 +91,13 @@ export default function AdminSettlementsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F8FAFC', padding: 24 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 24 }}>
       <div style={{ maxWidth: 1180, margin: '0 auto' }}>
         <button onClick={() => router.push('/dashboard/admin')} style={linkButtonStyle}>← 回管理後台</button>
         <header style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 22 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, color: '#0F172A', fontWeight: 900, whiteSpace: 'nowrap' }}>結算管理</h1>
-            <p style={{ margin: '8px 0 0', color: '#64748B', fontSize: 14 }}>依月份產生教練撥款批次，避免重複納入已結算訂單。</p>
+            <h1 style={{ margin: 0, fontSize: 28, color: 'var(--color-text)', fontWeight: 900, whiteSpace: 'nowrap' }}>結算管理</h1>
+            <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: 14 }}>依月份產生教練撥款批次，避免重複納入已結算訂單。</p>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={inputStyle} />
@@ -121,16 +121,16 @@ export default function AdminSettlementsPage() {
                   return (
                     <button key={batch.id} onClick={() => loadDetail(batch)} style={{
                       textAlign: 'left',
-                      border: selected?.id === batch.id ? '2px solid #2563EB' : '1px solid #E2E8F0',
-                      background: '#FFFFFF',
+                      border: selected?.id === batch.id ? '2px solid #2563EB' : '1px solid var(--color-border)',
+                      background: 'var(--color-surface)',
                       borderRadius: 16,
                       padding: 16,
                       cursor: 'pointer',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
                         <div>
-                          <strong style={{ color: '#0F172A', fontSize: 15 }}>{batch.coach?.name || '未知教練'}</strong>
-                          <div style={{ color: '#64748B', fontSize: 12, marginTop: 4 }}>{batch.month} · {batch.booking_count || 0} 筆訂單</div>
+                          <strong style={{ color: 'var(--color-text)', fontSize: 15 }}>{batch.coach?.name || '未知教練'}</strong>
+                          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>{batch.month} · {batch.booking_count || 0} 筆訂單</div>
                         </div>
                         <span style={{ ...pillStyle, background: style.bg, color: style.color }}>{STATUS_LABEL[batch.status] || batch.status}</span>
                       </div>
@@ -151,8 +151,8 @@ export default function AdminSettlementsPage() {
             ) : (
               <div>
                 <div style={{ marginBottom: 16 }}>
-                  <div style={{ color: '#0F172A', fontWeight: 900, fontSize: 18 }}>{detail.batch.coach?.name}</div>
-                  <div style={{ color: '#64748B', fontSize: 13, marginTop: 4 }}>{detail.batch.month} · NT${Number(detail.batch.total_amount || 0).toLocaleString()}</div>
+                  <div style={{ color: 'var(--color-text)', fontWeight: 900, fontSize: 18 }}>{detail.batch.coach?.name}</div>
+                  <div style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>{detail.batch.month} · NT${Number(detail.batch.total_amount || 0).toLocaleString()}</div>
                 </div>
 
                 {detail.batch.status === 'pending' && (
@@ -164,12 +164,12 @@ export default function AdminSettlementsPage() {
 
                 <div style={{ display: 'grid', gap: 10 }}>
                   {(detail.bookings || []).map((booking) => (
-                    <div key={booking.id} style={{ border: '1px solid #E2E8F0', borderRadius: 14, padding: 12 }}>
+                    <div key={booking.id} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                        <strong style={{ color: '#0F172A', fontSize: 13 }}>{booking.user_name || '學員'}</strong>
+                        <strong style={{ color: 'var(--color-text)', fontSize: 13 }}>{booking.user_name || '學員'}</strong>
                         <span style={{ color: '#059669', fontWeight: 900 }}>NT${Number(booking.coach_payout || 0).toLocaleString()}</span>
                       </div>
-                      <div style={{ color: '#64748B', fontSize: 12, marginTop: 4 }}>
+                      <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>
                         {booking.completed_at ? new Date(booking.completed_at).toLocaleDateString('zh-TW') : '完課日不明'}
                         {booking.plan_title ? ` · ${booking.plan_title}` : ''}
                       </div>
@@ -186,17 +186,17 @@ export default function AdminSettlementsPage() {
 }
 
 const cardStyle = {
-  background: '#FFFFFF',
-  border: '1px solid #E2E8F0',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border)',
   borderRadius: 20,
   padding: 18,
   boxShadow: '0 2px 12px rgba(15,23,42,0.04)',
 };
 
-const sectionTitleStyle = { margin: '0 0 14px', color: '#0F172A', fontSize: 18, fontWeight: 900, whiteSpace: 'nowrap' };
-const mutedStyle = { color: '#64748B', fontSize: 14 };
+const sectionTitleStyle = { margin: '0 0 14px', color: 'var(--color-text)', fontSize: 18, fontWeight: 900, whiteSpace: 'nowrap' };
+const mutedStyle = { color: 'var(--color-text-muted)', fontSize: 14 };
 const pillStyle = { borderRadius: 999, padding: '4px 9px', fontSize: 11, fontWeight: 900, whiteSpace: 'nowrap' };
 const linkButtonStyle = { border: 'none', background: 'transparent', color: '#2563EB', fontWeight: 800, cursor: 'pointer', marginBottom: 18, whiteSpace: 'nowrap' };
-const inputStyle = { border: '1px solid #CBD5E1', borderRadius: 12, padding: '11px 12px', color: '#0F172A', fontWeight: 800, width: '100%', maxWidth: '180px' };
-const primaryButtonStyle = { border: 'none', background: '#2563EB', color: '#FFFFFF', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' };
+const inputStyle = { border: '1px solid var(--border-input)', borderRadius: 12, padding: '11px 12px', color: 'var(--color-text)', fontWeight: 800, width: '100%', maxWidth: '180px' };
+const primaryButtonStyle = { border: 'none', background: '#2563EB', color: 'var(--text-light)', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' };
 const dangerButtonStyle = { border: 'none', background: '#FEE2E2', color: '#991B1B', borderRadius: 12, padding: '11px 14px', fontWeight: 900, cursor: 'pointer', whiteSpace: 'nowrap' };

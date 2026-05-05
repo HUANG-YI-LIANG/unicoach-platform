@@ -213,7 +213,7 @@ export default function CoachSchedulePage() {
           <h1 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900 }}>無法載入固定時段</h1>
           <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 14 }}>{loadError}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button type="button" onClick={fetchAvailability} style={{ border: 'none', background: 'var(--primary)', color: '#FFFFFF', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
+            <button type="button" onClick={fetchAvailability} style={{ border: 'none', background: 'var(--primary)', color: 'var(--text-light)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
             <button type="button" onClick={() => router.push('/dashboard/coach')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>回教練中心</button>
           </div>
         </div>
@@ -256,7 +256,7 @@ export default function CoachSchedulePage() {
             style={{
               border: 'none',
               background: 'var(--primary)',
-              color: '#FFFFFF',
+              color: 'var(--text-light)',
               padding: '14px 18px',
               borderRadius: 16,
               fontWeight: 900,
@@ -325,7 +325,7 @@ export default function CoachSchedulePage() {
                               borderRadius: 14,
                               padding: '12px 8px',
                               background: selected ? 'var(--primary)' : 'var(--bg-input)',
-                              color: selected ? '#FFFFFF' : 'var(--text-muted)',
+                              color: selected ? 'var(--text-light)' : 'var(--text-muted)',
                               fontWeight: 900,
                               cursor: 'pointer',
                             }}
@@ -440,7 +440,7 @@ export default function CoachSchedulePage() {
               style={{
                 border: 'none',
                 background: exceptionForm.exception_type === 'available' ? 'var(--success)' : 'var(--warning)',
-                color: '#FFFFFF',
+                color: 'var(--text-light)',
                 borderRadius: 14,
                 padding: '12px 16px',
                 fontWeight: 900,

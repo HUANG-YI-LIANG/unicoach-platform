@@ -14,11 +14,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 
-const BLUE = '#2563EB';
-const DARK = '#0F172A';
-const MUTED = '#64748B';
-const WHITE = '#FFFFFF';
-const BG = '#F8FAFC';
+const BLUE = 'var(--color-primary)';
+const DARK = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const WHITE = 'var(--text-light)';
+const BG = 'var(--color-bg)';
 
 const DEFAULT_LEVEL_DISCOUNTS = { 1: 5, 2: 10, 3: 15, 4: 20 };
 
@@ -236,7 +236,7 @@ export default function PromotionsAdmin() {
               onClick={() => router.push('/dashboard/admin')}
               style={{
                 padding: 10,
-                background: WHITE,
+                background: 'var(--color-surface)',
                 border: 'none',
                 borderRadius: 12,
                 cursor: 'pointer',
@@ -266,7 +266,7 @@ export default function PromotionsAdmin() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', background: '#E2E8F0', padding: 4, borderRadius: 14, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', background: 'var(--color-border)', padding: 4, borderRadius: 14, flexWrap: 'wrap' }}>
             {[
               ['commissions', '教練抽成'],
               ['discounts', '通知與折扣'],
@@ -315,14 +315,14 @@ export default function PromotionsAdmin() {
         {activeTab === 'commissions' && (
           <div
             style={{
-              background: WHITE,
+              background: 'var(--color-surface)',
               borderRadius: 24,
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--color-border)',
               boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
               overflow: 'hidden',
             }}
           >
-            <div style={{ padding: 24, borderBottom: '1px solid #F1F5F9' }}>
+            <div style={{ padding: 24, borderBottom: '1px solid var(--color-surface-soft)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <Info size={18} color={BLUE} style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
@@ -337,7 +337,7 @@ export default function PromotionsAdmin() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                  <tr style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
                     <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>教練</th>
                     <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>設定狀態</th>
                     <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>抽成比例 (%)</th>
@@ -349,7 +349,7 @@ export default function PromotionsAdmin() {
                     const currentRate = isCustom ? coach.commission_rate : globalCommission;
 
                     return (
-                      <tr key={coach.user_id || coach.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <tr key={coach.user_id || coach.id} style={{ borderBottom: '1px solid var(--color-surface-soft)' }}>
                         <td style={{ padding: '16px 24px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             {coach.user?.avatar_url ? (
@@ -389,7 +389,7 @@ export default function PromotionsAdmin() {
                               個別設定
                             </span>
                           ) : (
-                            <span style={{ background: '#F1F5F9', color: MUTED, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 800 }}>
+                            <span style={{ background: 'var(--color-surface-soft)', color: MUTED, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 800 }}>
                               使用預設
                             </span>
                           )}
@@ -417,7 +417,7 @@ export default function PromotionsAdmin() {
                                 width: 70,
                                 padding: '8px 12px',
                                 borderRadius: 10,
-                                border: '1px solid #CBD5E1',
+                                border: '1px solid var(--border-input)',
                                 fontSize: 14,
                                 fontWeight: 800,
                                 color: DARK,
@@ -440,9 +440,9 @@ export default function PromotionsAdmin() {
           <div style={{ display: 'grid', gap: 24 }}>
             <div
               style={{
-                background: WHITE,
+                background: 'var(--color-surface)',
                 borderRadius: 24,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--color-border)',
                 boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
                 padding: 32,
               }}
@@ -479,7 +479,7 @@ export default function PromotionsAdmin() {
                   style={{
                     width: '100%',
                     background: BLUE,
-                    color: WHITE,
+                    color: 'var(--text-light)',
                     border: 'none',
                     padding: 16,
                     borderRadius: 14,
@@ -501,9 +501,9 @@ export default function PromotionsAdmin() {
 
             <div
               style={{
-                background: WHITE,
+                background: 'var(--color-surface)',
                 borderRadius: 24,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--color-border)',
                 boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
                 padding: 32,
               }}
@@ -514,7 +514,7 @@ export default function PromotionsAdmin() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
                 {[1, 2, 3, 4].map((level) => (
-                  <div key={level} style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 18, padding: 18 }}>
+                  <div key={level} style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border)', borderRadius: 18, padding: 18 }}>
                     <div style={{ fontSize: 14, fontWeight: 900, color: DARK, marginBottom: 10 }}>Lv.{level}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input
@@ -542,14 +542,14 @@ export default function PromotionsAdmin() {
         {activeTab === 'members' && (
           <div
             style={{
-              background: WHITE,
+              background: 'var(--color-surface)',
               borderRadius: 24,
-              border: '1px solid #E2E8F0',
+              border: '1px solid var(--color-border)',
               boxShadow: '0 4px 20px rgba(15,23,42,0.03)',
               overflow: 'hidden',
             }}
           >
-            <div style={{ padding: 24, borderBottom: '1px solid #F1F5F9' }}>
+            <div style={{ padding: 24, borderBottom: '1px solid var(--color-surface-soft)' }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Users color={BLUE} size={20} /> 會員等級與個別折扣
               </h2>
@@ -561,7 +561,7 @@ export default function PromotionsAdmin() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ background: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+                  <tr style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
                     <th style={thStyle}>會員</th>
                     <th style={thStyle}>等級 (Lv)</th>
                     <th style={thStyle}>個別折扣 (%)</th>
@@ -570,7 +570,7 @@ export default function PromotionsAdmin() {
                 </thead>
                 <tbody>
                   {usersList.map((userItem) => (
-                    <tr key={userItem.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                    <tr key={userItem.id} style={{ borderBottom: '1px solid var(--color-surface-soft)' }}>
                       <td style={tdStyle}>
                         <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>{userItem.name || '未命名使用者'}</div>
                         <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>{userItem.email || '-'}</div>
@@ -650,7 +650,7 @@ const inputStyle = {
   width: '100%',
   padding: '14px 16px',
   borderRadius: 12,
-  border: '1px solid #CBD5E1',
+  border: '1px solid var(--border-input)',
   fontSize: 15,
   fontWeight: 700,
   color: DARK,
@@ -660,11 +660,11 @@ const inputStyle = {
 const selectStyle = {
   padding: '8px 12px',
   borderRadius: 10,
-  border: '1px solid #CBD5E1',
+  border: '1px solid var(--border-input)',
   fontSize: 14,
   fontWeight: 800,
   color: DARK,
-  background: WHITE,
+  background: 'var(--color-surface)',
 };
 
 const thStyle = {

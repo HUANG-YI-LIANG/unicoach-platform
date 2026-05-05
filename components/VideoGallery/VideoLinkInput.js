@@ -108,7 +108,7 @@ export default function VideoLinkInput({ onVideoAdded }) {
           width: 100%;
           background: rgba(0, 0, 0, 0.2);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #fff;
+          color: var(--text-light);
           padding: 12px 16px;
           border-radius: 12px;
           outline: none;
@@ -125,7 +125,7 @@ export default function VideoLinkInput({ onVideoAdded }) {
           flex: 1;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #fff;
+          color: var(--text-light);
           padding: 10px 14px;
           border-radius: 10px;
           outline: none;
@@ -135,7 +135,7 @@ export default function VideoLinkInput({ onVideoAdded }) {
           align-items: center;
           gap: 8px;
           background: #2563EB;
-          color: #FFFFFF;
+          color: var(--text-light);
           border: none;
           padding: 0 24px;
           border-radius: 10px;

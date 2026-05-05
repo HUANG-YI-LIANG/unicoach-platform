@@ -7,11 +7,11 @@ import {
   ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut
 } from 'lucide-react';
 
-const BLUE = '#2563EB';
-const DARK = '#0F172A';
-const MUTED = '#64748B';
-const BG = '#F8FAFC';
-const WHITE = '#FFFFFF';
+const BLUE = 'var(--color-primary)';
+const DARK = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const BG = 'var(--color-bg)';
+const WHITE = 'var(--text-light)';
 
 export default function AdminDashboard() {
   const [profile, setProfile] = useState(null);
@@ -93,16 +93,16 @@ export default function AdminDashboard() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>審核證照與學生證</p>
             </div>
           </div>
-          <ArrowRight color="#CBD5E1" />
+          <ArrowRight color="var(--border-input)" />
         </div>
 
         {/* Settings */}
         <div 
           onClick={() => router.push('/admin/settings')}
-          style={cardStyle('#F1F5F9', '#475569')}
+          style={cardStyle('var(--color-surface-soft)', '#475569')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ background: '#F1F5F9', padding: '12px', borderRadius: '12px', color: '#475569' }}>
+            <div style={{ background: 'var(--color-surface-soft)', padding: '12px', borderRadius: '12px', color: '#475569' }}>
               <Settings size={28} />
             </div>
             <div>
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>調整曠課、抽成等參數</p>
             </div>
           </div>
-          <ArrowRight color="#CBD5E1" />
+          <ArrowRight color="var(--border-input)" />
         </div>
 
         {/* Settlements */}
@@ -127,7 +127,7 @@ export default function AdminDashboard() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>產生與確認教練撥款</p>
             </div>
           </div>
-          <ArrowRight color="#CBD5E1" />
+          <ArrowRight color="var(--border-input)" />
         </div>
 
         {/* Payments */}
@@ -144,7 +144,7 @@ export default function AdminDashboard() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>管理與修改平台收款帳號</p>
             </div>
           </div>
-          <ArrowRight color="#CBD5E1" />
+          <ArrowRight color="var(--border-input)" />
         </div>
 
         {/* Promotions and Discounts */}
@@ -161,7 +161,7 @@ export default function AdminDashboard() {
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>個別教練抽成與全站通知</p>
             </div>
           </div>
-          <ArrowRight color="#CBD5E1" />
+          <ArrowRight color="var(--border-input)" />
         </div>
       </div>
 
@@ -171,16 +171,16 @@ export default function AdminDashboard() {
       </h2>
       
       {bookings.length === 0 ? (
-        <div style={{ background: WHITE, padding: '32px', textAlign: 'center', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', color: MUTED }}>
+        <div style={{ background: 'var(--color-surface)', padding: '32px', textAlign: 'center', borderRadius: '16px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', color: MUTED }}>
           系統尚無訂單
         </div>
       ) : (
         <div style={{ display: 'grid', gap: '12px' }}>
           {bookings.map(b => (
-            <div key={b.id} style={{ background: WHITE, padding: '16px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid #F1F5F9' }}>
+            <div key={b.id} style={{ background: 'var(--color-surface)', padding: '16px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)', border: '1px solid var(--color-surface-soft)' }}>
                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                 <span style={{ fontWeight: 800, fontSize: '14px', color: DARK }}>#{b.id.substring(0,8)}</span>
-                <span style={{ background: '#F1F5F9', color: '#475569', fontSize: '12px', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>{b.status}</span>
+                <span style={{ background: 'var(--color-surface-soft)', color: '#475569', fontSize: '12px', padding: '4px 8px', borderRadius: '6px', fontWeight: 800 }}>{b.status}</span>
                </div>
                <div style={{ fontSize: '12px', color: MUTED }}>從 {b.user_id.substring(0,6)} 到教練 {b.coach_id.substring(0,6)}</div>
                <div style={{ fontSize: '12px', fontWeight: 800, marginTop: '4px', color: '#059669' }}>
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
 
 function cardStyle(borderColor, hoverColor) {
   return {
-    background: WHITE,
+    background: 'var(--color-surface)',
     padding: '24px',
     borderRadius: '16px',
     boxShadow: '0 4px 12px rgba(15,23,42,0.05)',

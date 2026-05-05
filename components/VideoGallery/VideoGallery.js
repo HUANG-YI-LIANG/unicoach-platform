@@ -119,7 +119,7 @@ export default function VideoGallery({ userId, isOwner = false }) {
         .limit-info {
           font-size: 11px;
           background: rgba(255, 255, 255, 0.05);
-          color: #888899;
+          color: var(--color-text-muted);
           padding: 4px 12px;
           border-radius: 20px;
           border: 1px solid rgba(255, 255, 255, 0.1);
@@ -131,8 +131,8 @@ export default function VideoGallery({ userId, isOwner = false }) {
           margin-bottom: 24px;
           overflow-x: auto;
           padding-bottom: 8px;
-          -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
-          mask-image: linear-gradient(to right, black 85%, transparent 100%);
+          -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 1) 85%, transparent 100%);
+          mask-image: linear-gradient(to right, rgba(0, 0, 0, 1) 85%, transparent 100%);
           scrollbar-width: none;
         }
         .filter-tabs::-webkit-scrollbar {
@@ -141,7 +141,7 @@ export default function VideoGallery({ userId, isOwner = false }) {
         .filter-tab {
           background: transparent;
           border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #888899;
+          color: var(--color-text-muted);
           padding: 6px 16px;
           border-radius: 100px;
           font-size: 13px;
@@ -151,12 +151,12 @@ export default function VideoGallery({ userId, isOwner = false }) {
         }
         .filter-tab:hover {
           border-color: rgba(255, 255, 255, 0.3);
-          color: #fff;
+          color: var(--text-light);
         }
         .filter-tab.active {
           background: #4cc9f0;
           border-color: #4cc9f0;
-          color: #000;
+          color: var(--color-text);
           font-weight: 700;
         }
         .video-grid {

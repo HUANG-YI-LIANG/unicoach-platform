@@ -2,11 +2,11 @@
 
 export default function DisclaimerPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-6 text-center">免責聲明</h1>
+    <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center p-4">
+      <div className="max-w-2xl w-full bg-[var(--color-surface)] rounded-2xl shadow-xl p-8 border border-[var(--color-border)]">
+        <h1 className="text-3xl font-extrabold text-[var(--color-text)] mb-6 text-center">免責聲明</h1>
         
-        <div className="prose prose-blue text-gray-700 space-y-4">
+        <div className="prose prose-blue text-[var(--color-text)] space-y-4">
           <p className="font-semibold text-lg border-b pb-2">1. 服務性質</p>
           <p>UniCoach 僅作為提供「大學生教練」與「學員」之間聯繫、預約及資訊交流的媒合平台。我們不保證教練之教學品質、課程效果或其人格背景之絕對真實性。</p>
           
@@ -21,10 +21,10 @@ export default function DisclaimerPage() {
         </div>
 
         <div className="mt-10 border-t pt-6 flex flex-col items-center">
-          <p className="text-sm text-gray-500 mb-4">當您勾選同意時，代表您已充分理解並接受上述所有條款。</p>
+          <p className="text-sm text-[var(--color-text-muted)] mb-4">當您勾選同意時，代表您已充分理解並接受上述所有條款。</p>
           <button 
             onClick={() => window.history.back()}
-            className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-200"
+            className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 text-[var(--text-light)] font-bold rounded-xl transition-all shadow-lg hover:shadow-blue-200"
           >
             返回註冊
           </button>

@@ -311,8 +311,8 @@ export default function CoachDetailPage({ params }) {
           padding: 20px 0 40px;
         }
         .hero {
-          background: linear-gradient(135deg, #0f172a, #2563eb);
-          color: white;
+          background: linear-gradient(135deg, var(--color-text), #2563eb);
+          color: var(--text-light);
           border-radius: 32px;
           padding: 22px;
           box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
@@ -326,7 +326,7 @@ export default function CoachDetailPage({ params }) {
         .back-btn {
           border: none;
           background: rgba(255,255,255,0.16);
-          color: white;
+          color: var(--text-light);
           width: 42px;
           height: 42px;
           border-radius: 14px;
@@ -472,7 +472,7 @@ export default function CoachDetailPage({ params }) {
         }
         .cal-day-btn.selected {
           background: var(--color-accent);
-          color: white;
+          color: var(--text-light);
           border-color: var(--color-accent);
           font-weight: 900;
         }
@@ -512,7 +512,7 @@ export default function CoachDetailPage({ params }) {
         }
         .slot-btn.selected {
           background: var(--color-accent);
-          color: white;
+          color: var(--text-light);
           border-color: var(--color-accent);
         }
         .slot-btn.booked {
@@ -606,7 +606,7 @@ export default function CoachDetailPage({ params }) {
         }
         .primary-btn {
           background: var(--color-accent);
-          color: white;
+          color: var(--text-light);
           box-shadow: 0 16px 30px rgba(245, 158, 11, 0.3);
         }
         .side-panel {
@@ -735,7 +735,7 @@ export default function CoachDetailPage({ params }) {
                 )}
               </div>
             )}
-            <div style={{ display: 'grid', gap: 10, color: 'var(--color-text)', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
+            <div style={{ display: 'grid', gap: 10, color: 'var(--color-text)', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
               <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
               <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
               <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
@@ -760,7 +760,7 @@ export default function CoachDetailPage({ params }) {
             {coach.policy_rules && (
               <div style={{ marginBottom: 16 }}>
                 <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則</h3>
-                <div style={{ background: 'var(--color-surface-soft)', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                <div style={{ background: 'var(--color-surface-soft)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)' }}>
                   <p style={{ color: 'var(--color-text-muted)', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.policy_rules}</p>
                 </div>
               </div>
@@ -976,8 +976,8 @@ export default function CoachDetailPage({ params }) {
                 <div>
                   <label className="field-label">預約模式</label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: !bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: !bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid var(--border-input)' : '2px solid #2563eb', background: bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid var(--border-input)' : '2px solid #2563eb', background: !bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: !bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
                   </div>
                 </div>
                 {bookingForm.isRecurring ? (
@@ -1047,7 +1047,7 @@ export default function CoachDetailPage({ params }) {
                      </div>
                   </div>
 
-                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: 'var(--text-light)', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {submitting ? <div className="animate-spin"><Clock3 size={18} /></div> : <CalendarDays size={18} />}
                     {submitting ? '建立預約中...' : `送出預約 (實付 NT$${finalTotal.toLocaleString()})`}
                   </button>

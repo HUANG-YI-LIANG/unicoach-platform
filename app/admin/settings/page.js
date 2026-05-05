@@ -7,10 +7,10 @@ import {
 } from 'lucide-react';
 
 const BLUE  = '#2563EB';
-const DARK  = '#0F172A';
-const MUTED = '#64748B';
-const WHITE = '#FFFFFF';
-const BG    = '#F8FAFC';
+const DARK  = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const WHITE = 'var(--text-light)';
+const BG    = 'var(--color-bg)';
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
@@ -86,7 +86,7 @@ export default function AdminSettings() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <button 
               onClick={() => router.push('/dashboard/admin')}
-              style={{ padding: 8, background: WHITE, border: 'none', borderRadius: 12, cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
+              style={{ padding: 8, background: 'var(--color-surface)', border: 'none', borderRadius: 12, cursor: 'pointer', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}
             >
               <ArrowLeft size={24} color={DARK} />
             </button>
@@ -116,7 +116,7 @@ export default function AdminSettings() {
         <div style={{ display: 'grid', gap: 24 }}>
           
           {/* Setting: No-show Threshold */}
-          <div style={{ background: WHITE, border: '1px solid #E2E8F0', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ padding: 10, background: '#EFF6FF', borderRadius: 12, color: BLUE }}>
                 <Clock size={20} />
@@ -133,7 +133,7 @@ export default function AdminSettings() {
                   type="number"
                   value={settings.no_show_threshold}
                   onChange={(e) => setSettings({ ...settings, no_show_threshold: e.target.value })}
-                  style={{ width: '100%', background: BG, border: '1px solid #CBD5E1', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
+                  style={{ width: '100%', background: BG, border: '1px solid var(--border-input)', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
                 />
                 <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 800, color: MUTED }}>
                   分鐘
@@ -142,14 +142,14 @@ export default function AdminSettings() {
               <button 
                 onClick={() => handleSave('no_show_threshold', settings.no_show_threshold, '曠課認定時間門檻')}
                 disabled={saving}
-                style={{ background: BLUE, color: WHITE, border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
+                style={{ background: BLUE, color: 'var(--text-light)', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 儲存
               </button>
             </div>
 
-            <div style={{ marginTop: 20, padding: 16, background: '#F8FAFC', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ marginTop: 20, padding: 16, background: 'var(--color-bg)', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <Info size={16} color={BLUE} style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
                 此數值會直接影響教練與學員端顯示的「曠課提醒」文字。
@@ -159,7 +159,7 @@ export default function AdminSettings() {
           </div>
 
           {/* Setting: Commission Rate */}
-          <div style={{ background: WHITE, border: '1px solid #E2E8F0', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ padding: 10, background: '#ECFDF5', borderRadius: 12, color: '#059669' }}>
                 <Percent size={20} />
@@ -176,7 +176,7 @@ export default function AdminSettings() {
                   type="number"
                   value={settings.commission_rate}
                   onChange={(e) => setSettings({ ...settings, commission_rate: e.target.value })}
-                  style={{ width: '100%', background: BG, border: '1px solid #CBD5E1', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
+                  style={{ width: '100%', background: BG, border: '1px solid var(--border-input)', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
                 />
                 <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 800, color: MUTED }}>
                   %
@@ -185,14 +185,14 @@ export default function AdminSettings() {
               <button 
                 onClick={() => handleSave('commission_rate', settings.commission_rate, '教練訂單抽成比例')}
                 disabled={saving}
-                style={{ background: '#059669', color: WHITE, border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
+                style={{ background: '#059669', color: 'var(--text-light)', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                 儲存比例
               </button>
             </div>
 
-            <div style={{ marginTop: 20, padding: 16, background: '#F8FAFC', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ marginTop: 20, padding: 16, background: 'var(--color-bg)', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
               <Info size={16} color={'#059669'} style={{ flexShrink: 0, marginTop: 2 }} />
               <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
                 學員付款後，系統在計算教練撥款時會自動扣除此比例的平台服務費。

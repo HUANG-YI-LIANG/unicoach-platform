@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { 
-  User, Mail, Phone, MapPin, Target, 
+import {
+  User, Mail, Phone, MapPin, Target,
   Languages, Save, ArrowLeft, Loader2, UploadCloud
 } from 'lucide-react';
 
@@ -35,7 +35,7 @@ export default function UserProfileEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  
+
   // New Address UI State
   const [newLabel, setNewLabel] = useState('');
   const [newAddr, setNewAddr] = useState('');
@@ -175,11 +175,11 @@ export default function UserProfileEdit() {
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Top Bar */}
-        <div style={{ 
-          padding: '20px 16px', background: CARD, display:'flex', alignItems:'center', 
-          gap: 12, borderBottom: `1px solid ${BORDER}`, position:'sticky', top: 0, zIndex: 10 
+        <div style={{
+          padding: '20px 16px', background: 'var(--color-surface)', display:'flex', alignItems:'center',
+          gap: 12, borderBottom: `1px solid ${BORDER}`, position:'sticky', top: 0, zIndex: 10
         }}>
-          <button 
+          <button
             onClick={() => router.back()}
             style={{ background: INPUT_BG, border:'none', borderRadius: 12, padding: 8, cursor:'pointer' }}
           >
@@ -189,12 +189,12 @@ export default function UserProfileEdit() {
         </div>
 
         <form onSubmit={handleSave} style={{ padding: '24px 16px', display:'flex', flexDirection:'column', gap: 24 }}>
-          
+
           {/* Avatar Section */}
           <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ 
-                width: 100, height: 100, borderRadius: '50%', background: INPUT_BG, 
+              <div style={{
+                width: 100, height: 100, borderRadius: '50%', background: INPUT_BG,
                 overflow: 'hidden', border: `3px solid ${ORANGE}`, boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
@@ -204,9 +204,9 @@ export default function UserProfileEdit() {
                   <span style={{ fontSize: 32, fontWeight: 800, color: MUTED }}>{formData.name?.charAt(0) || 'U'}</span>
                 )}
               </div>
-              <label style={{ 
-                position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT, 
-                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', 
+              <label style={{
+                position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT,
+                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}`
               }}>
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
@@ -215,17 +215,17 @@ export default function UserProfileEdit() {
             </div>
             <p style={{ fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>點擊更換大頭貼</p>
           </section>
-          
+
           {/* Basic Info Card */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>帳號資訊</p>
-            <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-              
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
+
               <div>
                 <label style={labelStyle}>
                   <User size={14} color={ORANGE} /> 真實姓名
                 </label>
-                <input 
+                <input
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="請輸入姓名"
@@ -238,7 +238,7 @@ export default function UserProfileEdit() {
                 <label style={{ ...labelStyle, color: MUTED }}>
                   <Mail size={14} /> 電子信箱 (無法修改)
                 </label>
-                <input 
+                <input
                   value={formData.email}
                   readOnly
                   style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }}
@@ -249,7 +249,7 @@ export default function UserProfileEdit() {
                 <label style={labelStyle}>
                   <Phone size={14} color={ORANGE} /> 聯絡電話
                 </label>
-                <input 
+                <input
                   value={formData.phone || ''}
                   onChange={e => setFormData({...formData, phone: e.target.value})}
                   placeholder="請輸入電話號碼"
@@ -263,13 +263,13 @@ export default function UserProfileEdit() {
           {/* Preferences Card */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>學習與偏好</p>
-            <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-              
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
+
               <div>
                 <label style={labelStyle}>
                   <MapPin size={14} color={ORANGE} /> 常用地址
                 </label>
-                <input 
+                <input
                   value={formData.address || ''}
                   onChange={e => setFormData({...formData, address: e.target.value})}
                   placeholder="例：台北市大安區..."
@@ -281,7 +281,7 @@ export default function UserProfileEdit() {
                 <label style={labelStyle}>
                   <Languages size={14} color={ORANGE} /> 偏好語言
                 </label>
-                <select 
+                <select
                   value={formData.language}
                   onChange={e => setFormData({...formData, language: e.target.value})}
                   style={inputStyle}
@@ -296,7 +296,7 @@ export default function UserProfileEdit() {
                 <label style={labelStyle}>
                   <User size={14} color={ORANGE} /> 性別
                 </label>
-                <select 
+                <select
                   value={formData.gender}
                   onChange={e => setFormData({...formData, gender: e.target.value})}
                   style={inputStyle}
@@ -312,7 +312,7 @@ export default function UserProfileEdit() {
                 <label style={labelStyle}>
                   <Target size={14} color={ORANGE} /> 年級
                 </label>
-                <select 
+                <select
                   value={formData.grade}
                   onChange={e => setFormData({...formData, grade: e.target.value})}
                   style={inputStyle}
@@ -328,7 +328,7 @@ export default function UserProfileEdit() {
                 <label style={labelStyle}>
                   <Target size={14} color={ORANGE} /> 學習目標
                 </label>
-                <textarea 
+                <textarea
                   value={formData.learning_goals || ''}
                   onChange={e => setFormData({...formData, learning_goals: e.target.value})}
                   placeholder="你想達成什麼目標呢？"
@@ -342,14 +342,14 @@ export default function UserProfileEdit() {
           {/* Frequent Addresses Card */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>常用地址管理</p>
-            <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-              
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
+
               {/* List Existing */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {formData.frequent_addresses.map((item, idx) => (
-                  <div key={idx} style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
-                    padding: '10px 14px', background: INPUT_BG, borderRadius: 12, border: `1px solid ${BORDER}` 
+                  <div key={idx} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '10px 14px', background: INPUT_BG, borderRadius: 12, border: `1px solid ${BORDER}`
                   }}>
                     <div>
                       <span style={{ fontSize: 11, fontWeight: 800, color: ORANGE, background: `rgba(249, 115, 22, 0.1)`, padding: '2px 8px', borderRadius: 100, marginRight: 8 }}>{item.label}</span>
@@ -364,18 +364,18 @@ export default function UserProfileEdit() {
               <div style={{ marginTop: 8, padding: '16px', border: `1px dashed ${MUTED}`, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>新增地址</p>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <input 
-                    placeholder="標籤 (如: 家)" 
+                  <input
+                    placeholder="標籤 (如: 家)"
                     value={newLabel} onChange={e => setNewLabel(e.target.value)}
                     style={{ width: 80, padding: '8px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${BORDER}`, background: INPUT_BG, color: TEXT_LIGHT }}
                   />
-                  <input 
-                    placeholder="完整地址" 
+                  <input
+                    placeholder="完整地址"
                     value={newAddr} onChange={e => setNewAddr(e.target.value)}
                     style={{ flex: 1, padding: '8px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${BORDER}`, background: INPUT_BG, color: TEXT_LIGHT }}
                   />
                 </div>
-                <button type="button" onClick={addFrequent} style={{ 
+                <button type="button" onClick={addFrequent} style={{
                   background: ORANGE, color: TEXT_LIGHT, border: 'none', padding: '8px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer'
                 }}>+ 加入清單</button>
               </div>
@@ -384,12 +384,12 @@ export default function UserProfileEdit() {
 
           {/* Submit Button */}
           <div style={{ marginTop: 12 }}>
-            <button 
+            <button
               type="submit"
               disabled={saving}
-              style={{ 
-                width:'100%', height: 56, background: ORANGE, color: '#fff', 
-                border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800, 
+              style={{
+                width:'100%', height: 56, background: ORANGE, color: 'var(--text-light)',
+                border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
                 display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
                 boxShadow: `0 8px 25px rgba(249, 115, 22, 0.4)`,
                 opacity: saving ? 0.7 : 1,

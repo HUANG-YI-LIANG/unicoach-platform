@@ -211,7 +211,7 @@ function RegisterForm() {
             <button type="submit" style={{
               width: '100%', padding: '14px',
               background: 'var(--color-accent)',
-              color: '#FFFFFF', border: 'none',
+              color: 'var(--text-light)', border: 'none',
               borderRadius: '12px', fontWeight: 800,
               fontSize: '15px', cursor: 'pointer', marginTop: '8px'
             }}>

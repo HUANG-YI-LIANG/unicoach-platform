@@ -15,7 +15,7 @@ function ScoreButton({ value, selected, onClick }) {
       onClick={() => onClick(value)}
       style={{
         width: 44, height: 44, borderRadius: '50%', border: 'none',
-        background: selected ? BLUE : '#E2E8F0',
+        background: selected ? BLUE : 'var(--color-border)',
         color: selected ? WHITE : DARK,
         fontWeight: 800, fontSize: 15, cursor: 'pointer',
         transition: 'all 0.15s',
@@ -150,11 +150,11 @@ export default function ReportPage({ params }) {
       <div style={{
         background: `linear-gradient(135deg, ${BLUE}, #1E40AF)`,
         padding: '16px 16px 24px',
-        color: WHITE,
+        color: 'var(--text-light)',
       }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'none', border: 'none', color: WHITE, fontSize: 20, cursor: 'pointer', marginBottom: 8 }}
+          style={{ background: 'none', border: 'none', color: 'var(--text-light)', fontSize: 20, cursor: 'pointer', marginBottom: 8 }}
         >
           ‹
         </button>
@@ -167,7 +167,7 @@ export default function ReportPage({ params }) {
       <form onSubmit={handleSubmit} style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Completed Items */}
-        <div style={{ background: WHITE, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>📝 本堂完成項目</p>
           <textarea
             value={form.completedItems}
@@ -185,7 +185,7 @@ export default function ReportPage({ params }) {
         </div>
 
         {/* Scores */}
-        <div style={{ background: WHITE, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: DARK }}>⭐ 學員表現評分（1-5 分）</p>
           <ScoreRow label="🎯 專注度" value={form.focusScore}
             onChange={v => setForm(f => ({ ...f, focusScore: v }))} />
@@ -198,7 +198,7 @@ export default function ReportPage({ params }) {
         </div>
 
         {/* Progress Level */}
-        <div style={{ background: WHITE, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: DARK }}>📈 本堂進展評估</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.entries(PROGRESS_MAP).map(([key, label]) => (
@@ -208,7 +208,7 @@ export default function ReportPage({ params }) {
                 style={{
                   padding: '8px 16px', borderRadius: 100, border: 'none',
                   background: form.progressLevel === key ? BLUE : 'var(--color-surface-soft)',
-                  color: form.progressLevel === key ? 'white' : 'var(--color-text)',
+                  color: form.progressLevel === key ? 'var(--text-light)' : 'var(--color-text)',
                   fontWeight: 700, fontSize: 13, cursor: 'pointer',
                   transition: 'all 0.15s',
                 }}
@@ -220,7 +220,7 @@ export default function ReportPage({ params }) {
         </div>
 
         {/* Observation & Suggestions */}
-        <div style={{ background: WHITE, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
           <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>🔍 教練觀察</p>
           <textarea
             value={form.observation}
@@ -304,7 +304,7 @@ export default function ReportPage({ params }) {
           style={{
             padding: '16px', borderRadius: 16, border: 'none',
             background: canSubmit && !submitting ? BLUE : 'var(--color-surface-soft)',
-            color: WHITE, fontWeight: 800, fontSize: 16, cursor: canSubmit ? 'pointer' : 'not-allowed',
+            color: 'var(--text-light)', fontWeight: 800, fontSize: 16, cursor: canSubmit ? 'pointer' : 'not-allowed',
             boxShadow: canSubmit ? '0 8px 24px rgba(37,99,235,0.25)' : 'none',
             transition: 'all 0.2s',
           }}

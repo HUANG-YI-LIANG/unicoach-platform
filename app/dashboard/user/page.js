@@ -260,7 +260,7 @@ export default function UserDashboard() {
       {toast.show && (
         <div style={{
           position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)',
-          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-success)', color: 'white',
+          background: toast.type === 'error' ? 'var(--color-danger)' : 'var(--color-success)', color: 'var(--text-light)',
           padding: '12px 24px', borderRadius: 100, fontSize: 14, fontWeight: 800,
           boxShadow: '0 10px 25px rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: 8,
           animation: 'fadeInDown 0.3s ease-out'
@@ -299,7 +299,7 @@ export default function UserDashboard() {
             <button
               onClick={() => setShowInbox(true)}
               style={{
-                background: CARD, border: `1px solid ${BORDER}`, borderRadius: '50%', width: 44, height: 44,
+                background: 'var(--color-surface)', border: `1px solid ${BORDER}`, borderRadius: '50%', width: 44, height: 44,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: SHADOW,
               }}
             >
@@ -307,7 +307,7 @@ export default function UserDashboard() {
               {unreadCount > 0 && (
                 <span
                   style={{
-                    position: 'absolute', top: 0, right: 0, background: 'var(--color-danger)', color: 'white',
+                    position: 'absolute', top: 0, right: 0, background: 'var(--color-danger)', color: 'var(--text-light)',
                     fontSize: 10, fontWeight: 900, minWidth: 18, height: 18, borderRadius: 9,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${CARD}`,
                   }}
@@ -322,7 +322,7 @@ export default function UserDashboard() {
         {/* 新手指南 Modal */}
         {showGuide && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(9,14,23,0.8)', backdropFilter: 'blur(4px)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <div style={{ background: CARD, width: '100%', maxWidth: 400, borderRadius: 24, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
+            <div style={{ background: 'var(--color-surface)', width: '100%', maxWidth: 400, borderRadius: 24, overflow: 'hidden', border: `1px solid ${BORDER}`, display: 'flex', flexDirection: 'column', maxHeight: '80vh' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: `1px solid ${BORDER}` }}>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT }}>新手快速指南</h2>
                 <button onClick={() => setShowGuide(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: MUTED }}>
@@ -360,7 +360,7 @@ export default function UserDashboard() {
                 </div>
               </div>
               <div style={{ padding: 20, borderTop: `1px solid ${BORDER}` }}>
-                <button onClick={() => setShowGuide(false)} style={{ width: '100%', padding: '14px', background: 'var(--primary)', color: '#fff', borderRadius: 100, border: 'none', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>
+                <button onClick={() => setShowGuide(false)} style={{ width: '100%', padding: '14px', background: 'var(--primary)', color: 'var(--text-light)', borderRadius: 100, border: 'none', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>
                   我了解了
                 </button>
               </div>
@@ -370,7 +370,7 @@ export default function UserDashboard() {
 
         {showInbox && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(9,14,23,0.8)', backdropFilter: 'blur(4px)', zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-            <div style={{ background: CARD, width: '100%', maxWidth: 480, height: '80vh', borderTopLeftRadius: 24, borderTopRightRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+            <div style={{ background: 'var(--color-surface)', width: '100%', maxWidth: 480, height: '80vh', borderTopLeftRadius: 24, borderTopRightRadius: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', border: `1px solid ${BORDER}` }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 24px', borderBottom: `1px solid ${BORDER}` }}>
                 <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Mail color={ORANGE} size={20} /> 站內通知
@@ -394,7 +394,7 @@ export default function UserDashboard() {
                           key={notification.id}
                           onClick={() => !notification.is_read && handleMarkAsRead(notification.id, isGlobal)}
                           style={{
-                            background: CARD, borderRadius: 16, padding: 16,
+                            background: 'var(--color-surface)', borderRadius: 16, padding: 16,
                             borderLeft: !notification.is_read ? `4px solid ${ORANGE}` : '4px solid transparent',
                             boxShadow: SHADOW, cursor: !notification.is_read && !isGlobal ? 'pointer' : 'default',
                             border: `1px solid ${BORDER}`
@@ -427,7 +427,7 @@ export default function UserDashboard() {
                                   setShowInbox(false);
                                   setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
                                 }}
-                                style={{ background: '#10B981', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: '0.2s', marginLeft: 4 }}
+                                style={{ background: '#10B981', color: 'var(--text-light)', border: 'none', borderRadius: 6, padding: '4px 12px', fontSize: 13, fontWeight: 800, cursor: 'pointer', transition: '0.2s', marginLeft: 4 }}
                               >
                                 使用
                               </button>
@@ -445,9 +445,9 @@ export default function UserDashboard() {
 
         <div style={{ padding: '20px 16px 0' }}>
           <SectionLabel>我的帳號</SectionLabel>
-          <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 20px 0' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg, ${ORANGE}, #FDBA74)`, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, flexShrink: 0, boxShadow: `0 0 15px rgba(249, 115, 22, 0.3)`, overflow: 'hidden', border: `2px solid ${CARD}` }}>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: `linear-gradient(135deg, ${ORANGE}, #FDBA74)`, color: 'var(--text-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, flexShrink: 0, boxShadow: `0 0 15px rgba(249, 115, 22, 0.3)`, overflow: 'hidden', border: `2px solid ${CARD}` }}>
                 {profile.avatar_url ? (
                   <img src={profile.avatar_url} alt={profile.name || 'avatar'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
@@ -467,13 +467,13 @@ export default function UserDashboard() {
                 { label: '會員等級', value: `Lv ${profile.level ?? 1}`, color: ORANGE },
                 { label: '等級折扣', value: `${levelDiscount} OFF`, color: 'var(--color-success)' },
               ].map((item) => (
-                <div key={item.label} style={{ background: CARD, padding: '14px 0', textAlign: 'center' }}>
+                <div key={item.label} style={{ background: 'var(--color-surface)', padding: '14px 0', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{item.label}</p>
                   <p style={{ margin: '4px 0 0', fontSize: 19, fontWeight: 900, color: item.color }}>{item.value}</p>
                 </div>
               ))}
             </div>
-            <div style={{ background: CARD, padding: '10px 16px', textAlign: 'center', borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ background: 'var(--color-surface)', padding: '10px 16px', textAlign: 'center', borderTop: `1px solid ${BORDER}` }}>
               <p style={{ margin: 0, fontSize: 11, color: MUTED }}>此折扣將在預約時<span style={{ color: ORANGE, fontWeight: 700 }}>自動套用</span></p>
             </div>
           </div>
@@ -481,7 +481,7 @@ export default function UserDashboard() {
 
         {/* ── REFERRAL CARD (Integrated directly into dashboard) ── */}
         <div style={{ padding: '20px 16px 0' }}>
-          <div style={{ background: CARD, borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-soft)', border: '1px solid var(--color-border)', padding: '16px 20px', borderRadius: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -505,7 +505,7 @@ export default function UserDashboard() {
                   style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
                 {profile.promotion_code && (
-                  <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'white' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
+                  <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'var(--text-light)' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
                     {copiedCode ? <Check size={18} /> : <Copy size={18} />}
                   </button>
                 )}
@@ -520,7 +520,7 @@ export default function UserDashboard() {
                 <label style={{ fontSize: 13, fontWeight: 800, color: TEXT_LIGHT, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ color: ORANGE }}>✨</span> 推廣專屬 QR Code
                 </label>
-                <div style={{ background: '#FFF', padding: 14, borderRadius: 18, boxShadow: `0 8px 24px rgba(249, 115, 22, 0.15)`, border: '1px solid rgba(226, 232, 240, 0.8)' }}>
+                <div style={{ background: 'var(--color-surface)', padding: 14, borderRadius: 18, boxShadow: `0 8px 24px rgba(249, 115, 22, 0.15)`, border: '1px solid rgba(226, 232, 240, 0.8)' }}>
                   <QRCodeSVG
                     value={promotionUrl}
                     size={160}
@@ -541,7 +541,7 @@ export default function UserDashboard() {
 
         <div style={{ padding: '20px 16px 0' }}>
           <SectionLabel>優惠與折扣管理</SectionLabel>
-          <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
             
             {/* Promo Code Input Area */}
             <div style={{ padding: '20px', borderBottom: `1px solid ${BORDER}` }}>
@@ -557,7 +557,7 @@ export default function UserDashboard() {
                 <button
                   onClick={handleApplyCode}
                   disabled={applyingCode || !promoCodeInput.trim()}
-                  style={{ padding: '0 20px', background: promoCodeInput.trim() ? ORANGE : 'var(--border-input)', color: '#fff', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: promoCodeInput.trim() ? 'pointer' : 'not-allowed', transition: '0.2s', display: 'flex', alignItems: 'center', gap: 6, boxShadow: promoCodeInput.trim() ? `0 4px 14px rgba(249, 115, 22, 0.3)` : 'none' }}
+                  style={{ padding: '0 20px', background: promoCodeInput.trim() ? ORANGE : 'var(--border-input)', color: 'var(--text-light)', border: 'none', borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: promoCodeInput.trim() ? 'pointer' : 'not-allowed', transition: '0.2s', display: 'flex', alignItems: 'center', gap: 6, boxShadow: promoCodeInput.trim() ? `0 4px 14px rgba(249, 115, 22, 0.3)` : 'none' }}
                 >
                   {applyingCode ? <Loader2 size={16} className="animate-spin" /> : '套用'}
                 </button>
@@ -697,14 +697,14 @@ export default function UserDashboard() {
               編輯
             </button>
           </div>
-          <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
             {[
               { icon: '📞', label: '手機號碼', value: profile.phone },
               { icon: '📍', label: '地址', value: profile.address },
               { icon: '🌐', label: '語言', value: profile.language ?? '中文' },
               { icon: '🎯', label: '學習目標', value: profile.learning_goals },
             ].map((item, idx) => (
-              <button key={item.label} onClick={() => router.push('/dashboard/user/edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 18px', border: 'none', borderBottom: idx === 3 ? 'none' : `1px solid ${BORDER}`, background: CARD, cursor: 'pointer', textAlign: 'left' }}>
+              <button key={item.label} onClick={() => router.push('/dashboard/user/edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 18px', border: 'none', borderBottom: idx === 3 ? 'none' : `1px solid ${BORDER}`, background: 'var(--color-surface)', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <span style={{ fontSize: 18, width: 24, textAlign: 'center' }}>{item.icon}</span>
                   <span style={{ fontSize: 14, color: TEXT_LIGHT, fontWeight: 600 }}>{item.label}</span>
@@ -722,12 +722,12 @@ export default function UserDashboard() {
 
         <div style={{ padding: '20px 16px 0' }}>
           <SectionLabel>最近預約</SectionLabel>
-          <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, overflow: 'hidden', border: `1px solid ${BORDER}` }}>
             {bookings.length === 0 ? (
               <div style={{ padding: '32px 20px', textAlign: 'center' }}>
                 <p style={{ fontSize: 36, margin: '0 0 8px' }}>📅</p>
                 <p style={{ margin: 0, fontSize: 14, color: MUTED, fontWeight: 500 }}>目前還沒有預約紀錄</p>
-                <button onClick={() => router.push('/coaches')} style={{ marginTop: 16, padding: '10px 28px', background: ORANGE, color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: `0 4px 14px rgba(249, 115, 22, 0.3)` }}>
+                <button onClick={() => router.push('/coaches')} style={{ marginTop: 16, padding: '10px 28px', background: ORANGE, color: 'var(--text-light)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: `0 4px 14px rgba(249, 115, 22, 0.3)` }}>
                   開始找教練
                 </button>
               </div>

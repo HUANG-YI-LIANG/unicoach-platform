@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { ArrowLeft, CheckCircle2, ExternalLink, Loader2, Wallet } from 'lucide-react';
 
-const BLUE = '#2563EB';
-const DARK = '#0F172A';
-const MUTED = '#64748B';
-const BG = '#F8FAFC';
-const WHITE = '#FFFFFF';
+const BLUE = 'var(--color-primary)';
+const DARK = 'var(--color-text)';
+const MUTED = 'var(--color-text-muted)';
+const BG = 'var(--color-bg)';
+const WHITE = 'var(--text-light)';
 
 export default function AdminPaymentsPage() {
   const router = useRouter();
@@ -127,7 +127,7 @@ export default function AdminPaymentsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={() => router.push('/dashboard/admin')}
-              style={{ border: 'none', background: WHITE, width: 44, height: 44, borderRadius: 14, cursor: 'pointer', boxShadow: '0 2px 10px rgba(15,23,42,0.06)' }}
+              style={{ border: 'none', background: 'var(--color-surface)', width: 44, height: 44, borderRadius: 14, cursor: 'pointer', boxShadow: '0 2px 10px rgba(15,23,42,0.06)' }}
             >
               <ArrowLeft size={20} color={DARK} />
             </button>
@@ -144,7 +144,7 @@ export default function AdminPaymentsPage() {
         </header>
 
         {/* Bank Account Settings */}
-        <div style={{ background: WHITE, borderRadius: 24, padding: 24, marginBottom: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.04)', border: '1px solid #E2E8F0' }}>
+        <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: 24, marginBottom: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.04)', border: '1px solid var(--color-border)' }}>
           <h2 style={{ margin: '0 0 16px', color: DARK, fontSize: 16, fontWeight: 900 }}>設定學員匯款專用的平台收款帳號</h2>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
@@ -154,7 +154,7 @@ export default function AdminPaymentsPage() {
                 value={settings.bank_code}
                 onChange={(e) => setSettings({ ...settings, bank_code: e.target.value })}
                 placeholder="例如：013"
-                style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, fontWeight: 700, color: DARK }}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 14, fontWeight: 700, color: DARK }}
               />
             </div>
             <div style={{ flex: 2, minWidth: 200 }}>
@@ -164,7 +164,7 @@ export default function AdminPaymentsPage() {
                 value={settings.bank_account_number}
                 onChange={(e) => setSettings({ ...settings, bank_account_number: e.target.value })}
                 placeholder="例如：0123-4567-8910"
-                style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #E2E8F0', fontSize: 14, fontWeight: 700, color: DARK }}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 14, fontWeight: 700, color: DARK }}
               />
             </div>
             <button
@@ -172,7 +172,7 @@ export default function AdminPaymentsPage() {
               disabled={savingSettings}
               style={{
                 background: BLUE,
-                color: WHITE,
+                color: 'var(--text-light)',
                 border: 'none',
                 padding: '12px 24px',
                 borderRadius: 12,
@@ -191,7 +191,7 @@ export default function AdminPaymentsPage() {
         </div>
 
         {bookings.length === 0 ? (
-          <div style={{ background: WHITE, borderRadius: 24, padding: '48px 24px', textAlign: 'center', boxShadow: '0 6px 20px rgba(15,23,42,0.05)' }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: '48px 24px', textAlign: 'center', boxShadow: '0 6px 20px rgba(15,23,42,0.05)' }}>
             <div style={{ fontSize: 42, marginBottom: 10 }}>🧾</div>
             <div style={{ color: DARK, fontWeight: 900, fontSize: 18 }}>目前沒有待審核匯款</div>
             <p style={{ color: MUTED, margin: '8px 0 0', fontSize: 13 }}>待付款且已上傳截圖的訂單會顯示在這裡。</p>
@@ -202,9 +202,9 @@ export default function AdminPaymentsPage() {
               <div
                 key={booking.id}
                 style={{
-                  background: WHITE,
+                  background: 'var(--color-surface)',
                   borderRadius: 24,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--color-border)',
                   boxShadow: '0 8px 24px rgba(15,23,42,0.05)',
                   padding: 20,
                   display: 'grid',
@@ -233,7 +233,7 @@ export default function AdminPaymentsPage() {
                       borderRadius: 14,
                       padding: '12px 18px',
                       background: '#059669',
-                      color: WHITE,
+                      color: 'var(--text-light)',
                       fontWeight: 800,
                       fontSize: 13,
                       cursor: 'pointer',
@@ -259,8 +259,8 @@ export default function AdminPaymentsPage() {
                       display: 'block',
                       overflow: 'hidden',
                       borderRadius: 18,
-                      border: '1px solid #E2E8F0',
-                      background: '#F8FAFC',
+                      border: '1px solid var(--color-border)',
+                      background: 'var(--color-bg)',
                     }}
                   >
                     <img
@@ -271,7 +271,7 @@ export default function AdminPaymentsPage() {
                   </a>
 
                   <div style={{ display: 'grid', gap: 10 }}>
-                    <div style={{ background: '#F8FAFC', borderRadius: 18, padding: 16, color: DARK, fontSize: 13, lineHeight: 1.6 }}>
+                    <div style={{ background: 'var(--color-bg)', borderRadius: 18, padding: 16, color: DARK, fontSize: 13, lineHeight: 1.6 }}>
                       <div style={{ fontWeight: 900, marginBottom: 8 }}>審核重點</div>
                       <div>1. 確認截圖金額與訂單金額一致。</div>
                       <div>2. 確認匯款時間仍在保留時段內。</div>

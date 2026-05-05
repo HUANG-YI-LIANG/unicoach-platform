@@ -135,7 +135,7 @@ export default function CoachPlansPage() {
           <h1 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900 }}>無法載入方案</h1>
           <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 14 }}>{loadError}</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button type="button" onClick={fetchPlans} style={{ border: 'none', background: 'var(--primary)', color: '#FFFFFF', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
+            <button type="button" onClick={fetchPlans} style={{ border: 'none', background: 'var(--primary)', color: 'var(--text-light)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
             <button type="button" onClick={() => router.push('/coach/profile/edit')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>完成教練資料</button>
             <button type="button" onClick={() => router.push('/dashboard/coach')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>回教練中心</button>
           </div>
@@ -227,7 +227,7 @@ export default function CoachPlansPage() {
             </label>
 
             <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button disabled={saving} type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: 'var(--primary)', color: '#FFFFFF', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+              <button disabled={saving} type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: 'var(--primary)', color: 'var(--text-light)', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? '儲存中...' : '儲存方案'}
               </button>
               <button type="button" onClick={startCreate} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-muted)', fontWeight: 900, cursor: 'pointer' }}>

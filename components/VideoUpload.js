@@ -202,7 +202,7 @@ export default function VideoUpload() {
             type="submit" 
             disabled={uploading || !newVideo.file || videos.length >= 10}
             style={{ 
-              width: '100%', padding: '12px', borderRadius: 12, background: BLUE, color: '#fff',
+              width: '100%', padding: '12px', borderRadius: 12, background: BLUE, color: 'var(--text-light)',
               fontWeight: 800, border: 'none', cursor: 'pointer', opacity: (uploading || !newVideo.file || videos.length >= 10) ? 0.6 : 1,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
             }}
@@ -227,7 +227,7 @@ export default function VideoUpload() {
             }}>
               <video 
                 src={video.video_url} 
-                style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', background: '#000' }}
+                style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', background: 'var(--color-text)' }}
               />
               <div style={{ padding: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 4 }}>

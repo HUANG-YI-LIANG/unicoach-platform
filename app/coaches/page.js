@@ -436,7 +436,7 @@ export default function CoachesPage() {
         }
         .date-btn.active, .time-btn.active {
           background: var(--primary);
-          color: #FFFFFF;
+          color: var(--text-light);
           border-color: var(--primary);
         }
         .time-btn.disabled {
@@ -517,7 +517,7 @@ export default function CoachesPage() {
         }
         .primary-btn {
           background: var(--primary);
-          color: #FFFFFF;
+          color: var(--text-light);
         }
         .empty-state, .loading-state {
           padding: 40px 20px;
@@ -566,7 +566,7 @@ export default function CoachesPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
                 background: isFilterOpen ? 'var(--color-accent)' : 'transparent',
-                color: isFilterOpen ? 'white' : 'var(--color-accent)',
+                color: isFilterOpen ? 'var(--text-light)' : 'var(--color-accent)',
                 border: '1px solid var(--color-accent)', borderRadius: 8, fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', whiteSpace: 'nowrap'
               }}

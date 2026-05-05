@@ -145,7 +145,7 @@ export default function Onboarding() {
         {step === 1 ? (
           /* ── STEP 1: SPORT SELECTION ────────────────────────────────── */
           <>
-            <h2 style={{ fontSize: 28, fontWeight: 900, color: WHITE, margin: '20px 0 10px', lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-light)', margin: '20px 0 10px', lineHeight: 1.2 }}>
               Hi! 很高興見到你<br/>想上什麼樣的課？
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 40 }}>10 秒內為您媒合最合適的大學生教練</p>
@@ -156,7 +156,7 @@ export default function Onboarding() {
                   key={s.id} 
                   onClick={() => handleSportSelect(s.id)}
                   style={{
-                    background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24,
+                    background: 'var(--color-surface)', border: `1px solid ${BORDER}`, borderRadius: 24,
                     padding: '24px 16px', display: 'flex', flexDirection: 'column',
                     alignItems: 'center', gap: 12, cursor: 'pointer', outline: 'none'
                   }}
@@ -164,7 +164,7 @@ export default function Onboarding() {
                   <div style={{ width: 44, height: 44, borderRadius: 12, background: `${s.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <s.icon size={24} color={s.color} />
                   </div>
-                  <span style={{ color: WHITE, fontSize: 16, fontWeight: 700 }}>{s.label}</span>
+                  <span style={{ color: 'var(--text-light)', fontSize: 16, fontWeight: 700 }}>{s.label}</span>
                 </button>
               ))}
               
@@ -184,7 +184,7 @@ export default function Onboarding() {
         ) : (
           /* ── STEP 2: COACH RECOMMENDATION ────────────────────────────── */
           <>
-            <h2 style={{ fontSize: 28, fontWeight: 900, color: WHITE, margin: '20px 0 10px', lineHeight: 1.2 }}>
+            <h2 style={{ fontSize: 28, fontWeight: 900, color: 'var(--text-light)', margin: '20px 0 10px', lineHeight: 1.2 }}>
               太棒了！<br/>我們找到了這位：
             </h2>
 
@@ -199,9 +199,9 @@ export default function Onboarding() {
                   padding: '24px 20px'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', background: BLUE, padding: '2px 8px', borderRadius: 100 }}>🔥 新手首選</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-light)', background: BLUE, padding: '2px 8px', borderRadius: 100 }}>🔥 新手首選</span>
                   </div>
-                  <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: WHITE }}>{recommendation?.name || '菁英教練'}</h3>
+                  <h3 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: 'var(--text-light)' }}>{recommendation?.name || '菁英教練'}</h3>
                 </div>
                 {/* Display Coach Avatar or Placeholder */}
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-input)' }}>
@@ -223,7 +223,7 @@ export default function Onboarding() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <Star size={14} fill="#FCD34D" color="#FCD34D" />
-                    <span style={{ color: WHITE, fontWeight: 700, fontSize: 14 }}>{recommendation?.rating_avg || '5.0'}</span>
+                    <span style={{ color: 'var(--text-light)', fontWeight: 700, fontSize: 14 }}>{recommendation?.rating_avg || '5.0'}</span>
                   </div>
                   <div style={{ width: 1, height: 12, background: BORDER }} />
                   <span style={{ color: 'var(--text-muted)', fontSize: 13, fontWeight: 600 }}>完課數：{recommendation?.review_count || recommendation?.completions || '12'}＋</span>
@@ -241,7 +241,7 @@ export default function Onboarding() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                   <div>
                     <p style={{ margin: 0, fontSize: 11, color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>體驗課價格</p>
-                    <p style={{ margin: 0, fontSize: 18, color: WHITE, fontWeight: 900 }}>${recommendation?.base_price || '1,000'}</p>
+                    <p style={{ margin: 0, fontSize: 18, color: 'var(--text-light)', fontWeight: 900 }}>${recommendation?.base_price || '1,000'}</p>
                   </div>
                 </div>
 
@@ -252,7 +252,7 @@ export default function Onboarding() {
                 <button 
                   onClick={handleProceed}
                   style={{
-                    width: '100%', background: BLUE, color: WHITE, borderRadius: 20,
+                    width: '100%', background: BLUE, color: 'var(--text-light)', borderRadius: 20,
                     padding: '16px', fontSize: 16, fontWeight: 800, border: 'none',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     boxShadow: '0 8px 30px rgba(37,99,235,0.3)', cursor: 'pointer'

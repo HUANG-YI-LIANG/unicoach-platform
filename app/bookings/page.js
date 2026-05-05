@@ -294,7 +294,7 @@ export default function BookingsPage() {
 
       {bookings.length === 0 ? (
         <div style={{
-          background: WHITE, borderRadius: 20, padding: '48px 20px',
+          background: 'var(--color-surface)', borderRadius: 20, padding: '48px 20px',
           textAlign: 'center', boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
         }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
@@ -305,14 +305,14 @@ export default function BookingsPage() {
           {isCoach ? (
             <button
               onClick={() => router.push('/dashboard/coach')}
-              style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: WHITE, border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: 'var(--text-light)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
               完善個人資料 →
             </button>
           ) : (
             <button
               onClick={() => router.push('/coaches')}
-              style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: WHITE, border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: 'var(--text-light)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
               去找教練 →
             </button>
@@ -329,7 +329,7 @@ export default function BookingsPage() {
             const paymentExpiresAt = b.payment_expires_at ? new Date(b.payment_expires_at) : null;
             return (
               <div key={b.id} style={{
-                background: WHITE, borderRadius: 20, padding: 18,
+                background: 'var(--color-surface)', borderRadius: 20, padding: 18,
                 boxShadow: 'var(--shadow-card)',
                 border: '1px solid var(--color-border)',
               }}>
@@ -426,7 +426,7 @@ export default function BookingsPage() {
                         borderRadius: 12,
                         border: 'none',
                         background: BLUE,
-                        color: WHITE,
+                        color: 'var(--text-light)',
                         fontWeight: 800,
                         fontSize: 13,
                         cursor: 'pointer',
@@ -460,7 +460,7 @@ export default function BookingsPage() {
                          <button 
                            onClick={() => handleAdjustPrice(b.id)}
                            disabled={adjusting}
-                           style={{ padding:'8px 16px', borderRadius:8, background:BLUE, color:WHITE, fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
+                           style={{ padding:'8px 16px', borderRadius:8, background:BLUE, color:'var(--text-light)', fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
                          >
                            {adjusting ? '...' : '確認'}
                          </button>
@@ -490,7 +490,7 @@ export default function BookingsPage() {
                         onClick={() => handleConfirmPayment(b.id)}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 12, border: 'none',
-                          background: 'var(--success)', color: '#FFFFFF', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: 'var(--success)', color: 'var(--text-light)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                         }}
                       >
                         確認付款
@@ -512,7 +512,7 @@ export default function BookingsPage() {
                         onClick={() => router.push(`/reports/${b.id}`)}
                         style={{
                           flex: 2, padding: '10px', borderRadius: 12, border: 'none',
-                          background: BLUE, color: '#FFFFFF', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: BLUE, color: 'var(--text-light)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                           boxShadow: `var(--shadow-card)`,
                         }}
@@ -531,7 +531,7 @@ export default function BookingsPage() {
                         onClick={() => setReviewingBooking(b)}
                         style={{
                           width: '100%', padding: '10px', borderRadius: 12, border: `1px solid ${BLUE}`,
-                          background: WHITE, color: BLUE, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                          background: 'var(--color-surface)', color: BLUE, fontWeight: 700, fontSize: 13, cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                         }}
                       >
@@ -576,7 +576,7 @@ export default function BookingsPage() {
           zIndex: 100, padding: 20,
         }}>
           <div style={{
-            background: WHITE, borderRadius: 24, width: '100%', maxWidth: 400, padding: 24,
+            background: 'var(--color-surface)', borderRadius: 24, width: '100%', maxWidth: 400, padding: 24,
             boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
           }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: DARK }}>撰寫評價</h2>
@@ -622,7 +622,7 @@ export default function BookingsPage() {
                 onClick={handleSubmitReview}
                 disabled={submittingReview}
                 style={{
-                  flex: 2, padding: 14, borderRadius: 12, border: 'none', background: BLUE, color: '#FFFFFF',
+                  flex: 2, padding: 14, borderRadius: 12, border: 'none', background: BLUE, color: 'var(--text-light)',
                   fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: submittingReview ? 0.7 : 1,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}
@@ -641,7 +641,7 @@ export default function BookingsPage() {
           zIndex: 120, padding: 16,
         }}>
           <div style={{
-            width: '100%', maxWidth: 480, background: WHITE, borderRadius: 24, padding: 24,
+            width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: 24, padding: 24,
             boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
@@ -715,7 +715,7 @@ export default function BookingsPage() {
                   borderRadius: 14,
                   border: 'none',
                   background: BLUE,
-                  color: '#FFFFFF',
+                  color: 'var(--text-light)',
                   fontWeight: 800,
                   cursor: 'pointer',
                   opacity: !hasPaymentAccountInfo || uploadingReceipt || reportingPayment ? 0.65 : 1,

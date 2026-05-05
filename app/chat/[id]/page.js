@@ -35,7 +35,7 @@ function Avatar({ name, size = 36 }) {
         borderRadius: '50%',
         flexShrink: 0,
         background: `linear-gradient(135deg, ${ORANGE}, #FDBA74)`,
-        color: '#FFF',
+        color: 'var(--text-light)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -192,7 +192,7 @@ export default function ChatRoomPage({ params }) {
           alignItems: 'center',
           gap: 12,
           padding: '10px 16px',
-          background: CARD,
+          background: 'var(--color-surface)',
           borderBottom: `1px solid ${BORDER}`,
           position: 'sticky',
           top: 0,
@@ -280,7 +280,7 @@ export default function ChatRoomPage({ params }) {
       </div>
 
       {isCoach && editingPhilosophy && (
-        <div style={{ background: CARD, padding: 12, borderBottom: `1px solid ${BORDER}` }}>
+        <div style={{ background: 'var(--color-surface)', padding: 12, borderBottom: `1px solid ${BORDER}` }}>
           <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: TEXT_LIGHT }}>編輯教學理念</p>
           <textarea
             value={phiText}
@@ -303,7 +303,7 @@ export default function ChatRoomPage({ params }) {
             style={{
               width: '100%',
               background: ORANGE,
-              color: '#FFF',
+              color: 'var(--text-light)',
               border: 'none',
               padding: '8px',
               borderRadius: 8,
@@ -332,7 +332,7 @@ export default function ChatRoomPage({ params }) {
             {room?.coach_name && (
               <div
                 style={{
-                  background: CARD,
+                  background: 'var(--color-surface)',
                   borderRadius: 20,
                   boxShadow: '0 8px 30px rgba(0,0,0,0.3)',
                   padding: '20px 22px',
@@ -365,7 +365,7 @@ export default function ChatRoomPage({ params }) {
                   style={{
                     width: '100%',
                     padding: '12px 20px',
-                    background: CARD,
+                    background: 'var(--color-surface)',
                     border: `1.5px solid ${ORANGE}`,
                     borderRadius: 100,
                     fontSize: 14,
@@ -432,7 +432,7 @@ export default function ChatRoomPage({ params }) {
                       padding: '12px 14px',
                       borderRadius: isMe ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                       background: isMe ? ORANGE : SECONDARY_BUBBLE,
-                      color: isMe ? '#FFF' : 'var(--color-text)',
+                      color: isMe ? 'var(--text-light)' : 'var(--color-text)',
                       fontSize: 14,
                       lineHeight: 1.5,
                       boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : 'var(--shadow-card)',
@@ -460,7 +460,7 @@ export default function ChatRoomPage({ params }) {
           alignItems: 'center',
           gap: 10,
           padding: '10px 14px 14px',
-          background: CARD,
+          background: 'var(--color-surface)',
           borderTop: `1px solid ${BORDER}`,
           position: 'sticky',
           bottom: 0,
@@ -510,8 +510,8 @@ export default function ChatRoomPage({ params }) {
           }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-            <path d="M22 2L11 13" stroke={text.trim() ? '#FFF' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={text.trim() ? '#FFF' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 2L11 13" stroke={text.trim() ? 'var(--text-light)' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={text.trim() ? 'var(--text-light)' : MUTED} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>

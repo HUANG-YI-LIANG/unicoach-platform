@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CalendarDays, CheckCircle2, ChevronLeft, Wallet } from 'lucide-react';
 
-const BG = '#F1F5F9';
-const CARD = '#FFFFFF';
-const MUTED = '#94A3B8';
-const DARK = '#0F172A';
+const BG = 'var(--color-bg)';
+const CARD = 'var(--color-surface)';
+const MUTED = 'var(--color-text-muted)';
+const DARK = 'var(--color-text)';
 const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
 
 function getDayOfWeek(dateString) {
@@ -82,7 +82,7 @@ export default function EarningsPage() {
     <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60 }}>
       <div
         style={{
-          background: CARD,
+          background: 'var(--color-surface)',
           padding: '16px 20px',
           display: 'flex',
           alignItems: 'center',
@@ -108,7 +108,7 @@ export default function EarningsPage() {
             background: 'linear-gradient(135deg, #059669, #10B981)',
             borderRadius: 16,
             padding: 24,
-            color: '#fff',
+            color: 'var(--text-light)',
             boxShadow: '0 8px 24px rgba(5,150,105,0.25)',
             marginBottom: 24,
           }}
@@ -132,7 +132,7 @@ export default function EarningsPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {monthBookings.map((booking) => (
-                <div key={booking.id} style={{ background: CARD, borderRadius: 16, padding: '16px 20px', boxShadow: SHADOW }}>
+                <div key={booking.id} style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '16px 20px', boxShadow: SHADOW }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 16 }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -140,7 +140,7 @@ export default function EarningsPage() {
                         <span
                           style={{
                             fontSize: 11,
-                            background: '#F1F5F9',
+                            background: 'var(--color-surface-soft)',
                             color: '#475569',
                             padding: '2px 8px',
                             borderRadius: 100,
@@ -178,7 +178,7 @@ export default function EarningsPage() {
         ))}
 
         {bookings.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', background: CARD, borderRadius: 16 }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--color-surface)', borderRadius: 16 }}>
             <p style={{ margin: 0, color: MUTED, fontSize: 14, fontWeight: 600 }}>目前還沒有已完成課程的收入紀錄</p>
           </div>
         )}

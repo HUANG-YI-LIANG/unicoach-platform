@@ -27,7 +27,7 @@ export default function VideoCard({ video, onDelete }) {
              onClick={() => window.open(video.original_url, '_blank')}
              className="play-button-v2"
            >
-             <Play fill="white" size={24} />
+             <Play fill='var(--text-light)' size={24} />
            </button>
         </div>
 
@@ -89,7 +89,7 @@ export default function VideoCard({ video, onDelete }) {
         .thumbnail-wrapper {
           position: relative;
           aspect-ratio: 16 / 9;
-          background: #000;
+          background: var(--color-text);
           overflow: hidden;
         }
         .thumbnail-img {
@@ -146,7 +146,7 @@ export default function VideoCard({ video, onDelete }) {
           left: 12px;
           background: rgba(0, 0, 0, 0.6);
           backdrop-filter: blur(8px);
-          color: #fff;
+          color: var(--text-light);
           font-size: 10px;
           font-weight: 700;
           padding: 4px 10px;
@@ -156,7 +156,7 @@ export default function VideoCard({ video, onDelete }) {
           position: absolute;
           top: 12px;
           right: 12px;
-          color: #fff;
+          color: var(--text-light);
           font-size: 10px;
           font-weight: 800;
           padding: 4px 8px;
@@ -168,7 +168,7 @@ export default function VideoCard({ video, onDelete }) {
           bottom: 12px;
           right: 12px;
           background: rgba(0, 0, 0, 0.8);
-          color: #fff;
+          color: var(--text-light);
           font-size: 11px;
           font-family: monospace;
           padding: 2px 6px;
@@ -189,7 +189,7 @@ export default function VideoCard({ video, onDelete }) {
         .video-title-v2 {
           font-size: 14px;
           font-weight: 700;
-          color: #e8e8f0;
+          color: var(--color-text);
           margin-bottom: 12px;
           white-space: nowrap;
           overflow: hidden;
@@ -219,15 +219,15 @@ export default function VideoCard({ video, onDelete }) {
         }
         .action-btn-v2.delete:hover {
           background: #ff3b5c;
-          color: #fff;
+          color: var(--text-light);
         }
         .action-btn-v2.link {
           background: rgba(255, 255, 255, 0.05);
-          color: #888899;
+          color: var(--color-text-muted);
         }
         .action-btn-v2.link:hover {
           background: rgba(255, 255, 255, 0.1);
-          color: #fff;
+          color: var(--text-light);
         }
       `}</style>
     </div>

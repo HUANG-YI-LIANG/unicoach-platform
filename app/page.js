@@ -127,7 +127,7 @@ export default function Home() {
             <button
               onClick={() => handleOnboardingSelect('幫我選')}
               style={{
-                width: '100%', background: 'var(--color-accent)', color: 'white', border: 'none',
+                width: '100%', background: 'var(--color-accent)', color: 'var(--text-light)', border: 'none',
                 padding: '16px', borderRadius: 16, fontSize: 16, fontWeight: 800,
                 marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
               }}
@@ -148,7 +148,7 @@ export default function Home() {
           
           <div className="premium-cta-group">
             <button onClick={() => router.push('/coaches')} style={{
-              width: '100%', height: '64px', background: 'var(--color-accent)', color: 'white',
+              width: '100%', height: '64px', background: 'var(--color-accent)', color: 'var(--text-light)',
               borderRadius: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
               border: 'none', cursor: 'pointer', gap: 8

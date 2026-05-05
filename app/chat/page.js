@@ -32,7 +32,7 @@ function Avatar({ name, size = 46 }) {
         borderRadius: '50%',
         flexShrink: 0,
         background: `linear-gradient(135deg, ${ORANGE}, #FDBA74)`,
-        color: '#fff',
+        color: 'var(--text-light)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -92,7 +92,7 @@ function RoomCard({ room, onClick }) {
           <span
             style={{
               background: '#EF4444',
-              color: '#fff',
+              color: 'var(--text-light)',
               borderRadius: 100,
               fontSize: 10,
               fontWeight: 900,
@@ -183,7 +183,7 @@ export default function ChatPage() {
               style={{
                 padding: '14px 36px',
                 background: ORANGE,
-                color: '#fff',
+                color: 'var(--text-light)',
                 border: 'none',
                 borderRadius: 16,
                 fontSize: 15,

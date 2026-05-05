@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { 
-  User, Mail, BookOpen, FileDigit, 
+import {
+  User, Mail, BookOpen, FileDigit,
   MapPin, DollarSign, Save, ArrowLeft, Loader2, Tag,
   ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
 } from 'lucide-react';
@@ -90,7 +90,7 @@ export default function CoachProfileEdit() {
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
-    
+
     if (!formData.service_areas?.trim()) {
       alert('請填寫服務項目（分類），這會影響學生在首頁的搜尋結果！');
       setSaving(false);
@@ -185,11 +185,11 @@ export default function CoachProfileEdit() {
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Top Bar */}
-        <div style={{ 
-          padding: '20px 16px', background: CARD, display:'flex', alignItems:'center', 
-          gap: 12, borderBottom: `1px solid ${BORDER}`, position:'sticky', top: 0, zIndex: 10 
+        <div style={{
+          padding: '20px 16px', background: 'var(--color-surface)', display:'flex', alignItems:'center',
+          gap: 12, borderBottom: `1px solid ${BORDER}`, position:'sticky', top: 0, zIndex: 10
         }}>
-          <button 
+          <button
             onClick={() => router.back()}
             style={{ background: INPUT_BG, border:'none', borderRadius: 12, padding: 8, cursor:'pointer' }}
           >
@@ -199,12 +199,12 @@ export default function CoachProfileEdit() {
         </div>
 
         <form onSubmit={handleSave} style={{ padding: '24px 16px', display:'flex', flexDirection:'column', gap: 24 }}>
-          
+
           {/* Avatar Section */}
           <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
-              <div style={{ 
-                width: 100, height: 100, borderRadius: '50%', background: INPUT_BG, 
+              <div style={{
+                width: 100, height: 100, borderRadius: '50%', background: INPUT_BG,
                 overflow: 'hidden', border: `3px solid ${ORANGE}`, boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
@@ -214,9 +214,9 @@ export default function CoachProfileEdit() {
                   <span style={{ fontSize: 32, fontWeight: 800, color: MUTED }}>{formData.name?.charAt(0) || 'C'}</span>
                 )}
               </div>
-              <label style={{ 
-                position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT, 
-                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', 
+              <label style={{
+                position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT,
+                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}`
               }}>
                 {uploading && uploadType === 'avatar' ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
@@ -229,13 +229,13 @@ export default function CoachProfileEdit() {
           {/* Basic Info Card */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>基本資料</p>
-            <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-              
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
+
               <div>
                 <label style={labelStyle}>
                   <User size={14} color={ORANGE} /> 教練名稱
                 </label>
-                <input 
+                <input
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="請輸入顯示名稱"
@@ -248,7 +248,7 @@ export default function CoachProfileEdit() {
                 <label style={{ ...labelStyle, color: MUTED }}>
                   <Mail size={14} /> 電子信箱 (無法修改)
                 </label>
-                <input 
+                <input
                   value={formData.email}
                   readOnly
                   style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }}
@@ -259,7 +259,7 @@ export default function CoachProfileEdit() {
                 <label style={labelStyle}>
                   <MapPin size={14} color={ORANGE} /> 上課地區 / 縣市
                 </label>
-                <input 
+                <input
                   value={formData.location}
                   onChange={e => setFormData({...formData, location: e.target.value})}
                   placeholder="例如：台北市, 新北市"
@@ -272,7 +272,7 @@ export default function CoachProfileEdit() {
                 <label style={labelStyle}>
                   <Tag size={14} color={ORANGE} /> 服務項目 / 分類
                 </label>
-                <input 
+                <input
                   value={formData.service_areas}
                   onChange={e => setFormData({...formData, service_areas: e.target.value})}
                   placeholder="籃球, 桌球 (多項請用逗號分隔)"
@@ -288,7 +288,7 @@ export default function CoachProfileEdit() {
                 </label>
                 <div style={{ position:'relative' }}>
                   <span style={{ position:'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: MUTED, fontSize: 14 }}>$</span>
-                  <input 
+                  <input
                     type="number"
                     value={formData.base_price}
                     onChange={e => {
@@ -299,9 +299,9 @@ export default function CoachProfileEdit() {
                       else setPriceError('');
                     }}
                     placeholder="例如：1000"
-                    style={{ 
-                      width:'100%', padding:'12px 16px 12px 32px', borderRadius: 12, 
-                      border: `1px solid ${priceError ? '#EF4444' : BORDER}`, 
+                    style={{
+                      width:'100%', padding:'12px 16px 12px 32px', borderRadius: 12,
+                      border: `1px solid ${priceError ? '#EF4444' : BORDER}`,
                       fontSize: 14, outline: 'none', background: INPUT_BG, color: TEXT_LIGHT
                     }}
                     required
@@ -320,7 +320,7 @@ export default function CoachProfileEdit() {
                 <label style={labelStyle}>
                   <BookOpen size={14} color={ORANGE} /> 教學經驗詳述
                 </label>
-                <input 
+                <input
                   value={formData.experience}
                   onChange={e => setFormData({...formData, experience: e.target.value})}
                   placeholder="例如：10年籃球教學經驗"
@@ -372,7 +372,7 @@ export default function CoachProfileEdit() {
                       </label>
                       <p style={{ fontSize: 12, color: MUTED, margin: '4px 0 0 0' }}>{section.hint}</p>
                     </div>
-                    <button 
+                    <button
                       type="button"
                       onClick={() => setFormData(prev => ({...prev, [section.id]: section.template}))}
                       style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(249, 115, 22, 0.1)', color: ORANGE, border: 'none', padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', marginLeft: 12 }}
@@ -380,7 +380,7 @@ export default function CoachProfileEdit() {
                       <Sparkles size={14} /> 套用範本
                     </button>
                   </div>
-                  <textarea 
+                  <textarea
                     value={formData[section.id]}
                     onChange={e => setFormData({...formData, [section.id]: e.target.value})}
                     placeholder={section.placeholder}
@@ -405,8 +405,8 @@ export default function CoachProfileEdit() {
                     { id: 'police_check', label: '良民證 (無犯罪紀錄證明)' }
                   ].map(badge => (
                     <label key={badge.id} style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 14, color: TEXT_LIGHT, fontWeight: 700 }}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         style={{ width: 18, height: 18, accentColor: ORANGE }}
                         checked={formData.trust_badges.includes(badge.id)}
                         onChange={(e) => {
@@ -430,8 +430,8 @@ export default function CoachProfileEdit() {
           <section>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, paddingLeft: 4 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', margin: 0 }}>身份驗證 (信任建置)</p>
-              <div style={{ 
-                display:'flex', alignItems:'center', gap: 6, fontSize: 11, fontWeight: 800, 
+              <div style={{
+                display:'flex', alignItems:'center', gap: 6, fontSize: 11, fontWeight: 800,
                 color: vStatus === 'approved' ? '#10B981' : vStatus === 'rejected' ? '#EF4444' : ORANGE,
                 background: vStatus === 'approved' ? 'rgba(16, 185, 129, 0.1)' : vStatus === 'rejected' ? 'rgba(239, 68, 68, 0.1)' : 'rgba(249, 115, 22, 0.1)',
                 padding: '2px 10px', borderRadius: 100
@@ -441,12 +441,12 @@ export default function CoachProfileEdit() {
               </div>
             </div>
 
-            <div style={{ background: CARD, borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, border: `1px solid ${BORDER}` }}>
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, border: `1px solid ${BORDER}` }}>
               <div style={{ display:'flex', flexDirection:'column', gap: 16 }}>
                 <div style={{ display:'flex', gap: 16, alignItems:'center' }}>
-                  <div style={{ 
-                    width: 48, height: 48, borderRadius: 12, background: INPUT_BG, 
-                    display:'flex', alignItems:'center', justifyContent:'center', border: `1px solid ${BORDER}` 
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 12, background: INPUT_BG,
+                    display:'flex', alignItems:'center', justifyContent:'center', border: `1px solid ${BORDER}`
                   }}>
                     <ShieldCheck size={24} color={ORANGE} />
                   </div>
@@ -464,14 +464,14 @@ export default function CoachProfileEdit() {
                 )}
 
                 <div style={{ position:'relative' }}>
-                  <input 
-                    type="file" 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    accept="image/*"
                     onChange={handleFileUpload}
                     style={{ position:'absolute', inset: 0, opacity: 0, cursor: uploading ? 'not-allowed' : 'pointer' }}
                     disabled={uploading}
                   />
-                  <div style={{ 
+                  <div style={{
                     width:'100%', padding:'16px', borderRadius: 12, border: `2px dashed ${MUTED}`,
                     display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
                     background: uploading ? INPUT_BG : 'transparent',
@@ -489,12 +489,12 @@ export default function CoachProfileEdit() {
 
           {/* Submit Button */}
           <div style={{ marginTop: 12 }}>
-            <button 
+            <button
               type="submit"
               disabled={saving}
-              style={{ 
-                width:'100%', height: 56, background: ORANGE, color: '#fff', 
-                border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800, 
+              style={{
+                width:'100%', height: 56, background: ORANGE, color: 'var(--text-light)',
+                border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
                 display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
                 boxShadow: `0 8px 25px rgba(249, 115, 22, 0.4)`,
                 opacity: saving ? 0.7 : 1,
