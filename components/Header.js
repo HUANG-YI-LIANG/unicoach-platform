@@ -1,9 +1,12 @@
 'use client';
 import { useAuth } from './AuthProvider';
+import { useTheme } from './ThemeProvider';
 import Link from 'next/link';
+import { Sun, Moon } from 'lucide-react';
 
 export default function Header() {
   const { user, loading } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="global-header">
@@ -11,6 +14,26 @@ export default function Header() {
         <span className="brand-name">UniCoach</span>
       </div>
       <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === 'dark' ? '切換為淺色模式' : '切換為深色模式'}
+          title={theme === 'dark' ? '切換為淺色模式' : '切換為深色模式'}
+          style={{
+            border: 'none',
+            background: 'transparent',
+            color: 'var(--color-text)',
+            padding: '6px',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '999px',
+            lineHeight: 0,
+          }}
+        >
+          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
         {loading ? (
           <span className="status-badge" style={{ opacity: 0.5 }}>載入中...</span>
         ) : user ? (
