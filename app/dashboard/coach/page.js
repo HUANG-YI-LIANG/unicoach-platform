@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Menu,
   CheckCircle2,
@@ -68,7 +69,17 @@ export default function CoachDashboard() {
 
         if (!isMounted) return;
 
-        setProfile(profileData.profile || null);
+        if (!profileData.profile) {
+          router.replace('/login');
+          return;
+        }
+
+        if (profileData.profile.role !== 'coach') {
+          router.replace(getDashboardPathForRole(profileData.profile.role));
+          return;
+        }
+
+        setProfile(profileData.profile);
         setCoachDetail(profileData.coach || null);
         setBookings(Array.isArray(bookingsData.bookings) ? bookingsData.bookings : []);
         setChatRooms(Array.isArray(roomsData.rooms) ? roomsData.rooms : []);

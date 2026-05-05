@@ -2,10 +2,13 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/components/AuthProvider';
+import { getDashboardPathForRole } from '@/lib/authRedirects';
 
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { refresh } = useAuth();
   const defaultRole = searchParams.get('role') || 'user';
   const referralCode = searchParams.get('ref') || '';
 
@@ -54,8 +57,8 @@ function RegisterForm() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('註冊成功！請登入。');
-        router.push('/login');
+        await refresh();
+        router.push(getDashboardPathForRole(data.user?.role));
       } else {
         setError(data.error || '註冊失敗');
       }

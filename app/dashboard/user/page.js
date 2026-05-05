@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { getDashboardPathForRole } from '@/lib/authRedirects';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Menu,
@@ -170,9 +171,17 @@ export default function UserDashboard() {
         }
 
         const { profile: profileData } = await profileRes.json();
-        if (profileData) {
-          setProfile((prev) => ({ ...prev, ...profileData, coupons: Array.isArray(profileData.coupons) ? profileData.coupons : [] }));
+        if (!profileData) {
+          router.replace('/login');
+          return;
         }
+
+        if (profileData.role !== 'user') {
+          router.replace(getDashboardPathForRole(profileData.role));
+          return;
+        }
+
+        setProfile((prev) => ({ ...prev, ...profileData, coupons: Array.isArray(profileData.coupons) ? profileData.coupons : [] }));
 
         if (bookingsRes.ok) {
           const { bookings: bookingData } = await bookingsRes.json();
