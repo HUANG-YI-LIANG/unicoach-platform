@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { use, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -302,9 +302,7 @@ export default function CoachDetailPage({ params }) {
       <style dangerouslySetInnerHTML={{ __html: `
         .coach-detail-page {
           min-height: 100vh;
-          background:
-            radial-gradient(circle at top left, rgba(37, 99, 235, 0.14), transparent 28%),
-            linear-gradient(180deg, #f8fbff 0%, #eef5ff 100%);
+          background: var(--color-bg);
           padding-bottom: 120px;
         }
         .coach-detail-shell {
@@ -407,10 +405,10 @@ export default function CoachDetailPage({ params }) {
           align-items: start;
         }
         .panel {
-          background: rgba(255,255,255,0.92);
-          border: 1px solid rgba(148,163,184,0.18);
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
           border-radius: 28px;
-          box-shadow: 0 18px 50px rgba(15,23,42,0.08);
+          box-shadow: var(--shadow-card);
           padding: 20px;
           min-width: 0;
         }
@@ -421,7 +419,7 @@ export default function CoachDetailPage({ params }) {
         }
         .panel p.lead {
           margin: 0 0 18px;
-          color: #64748b;
+          color: var(--color-text-muted);
           font-size: 14px;
         }
         .calendar-nav {
@@ -433,14 +431,14 @@ export default function CoachDetailPage({ params }) {
         .calendar-nav-btn {
           border: none;
           background: transparent;
-          color: #64748b;
+          color: var(--color-text-muted);
           cursor: pointer;
           padding: 8px;
         }
         .calendar-month-title {
           font-size: 16px;
           font-weight: 900;
-          color: #0f172a;
+          color: var(--color-text);
         }
         .calendar-grid {
           display: grid;
@@ -451,7 +449,7 @@ export default function CoachDetailPage({ params }) {
         .cal-weekday {
           font-size: 13px;
           font-weight: 800;
-          color: #94a3b8;
+          color: var(--color-text-muted);
           margin-bottom: 8px;
         }
         .cal-day-btn {
@@ -460,7 +458,7 @@ export default function CoachDetailPage({ params }) {
           border-radius: 8px;
           padding: 10px 0;
           font-size: 15px;
-          color: #cbd5e1;
+          color: var(--color-border);
           font-weight: 700;
           cursor: default;
         }
@@ -468,9 +466,9 @@ export default function CoachDetailPage({ params }) {
           visibility: hidden;
         }
         .cal-day-btn.bookable {
-          color: #0f172a;
+          color: var(--color-text);
           cursor: pointer;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--color-border);
         }
         .cal-day-btn.selected {
           background: var(--color-accent);
@@ -481,7 +479,7 @@ export default function CoachDetailPage({ params }) {
         .time-slots-container {
           margin-top: 24px;
           padding-top: 24px;
-          border-top: 1px solid #e2e8f0;
+          border-top: 1px solid var(--color-border);
         }
         .slot-group {
           margin-bottom: 24px;
@@ -489,7 +487,7 @@ export default function CoachDetailPage({ params }) {
         .slot-group-title {
           font-size: 14px;
           font-weight: 900;
-          color: #64748b;
+          color: var(--color-text-muted);
           margin-bottom: 12px;
         }
         .slot-grid {
@@ -498,19 +496,19 @@ export default function CoachDetailPage({ params }) {
           gap: 10px;
         }
         .slot-btn {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--color-surface-soft);
+          border: 1px solid var(--color-border);
           border-radius: 8px;
           padding: 12px 0;
           font-size: 15px;
           font-weight: 700;
-          color: #334155;
+          color: var(--color-text);
           cursor: pointer;
           transition: all 0.2s;
         }
         .slot-btn:not(.booked):hover {
-          border-color: #cbd5e1;
-          background: #f1f5f9;
+          border-color: var(--color-accent);
+          background: var(--color-surface);
         }
         .slot-btn.selected {
           background: var(--color-accent);
@@ -520,29 +518,29 @@ export default function CoachDetailPage({ params }) {
         .slot-btn.booked {
           opacity: 0.5;
           cursor: not-allowed;
-          background: #f1f5f9;
+          background: var(--color-surface-soft);
         }
         .plan-list {
           display: grid;
           gap: 12px;
         }
         .plan-card {
-          border: 1px solid #dbeafe;
+          border: 1px solid var(--color-border);
           border-radius: 20px;
-          background: #f8fbff;
+          background: var(--color-surface-soft);
           padding: 16px;
           cursor: pointer;
         }
         .plan-card.disabled {
-          background: #f1f5f9;
-          border-color: #e2e8f0;
-          color: #94a3b8;
+          background: var(--color-surface-soft);
+          border-color: var(--color-border);
+          color: var(--color-text-muted);
           cursor: not-allowed;
         }
         .plan-card.active {
-          background: #eff6ff;
-          border-color: #2563eb;
-          box-shadow: 0 12px 24px rgba(37, 99, 235, 0.14);
+          background: var(--color-surface);
+          border-color: var(--color-primary);
+          box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
         }
         .plan-top {
           display: flex;
@@ -556,23 +554,27 @@ export default function CoachDetailPage({ params }) {
         }
         .plan-meta {
           margin-top: 6px;
-          color: #64748b;
+          color: var(--color-text-muted);
           font-size: 13px;
         }
         .field-label {
           display: block;
           font-size: 12px;
           font-weight: 900;
-          color: #64748b;
+          color: var(--color-text-muted);
           margin-bottom: 8px;
         }
         .field, .select {
           width: 100%;
           padding: 12px 14px;
           border-radius: 14px;
-          border: 1px solid #cbd5e1;
-          background: white;
+          border: 1px solid var(--color-border);
+          background: var(--color-surface-soft);
+          color: var(--color-text);
           font-size: 14px;
+          outline: none;
+          font-family: inherit;
+          margin-bottom: 0;
         }
         .form-grid {
           display: grid;
@@ -598,13 +600,14 @@ export default function CoachDetailPage({ params }) {
           cursor: pointer;
         }
         .ghost-btn {
-          background: #e2e8f0;
-          color: #0f172a;
+          background: var(--color-surface-soft);
+          color: var(--color-text);
+          border: 1px solid var(--color-border);
         }
         .primary-btn {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
+          background: var(--color-accent);
           color: white;
-          box-shadow: 0 16px 30px rgba(37, 99, 235, 0.22);
+          box-shadow: 0 16px 30px rgba(245, 158, 11, 0.3);
         }
         .side-panel {
           display: grid;
@@ -616,7 +619,7 @@ export default function CoachDetailPage({ params }) {
           gap: 14px;
         }
         .review-card {
-          border-top: 1px solid #e2e8f0;
+          border-top: 1px solid var(--color-border);
           padding-top: 14px;
         }
         @media (max-width: 980px) {
@@ -701,7 +704,7 @@ export default function CoachDetailPage({ params }) {
 
         {/* 1. 最上方：先聊聊 */}
         <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-main)', fontWeight: 800, marginBottom: 8, textAlign: 'center' }}>👉 不確定？先聊聊</div>
+          <div style={{ fontSize: 13, color: 'var(--color-text)', fontWeight: 800, marginBottom: 8, textAlign: 'center' }}>👉 不確定？先聊聊</div>
           <button type="button" className="ghost-btn" disabled={chatting} onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: 'var(--color-surface)', border: '1px solid var(--color-border)', fontSize: 16, color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: chatting ? 0.7 : 1 }}>
             {chatting ? <div className="animate-spin"><Clock3 size={18} /></div> : <MessageCircle size={18} />}
             {chatting ? '建立聊天室中...' : '有任何問題？先與教練聊聊'}
@@ -732,33 +735,33 @@ export default function CoachDetailPage({ params }) {
                 )}
               </div>
             )}
-            <div style={{ display: 'grid', gap: 10, color: '#334155', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
+            <div style={{ display: 'grid', gap: 10, color: 'var(--color-text)', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid #E2E8F0' }}>
               <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
               <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
               <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
             </div>
 
             <div style={{ marginBottom: 32 }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><FileDigit size={18} color="#2563EB" /> 核心教學理念</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><FileDigit size={18} color="#2563EB" /> 核心教學理念</h3>
               <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.philosophy || '教練尚未填寫教學理念。'}</p>
             </div>
             {coach.teaching_features && (
               <div style={{ marginBottom: 32 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><BookOpen size={18} color="#2563EB" /> 課程特色與預期成長</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><BookOpen size={18} color="#2563EB" /> 課程特色與預期成長</h3>
                 <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.teaching_features}</p>
               </div>
             )}
             {coach.communication_style && (
               <div style={{ marginBottom: 32 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><Mail size={18} color="#2563EB" /> 家長溝通機制</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><Mail size={18} color="#2563EB" /> 家長溝通機制</h3>
                 <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.communication_style}</p>
               </div>
             )}
             {coach.policy_rules && (
               <div style={{ marginBottom: 16 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: '#0F172A', marginBottom: 12 }}><DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則</h3>
-                <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
-                  <p style={{ color: '#475569', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.policy_rules}</p>
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則</h3>
+                <div style={{ background: 'var(--color-surface-soft)', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0' }}>
+                  <p style={{ color: 'var(--color-text-muted)', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.policy_rules}</p>
                 </div>
               </div>
             )}
@@ -769,7 +772,7 @@ export default function CoachDetailPage({ params }) {
               影片 <span style={{ fontSize: 13, color: 'var(--cta)', background: 'rgba(245, 158, 11, 0.1)', padding: '4px 8px', borderRadius: 8, fontWeight: 800 }}>👉 建議先看影片再決定</span>
             </h2>
             <p className="lead">教學與自我介紹影片會顯示在這裡。</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: '#64748b', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--color-text-muted)', fontSize: 13 }}>
               <Video size={15} /> 目前共 {videos.length} 支
             </div>
             <VideoGallery videos={videos} />
@@ -779,16 +782,16 @@ export default function CoachDetailPage({ params }) {
             <h2>評價</h2>
             <p className="lead">先看時段，也要快速確認過往上課回饋。</p>
             {reviews.length === 0 ? (
-              <div style={{ color: '#64748b', fontSize: 14 }}>目前還沒有評價。</div>
+              <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>目前還沒有評價。</div>
             ) : (
               <div className="review-list">
                 {reviews.map((review) => (
                   <div key={review.id} className="review-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                      <div style={{ fontWeight: 900, color: '#0f172a' }}>{review.reviewer_name || '匿名學生'}</div>
-                      <div style={{ color: '#f59e0b', fontWeight: 900 }}>{review.rating} / 5</div>
+                      <div style={{ fontWeight: 900, color: 'var(--color-text)' }}>{review.reviewer_name || '匿名學生'}</div>
+                      <div style={{ color: 'var(--color-accent)', fontWeight: 900 }}>{review.rating} / 5</div>
                     </div>
-                    <div style={{ color: '#334155', fontSize: 14, lineHeight: 1.7 }}>{review.comment || '這則評價沒有文字內容。'}</div>
+                    <div style={{ color: 'var(--color-text)', fontSize: 14, lineHeight: 1.7 }}>{review.comment || '這則評價沒有文字內容。'}</div>
                   </div>
                 ))}
               </div>
@@ -891,7 +894,7 @@ export default function CoachDetailPage({ params }) {
               return (
                 <div className="time-slots-container">
                   {dateSlots.length === 0 ? (
-                    <div style={{ color: '#64748b', fontSize: 14 }}>這天沒有可預約的時段</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>這天沒有可預約的時段</div>
                   ) : (
                     <>
                       {renderSlotGroup('中午', morningSlots)}
@@ -903,7 +906,7 @@ export default function CoachDetailPage({ params }) {
               );
             })() : (
               <div className="time-slots-container" style={{ borderTop: 'none', paddingTop: 0 }}>
-                <div style={{ color: '#64748b', fontSize: 14 }}>請先在上方點選有空檔的日期</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>請先在上方點選有空檔的日期</div>
               </div>
             )}
           </div>
@@ -927,10 +930,10 @@ export default function CoachDetailPage({ params }) {
                     </div>
                     <div className="plan-title">NT${Number(plan.price || 0).toLocaleString()}</div>
                   </div>
-                  {!plan.available && <div className="plan-meta" style={{ color: '#94a3b8', marginTop: 10 }}>這個時段容納不了此方案長度</div>}
+                  {!plan.available && <div className="plan-meta" style={{ color: 'var(--color-text-muted)', marginTop: 10 }}>這個時段容納不了此方案長度</div>}
                 </button>
               )) : (
-                <div style={{ color: '#64748b', fontSize: 14 }}>先在上方時段表點選一個可約時段。</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>先在上方時段表點選一個可約時段。</div>
               )}
             </div>
 
@@ -973,8 +976,8 @@ export default function CoachDetailPage({ params }) {
                 <div>
                   <label className="field-label">預約模式</label>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: !bookingForm.isRecurring ? '#f8fafc' : '#eff6ff', color: !bookingForm.isRecurring ? '#64748b' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
+                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid #cbd5e1' : '2px solid #2563eb', background: !bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: !bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
                   </div>
                 </div>
                 {bookingForm.isRecurring ? (
@@ -1035,7 +1038,7 @@ export default function CoachDetailPage({ params }) {
               return (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 8px' }}>
-                     <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                     <div style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
                        自動套用折扣：等級 {baseDiscountPercent}% 
                        {bookingForm.couponId ? ` + 優惠券 ${couponDiscountPercent}%` : ''}
                      </div>
@@ -1044,7 +1047,7 @@ export default function CoachDetailPage({ params }) {
                      </div>
                   </div>
 
-                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: '#F59E0B', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: '#fff', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     {submitting ? <div className="animate-spin"><Clock3 size={18} /></div> : <CalendarDays size={18} />}
                     {submitting ? '建立預約中...' : `送出預約 (實付 NT$${finalTotal.toLocaleString()})`}
                   </button>
