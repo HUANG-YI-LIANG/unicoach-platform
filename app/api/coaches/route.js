@@ -119,8 +119,6 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     id: coach.users.id,
     user_id: coach.user_id,
     name: coach.users.name,
-    email: coach.users.email,
-    phone: coach.users.phone,
     avatar_url: coach.users.avatar_url,
     review_count: coach.review_count,
     rating_avg: coach.rating_avg,
@@ -165,7 +163,7 @@ export async function GET(request) {
 
     const { data: coaches, error: coachError } = await adminSupabase
       .from('coaches')
-      .select('*, users!inner(id, name, email, phone, avatar_url, level)')
+      .select('*, users!inner(id, name, avatar_url, level)')
       .eq('approval_status', 'approved');
 
     if (coachError) {

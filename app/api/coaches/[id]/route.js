@@ -25,8 +25,9 @@ export async function GET(_request, { params }) {
 
     const { data: coach, error } = await adminSupabase
       .from('coaches')
-      .select('*, users!inner(name, email, phone, id, avatar_url, level)')
+      .select('*, users!inner(name, id, avatar_url, level)')
       .eq('user_id', id)
+      .eq('approval_status', 'approved')
       .single();
 
     if (error || !coach) {
@@ -105,12 +106,17 @@ export async function GET(_request, { params }) {
     };
     const nextAvailableSlot = saleability.canSell ? getNextAvailableSlot(coachWithFormalAvailability, bookings || []) : null;
 
+    const publicBlockedSlots = (bookings || [])
+      .filter((booking) => booking.expected_time)
+      .map((booking) => ({
+        expected_time: booking.expected_time,
+        duration_minutes: booking.duration_minutes,
+      }));
+
     const formattedCoach = {
       id: coach.users.id,
       user_id: coach.user_id,
       name: coach.users.name,
-      email: coach.users.email,
-      phone: coach.users.phone,
       avatar_url: coach.users.avatar_url,
       rating_avg: ratingAvg,
       review_count: reviewCount,
@@ -140,7 +146,7 @@ export async function GET(_request, { params }) {
       coach: formattedCoach,
       reviews: formattedReviews,
       videos: videos || [],
-      bookings: bookings || [],
+      bookings: publicBlockedSlots,
     });
   } catch (error) {
     console.error('Coach detail fetch error:', error);

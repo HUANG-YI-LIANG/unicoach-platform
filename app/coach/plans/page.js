@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const DURATIONS = [30, 45, 60, 75, 90, 120, 150, 180];
 const EMPTY_FORM = {
@@ -19,6 +20,7 @@ export default function CoachPlansPage() {
   const [plans, setPlans] = useState([]);
   const [usingDefaults, setUsingDefaults] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -38,15 +40,18 @@ export default function CoachPlansPage() {
 
   async function fetchPlans() {
     setLoading(true);
+    setLoadError('');
+
     try {
-      const response = await fetch('/api/coach/plans');
-      const payload = await response.json();
+      const response = await fetchWithTimeout('/api/coach/plans');
+      const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        alert(payload.error || '無法取得方案');
-        return;
+        throw new Error(payload.error || '方案資料載入失敗');
       }
       setPlans(payload.plans || []);
       setUsingDefaults(Boolean(payload.using_defaults));
+    } catch (error) {
+      setLoadError(error.message || '無法載入方案');
     } finally {
       setLoading(false);
     }
@@ -121,6 +126,22 @@ export default function CoachPlansPage() {
 
   if (authLoading || loading) {
     return <div style={{ padding: 32, color: 'var(--text-muted)' }}>載入方案資料中...</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ maxWidth: 420, background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 20, padding: 24, textAlign: 'center', color: 'var(--text-main)' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900 }}>無法載入方案</h1>
+          <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 14 }}>{loadError}</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={fetchPlans} style={{ border: 'none', background: 'var(--primary)', color: '#FFFFFF', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
+            <button type="button" onClick={() => router.push('/coach/profile/edit')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>完成教練資料</button>
+            <button type="button" onClick={() => router.push('/dashboard/coach')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>回教練中心</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

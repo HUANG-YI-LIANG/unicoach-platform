@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Check, Loader2, Save } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
 const WEEKDAYS = [
   { value: 1, label: 'Mon' },
@@ -49,12 +50,42 @@ export default function CoachSchedulePage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [saving, setSaving] = useState(false);
   const [slots, setSlots] = useState([]);
   const [usingLegacy, setUsingLegacy] = useState(false);
   const [exceptions, setExceptions] = useState([]);
   const [exceptionForm, setExceptionForm] = useState(EXCEPTION_FORM_DEFAULT);
   const [savingException, setSavingException] = useState(false);
+
+  const applyAvailabilityPayload = useCallback((payload) => {
+    setSlots((payload?.rules || []).map((rule) => ({
+      weekday: Number(rule.weekday),
+      start: String(rule.start_time || rule.start || '').slice(0, 5),
+      end: String(rule.end_time || rule.end || '').slice(0, 5),
+      slotMinutes: Number(rule.slot_minutes || 30),
+    })));
+    setUsingLegacy(Boolean(payload?.using_legacy_available_times));
+    setExceptions(payload?.exceptions || []);
+  }, []);
+
+  const fetchAvailability = useCallback(async () => {
+    setLoading(true);
+    setLoadError('');
+
+    try {
+      const response = await fetchWithTimeout('/api/coach/availability');
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || '固定時段載入失敗');
+      }
+      applyAvailabilityPayload(payload);
+    } catch (error) {
+      setLoadError(error.message || '無法載入固定時段');
+    } finally {
+      setLoading(false);
+    }
+  }, [applyAvailabilityPayload]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -68,21 +99,9 @@ export default function CoachSchedulePage() {
     }
 
     if (!authLoading && user) {
-      fetch('/api/coach/availability')
-        .then((response) => response.ok ? response.json() : null)
-        .then((payload) => {
-          setSlots((payload?.rules || []).map((rule) => ({
-            weekday: Number(rule.weekday),
-            start: String(rule.start_time || rule.start || '').slice(0, 5),
-            end: String(rule.end_time || rule.end || '').slice(0, 5),
-            slotMinutes: Number(rule.slot_minutes || 30),
-          })));
-          setUsingLegacy(Boolean(payload?.using_legacy_available_times));
-          setExceptions(payload?.exceptions || []);
-        })
-        .finally(() => setLoading(false));
+      fetchAvailability();
     }
-  }, [authLoading, router, user]);
+  }, [authLoading, fetchAvailability, router, user]);
 
   const slotSet = useMemo(() => makeSlotMap(slots), [slots]);
 
@@ -138,17 +157,7 @@ export default function CoachSchedulePage() {
   }
 
   async function refreshAvailability() {
-    const response = await fetch('/api/coach/availability');
-    const payload = response.ok ? await response.json() : null;
-    if (!payload) return;
-    setSlots((payload.rules || []).map((rule) => ({
-      weekday: Number(rule.weekday),
-      start: String(rule.start_time || rule.start || '').slice(0, 5),
-      end: String(rule.end_time || rule.end || '').slice(0, 5),
-      slotMinutes: Number(rule.slot_minutes || 30),
-    })));
-    setUsingLegacy(Boolean(payload.using_legacy_available_times));
-    setExceptions(payload.exceptions || []);
+    await fetchAvailability();
   }
 
   async function handleCreateException(event) {
@@ -193,6 +202,21 @@ export default function CoachSchedulePage() {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', color: 'var(--text-muted)' }}>
         <Loader2 className="animate-spin" size={28} />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ maxWidth: 420, background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 20, padding: 24, textAlign: 'center', color: 'var(--text-main)' }}>
+          <h1 style={{ margin: '0 0 8px', fontSize: 22, fontWeight: 900 }}>無法載入固定時段</h1>
+          <p style={{ margin: '0 0 18px', color: 'var(--text-muted)', fontSize: 14 }}>{loadError}</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" onClick={fetchAvailability} style={{ border: 'none', background: 'var(--primary)', color: '#FFFFFF', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>重新載入</button>
+            <button type="button" onClick={() => router.push('/dashboard/coach')} style={{ border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-main)', borderRadius: 12, padding: '11px 16px', fontWeight: 900, cursor: 'pointer' }}>回教練中心</button>
+          </div>
+        </div>
       </div>
     );
   }

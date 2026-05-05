@@ -33,10 +33,12 @@ export async function POST(request) {
       return NextResponse.json({ error: `檔案過大，限制為 ${VIDEO_UPLOAD_MAX_MB}MB` }, { status: 400 });
     }
 
-    // 限制支援格式
-    const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime']; // quicktime is .mov
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: '不支援的影片格式，請使用 mp4, webm 或 mov' }, { status: 400 });
+    // 限制支援格式：目前沒有轉檔管線，僅允許瀏覽器穩定支援的 MP4 / WebM。
+    const allowedTypes = ['video/mp4', 'video/webm'];
+    const fileNameForValidation = String(file.name || '').toLowerCase();
+    const isUnsupportedQuickTimeFile = file.type === 'video/quicktime' || /\.(mov|qt)$/.test(fileNameForValidation);
+    if (isUnsupportedQuickTimeFile || !allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: '不支援的影片格式，請使用 mp4 或 webm。MOV / QuickTime 請先轉成 MP4 後再上傳。' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();

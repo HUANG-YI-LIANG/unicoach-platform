@@ -2,6 +2,14 @@ import { NextResponse } from 'next/server';
 import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 
+function isUnsupportedQuickTimeVideoUrl(value = '') {
+  return /\.(mov|qt)(\?|#|$)/i.test(String(value)) || /quicktime/i.test(String(value));
+}
+
+function isBrowserPlayableVideoUrl(value = '') {
+  return /\.(mp4|webm)(\?|#|$)/i.test(String(value));
+}
+
 export async function POST(request) {
   try {
     const auth = await requireApprovedCoach();
@@ -12,6 +20,10 @@ export async function POST(request) {
 
     if (!title || !category || !publicUrl) {
       return NextResponse.json({ error: 'Missing metadata' }, { status: 400 });
+    }
+
+    if (isUnsupportedQuickTimeVideoUrl(publicUrl) || !isBrowserPlayableVideoUrl(publicUrl)) {
+      return NextResponse.json({ error: '不支援的影片網址。MOV / QuickTime 請先轉成 MP4 後再上傳，支援格式為 mp4 或 webm。' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();

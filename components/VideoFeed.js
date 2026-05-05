@@ -12,6 +12,10 @@ function formatCount(value) {
   return String(count);
 }
 
+function isPotentiallyUnsupportedVideoUrl(url = '') {
+  return /\.(mov|qt)(\?|#|$)/i.test(String(url)) || /quicktime/i.test(String(url));
+}
+
 function VideoItem({ video, isVisible, onLike, onView }) {
   const router = useRouter();
   const videoRef = useRef(null);
@@ -19,9 +23,16 @@ function VideoItem({ video, isVisible, onLike, onView }) {
   const [muted, setMuted] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [showPopCta, setShowPopCta] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const unsupportedVideoUrl = isPotentiallyUnsupportedVideoUrl(video.video_url);
 
   useEffect(() => {
-    if (!videoRef.current) return;
+    setVideoError(false);
+    viewedRef.current = false;
+  }, [video.id]);
+
+  useEffect(() => {
+    if (!videoRef.current || videoError) return;
     
     if (isVisible) {
       videoRef.current.play().catch(() => {});
@@ -35,7 +46,14 @@ function VideoItem({ video, isVisible, onLike, onView }) {
       setShowToast(false);
       setShowPopCta(false);
     }
-  }, [isVisible, onView, video.id]);
+  }, [isVisible, onView, video.id, videoError]);
+
+  function handleVideoError() {
+    setVideoError(true);
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+  }
 
   // Handle Toast logic when liked
   useEffect(() => {
@@ -74,12 +92,57 @@ function VideoItem({ video, isVisible, onLike, onView }) {
         loop
         playsInline
         muted={muted}
+        onError={handleVideoError}
         style={{
           width: '100%',
           height: '100%',
           objectFit: 'cover'
         }}
       />
+
+      {videoError && (
+        <div
+          role="alert"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 15,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 12,
+            padding: 24,
+            textAlign: 'center',
+            background: 'linear-gradient(180deg, rgba(2, 6, 23, 0.92), rgba(15, 23, 42, 0.96))',
+            color: '#FFFFFF'
+          }}
+        >
+          <div style={{ fontSize: 42 }}>🎬</div>
+          <h3 style={{ margin: 0, fontSize: 20, fontWeight: 900 }}>影片無法播放</h3>
+          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
+            {unsupportedVideoUrl
+              ? '此影片格式可能不支援瀏覽器播放，MOV / QuickTime 請先轉成 MP4 後再上傳。'
+              : '此影片暫時載入失敗，請稍後再試或查看教練資料。'}
+          </p>
+          <button
+            onClick={() => router.push(`/coaches/${video.coach_id}`)}
+            style={{
+              marginTop: 8,
+              background: 'var(--primary)',
+              color: 'white',
+              border: 'none',
+              padding: '12px 22px',
+              borderRadius: 100,
+              fontWeight: 900,
+              fontSize: 14,
+              cursor: 'pointer'
+            }}
+          >
+            查看教練資料
+          </button>
+        </div>
+      )}
 
       <button
         onClick={() => setMuted((current) => !current)}

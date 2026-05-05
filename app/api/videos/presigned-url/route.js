@@ -3,7 +3,11 @@ import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
+
+function isUnsupportedQuickTimeVideoUrl(value = '') {
+  return /\.(mov|qt)(\?|#|$)/i.test(String(value)) || /quicktime/i.test(String(value));
+}
 
 export async function POST(request) {
   try {
@@ -17,8 +21,12 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing filename or contentType' }, { status: 400 });
     }
 
+    if (contentType === 'video/quicktime' || isUnsupportedQuickTimeVideoUrl(filename)) {
+      return NextResponse.json({ error: '不支援 MOV / QuickTime，請先轉成 MP4 後再上傳。支援格式：mp4、webm' }, { status: 400 });
+    }
+
     if (!ALLOWED_VIDEO_TYPES.includes(contentType)) {
-      return NextResponse.json({ error: '不支援的影片格式，請使用 mp4、webm 或 mov' }, { status: 400 });
+      return NextResponse.json({ error: '不支援的影片格式，請使用 mp4 或 webm。MOV / QuickTime 請先轉成 MP4 後再上傳。' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
