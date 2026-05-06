@@ -11,6 +11,7 @@ export default function Header() {
   const [showLevelRules, setShowLevelRules] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
+  const [rewardConfig, setRewardConfig] = useState(null);
 
   useEffect(() => {
     if (showLevelRules && user && tasks.length === 0) {
@@ -20,6 +21,7 @@ export default function Header() {
         .then(data => {
           if (data.success) {
             setTasks(data.tasks);
+            if (data.rewardConfig) setRewardConfig(data.rewardConfig);
           }
           setLoadingTasks(false);
         })
@@ -137,11 +139,11 @@ export default function Header() {
                     <div style={{ fontSize: 15, fontWeight: 800, color: '#10B981', marginBottom: 4 }}>完成全部任務解鎖大獎！</div>
                     <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                       {user?.level === 1 ? (
-                        <>獲得「新手完成徽章」與 $50 專屬優惠券，並自動晉升至 <strong>等級 2</strong>！</>
+                        <>獲得「新手完成徽章」{rewardConfig?.lv2?.type === 'amount' ? `與 $${rewardConfig.lv2.value} 專屬優惠券` : rewardConfig?.lv2?.type === 'percent' ? `與 ${rewardConfig.lv2.value}折 專屬優惠券` : ''}，並自動晉升至 <strong>等級 2</strong>！</>
                       ) : user?.level === 2 ? (
-                        <>獲得專屬 8 折優惠券，並自動晉升至 <strong>等級 3</strong>！</>
+                        <>{rewardConfig?.lv3?.type === 'amount' ? `獲得 $${rewardConfig.lv3.value} 專屬優惠券` : rewardConfig?.lv3?.type === 'percent' ? `獲得 ${rewardConfig.lv3.value}折 專屬優惠券` : '完成進階挑戰'}，並自動晉升至 <strong>等級 3</strong>！</>
                       ) : user?.level === 3 ? (
-                        <>恭喜即將破關！完成所有挑戰即可解鎖目前最高殿堂 <strong>等級 4</strong>！</>
+                        <>{rewardConfig?.lv4?.type === 'amount' ? `獲得 $${rewardConfig.lv4.value} 專屬優惠券` : rewardConfig?.lv4?.type === 'percent' ? `獲得 ${rewardConfig.lv4.value}折 專屬優惠券` : '恭喜即將破關'}！完成所有挑戰即可解鎖目前最高殿堂 <strong>等級 4</strong>！</>
                       ) : (
                         <>您已完成目前所有等級任務！</>
                       )}

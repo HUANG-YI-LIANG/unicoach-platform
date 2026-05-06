@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, Users, TrendingUp, Calendar
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, Users, TrendingUp, Calendar, Target
 } from 'lucide-react';
 
 const BLUE = 'var(--color-primary)';
@@ -203,6 +203,23 @@ export default function AdminDashboard() {
             <div>
               <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>抽成與折扣</h3>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>個別教練抽成與全站通知</p>
+            </div>
+          </div>
+          <ArrowRight color="var(--border-input)" />
+        </div>
+
+        {/* Tasks and Rewards */}
+        <div
+          onClick={() => router.push('/admin/tasks')}
+          style={cardStyle('#E0E7FF', '#4F46E5')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#E0E7FF', padding: '12px', borderRadius: '12px', color: '#4F46E5' }}>
+              <Target size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>任務目標與獎勵</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>管理升級條件與破關禮包</p>
             </div>
           </div>
           <ArrowRight color="var(--border-input)" />
