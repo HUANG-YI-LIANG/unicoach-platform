@@ -128,17 +128,25 @@ export default function Header() {
               </div>
 
               {/* 滿級獎勵提示 */}
-              <div style={{ marginTop: 24, padding: 16, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 12, border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
-                  <span style={{ fontSize: 24 }}>🎖️</span>
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#10B981', marginBottom: 4 }}>完成全部任務解鎖大獎！</div>
-                  <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                    獲得「新手完成徽章」與 $50 專屬優惠券，並自動晉升至 <strong>等級 2</strong>！
+              {(!user?.level || user?.level < 3) && (
+                <div style={{ marginTop: 24, padding: 16, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 12, border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
+                    <span style={{ fontSize: 24 }}>🎖️</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: '#10B981', marginBottom: 4 }}>完成全部任務解鎖大獎！</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                      {user?.level === 1 ? (
+                        <>獲得「新手完成徽章」與 $50 專屬優惠券，並自動晉升至 <strong>等級 2</strong>！</>
+                      ) : user?.level === 2 ? (
+                        <>獲得專屬 8 折優惠券，並自動晉升至 <strong>等級 3</strong>！</>
+                      ) : (
+                        <>您已完成目前所有等級任務！</>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               <style>{`
                 .task-link:hover {

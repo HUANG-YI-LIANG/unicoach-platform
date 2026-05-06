@@ -101,51 +101,87 @@ export async function GET(request) {
       .eq('reviewer_id', userId);
     const task10Progress = (reviewCount || 0) >= 1 ? 100 : 0;
 
-    // 12. 邀請朋友完成第一堂課
-    const { count: friendCompleteCount } = await adminSupabase
-      .from('reward_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('referrer_user_id', userId)
-      .eq('reward_type', 'referral_bonus');
-    const task12Progress = (friendCompleteCount || 0) >= 1 ? 100 : 0;
+    // 12. 邀請第 2 位朋友完成註冊
+    const task12Progress = (referredCount || 0) >= 2 ? 100 : ((referredCount || 0) === 1 ? 50 : 0);
 
-    // Compile results
-    const tasks = [
-      { id: 1, title: '完成個人資料', subtitle: '讓教練知道你的需求', progress: task1Progress, link: '/dashboard/user/edit' },
-      { id: 2, title: '觀看 1 支教練影片（≥10秒）', subtitle: '了解教練風格', progress: task2Progress, link: '/explore' },
-      { id: 3, title: '收藏 1 位教練', subtitle: '建立你的比較清單', progress: task3Progress, link: '/explore' },
-      { id: 4, title: '幫 3 位不同教練按讚', subtitle: '幫助教練建立信任', progress: task4Progress, link: '/explore' },
-      { id: 5, title: '發送第一則聊天訊息', subtitle: '開始與教練溝通', progress: task5Progress, link: '/chat' },
-      { id: 6, title: '邀請 1 位朋友註冊', subtitle: '使用推薦功能', progress: task6Progress, link: '/dashboard/user' },
-      { id: 7, title: '使用優惠券完成一次預約', subtitle: '學會使用折扣', progress: task7Progress, link: '/explore' },
-      { id: 8, title: '完成第一堂課', subtitle: '開始實際學習', progress: task8Progress, link: '/coaches' },
-      { id: 9, title: '查看學習紀錄卡', subtitle: '了解你的進步', progress: task9Progress, link: '/bookings' },
-      { id: 10, title: '留下第一則評價', subtitle: '幫助其他學員選擇', progress: task10Progress, link: '/bookings' },
-      { id: 11, title: '再預約第二堂課', subtitle: '建立持續學習習慣', progress: task11Progress, link: '/coaches' },
-      { id: 12, title: '邀請朋友完成第一堂課', subtitle: '推薦成功，獲得獎勵', progress: task12Progress, link: '/dashboard/user' }
-    ];
+    let tasks = [];
+    let overallProgress = 0;
 
-    const overallProgress = Math.round(tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length);
+    if (user.level === 1) {
+      tasks = [
+        { id: 1, title: '完成個人資料', subtitle: '讓教練知道你的需求', progress: task1Progress, link: '/dashboard/user/edit' },
+        { id: 2, title: '觀看 1 支教練影片（≥10秒）', subtitle: '了解教練風格', progress: task2Progress, link: '/explore' },
+        { id: 3, title: '收藏 1 位教練', subtitle: '建立你的比較清單', progress: task3Progress, link: '/explore' },
+        { id: 4, title: '幫 3 位不同教練按讚', subtitle: '幫助教練建立信任', progress: task4Progress, link: '/explore' },
+        { id: 5, title: '發送第一則聊天訊息', subtitle: '開始與教練溝通', progress: task5Progress, link: '/chat' },
+        { id: 6, title: '邀請 1 位朋友註冊', subtitle: '使用推薦功能', progress: task6Progress, link: '/dashboard/user' },
+        { id: 7, title: '使用優惠券完成一次預約', subtitle: '學會使用折扣', progress: task7Progress, link: '/explore' },
+        { id: 8, title: '完成第一堂課', subtitle: '開始實際學習', progress: task8Progress, link: '/coaches' },
+        { id: 9, title: '查看學習紀錄卡', subtitle: '了解你的進步', progress: task9Progress, link: '/bookings' },
+        { id: 10, title: '留下第一則評價', subtitle: '幫助其他學員選擇', progress: task10Progress, link: '/bookings' },
+        { id: 11, title: '再預約第二堂課', subtitle: '建立持續學習習慣', progress: task11Progress, link: '/coaches' },
+        { id: 12, title: '邀請第 2 位朋友註冊', subtitle: '擴大你的學習圈', progress: task12Progress, link: '/dashboard/user' }
+      ];
+      overallProgress = Math.round(tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length);
+    } else if (user.level === 2) {
+      const l2t1 = Math.min(Math.round(((completedClasses || 0) / 2) * 100), 100);
+      const l2t2 = Math.min(Math.round(((reviewCount || 0) / 2) * 100), 100);
+      const l2t3 = Math.min(Math.round(((reportViewCount || 0) / 2) * 100), 100);
+      const l2t4 = Math.min(Math.round(((bookedClasses || 0) / 3) * 100), 100);
+      const l2t5 = Math.min(Math.round(((messageCount || 0) / 3) * 100), 100);
+      const l2t6 = Math.min(Math.round(((referredCount || 0) / 3) * 100), 100);
+
+      tasks = [
+        { id: 1, title: '完成 2 堂課', subtitle: '持續精進球技', progress: l2t1, link: '/coaches' },
+        { id: 2, title: '留下 2 則評價', subtitle: '幫助教練進步', progress: l2t2, link: '/bookings' },
+        { id: 3, title: '查看 2 份學習紀錄', subtitle: '回顧學習成效', progress: l2t3, link: '/bookings' },
+        { id: 4, title: '再預約 1 堂課', subtitle: '保持學習動能', progress: l2t4, link: '/coaches' },
+        { id: 5, title: '與教練完成 3 則對話', subtitle: '積極溝通討論', progress: l2t5, link: '/chat' },
+        { id: 6, title: '邀請 1 位朋友完成註冊', subtitle: '分享學習樂趣', progress: l2t6, link: '/dashboard/user' }
+      ];
+      overallProgress = Math.round(tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length);
+    } else {
+      overallProgress = 100;
+    }
 
     let levelUpMessage = null;
     let newLevel = user.level || 1;
 
     // 滿級自動升級邏輯
-    if (overallProgress === 100 && newLevel === 1) {
-      newLevel = 2;
-      
-      // 1. 更新使用者等級
-      const { error: updateError } = await adminSupabase
-        .from('users')
-        .update({ level: newLevel })
-        .eq('id', userId);
-        
-      if (!updateError) {
-        levelUpMessage = '恭喜！您已完成所有新手任務，晉升至等級 2！';
-        
-        // 2. 自動發送 $50 折價券
-        // 此處實作視資料庫設計而定，若有 coupons 表可在此 insert
-        // await adminSupabase.from('coupons').insert([{ user_id: userId, code: 'LV2-BONUS', discount_amount: 50 }]);
+    if (overallProgress === 100) {
+      if (newLevel === 1) {
+        newLevel = 2;
+        const { error: updateError } = await adminSupabase.from('users').update({ level: newLevel }).eq('id', userId);
+        if (!updateError) {
+          levelUpMessage = '恭喜！您已完成所有新手任務，晉升至等級 2！獲得 $50 優惠券！';
+          
+          // 發放 $50 折價券
+          const validUntil = new Date();
+          validUntil.setDate(validUntil.getDate() + 30);
+          await adminSupabase.from('coupons').insert([{ 
+            user_id: userId, 
+            type: 'level',
+            discount_amount: 50,
+            valid_until: validUntil.toISOString()
+          }]);
+        }
+      } else if (newLevel === 2) {
+        newLevel = 3;
+        const { error: updateError } = await adminSupabase.from('users').update({ level: newLevel }).eq('id', userId);
+        if (!updateError) {
+          levelUpMessage = '太神啦！您已晉升至等級 3！獲得專屬 8 折優惠券！';
+          
+          // 發放 8 折 (20% off) 優惠券
+          const validUntil = new Date();
+          validUntil.setDate(validUntil.getDate() + 30);
+          await adminSupabase.from('coupons').insert([{ 
+            user_id: userId, 
+            type: 'level',
+            discount_percent: 20, 
+            max_amount: 500,
+            valid_until: validUntil.toISOString()
+          }]);
+        }
       }
     }
 
