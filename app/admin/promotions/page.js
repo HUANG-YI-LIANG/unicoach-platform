@@ -137,28 +137,25 @@ export default function PromotionsAdmin() {
     }
   };
 
-  const handleUpdateCommission = async (coachUserId, newRate) => {
+  const handleUpdateCommission = async (coachUserId, newDiscount) => {
     try {
       const response = await fetch(`/api/admin/coaches/${coachUserId}/commission`, {
-        method: 'PATCH',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ commission_rate: newRate }),
+        body: JSON.stringify({ commission_discount: newDiscount }),
       });
 
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || '更新教練抽成失敗');
-      }
+      if (!response.ok) throw new Error();
 
       setCoaches((prev) =>
         prev.map((coach) =>
-          coach.user_id === coachUserId ? { ...coach, commission_rate: newRate } : coach
+          coach.user_id === coachUserId ? { ...coach, commission_discount: newDiscount } : coach
         )
       );
-      showMessage('success', '教練抽成設定已更新');
+      showMessage('success', '個人減免已更新');
     } catch (error) {
-      console.error('[UPDATE COMMISSION UI ERROR]', error);
-      showMessage('error', error.message || '更新教練抽成失敗');
+      console.error('[UPDATE COMMISSION ERROR]', error);
+      showMessage('error', '更新失敗');
     }
   };
 
@@ -326,9 +323,9 @@ export default function PromotionsAdmin() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <Info size={18} color={BLUE} style={{ marginTop: 2, flexShrink: 0 }} />
                 <div>
-                  <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>目前平台預設抽成：{globalCommission}%</div>
+                  <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>抽成計算公式：等級抽成比例 - 個人抽成減免 = 最終抽成比例</div>
                   <div style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>
-                    沒有個別設定的教練，系統會使用平台預設抽成比例。
+                    教練的基本抽成由其當前的動態績效等級決定，您可針對特定教練設定「個人減免」比例。
                   </div>
                 </div>
               </div>
@@ -339,93 +336,73 @@ export default function PromotionsAdmin() {
                 <thead>
                   <tr style={{ background: 'var(--color-bg)', borderBottom: '1px solid var(--color-border)' }}>
                     <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>教練</th>
-                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>設定狀態</th>
-                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>抽成比例 (%)</th>
+                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>當前等級</th>
+                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>等級抽成</th>
+                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>個人抽成減免</th>
+                    <th style={{ padding: '16px 24px', color: MUTED, fontWeight: 800, fontSize: 13 }}>最終抽成比例</th>
                   </tr>
                 </thead>
                 <tbody>
                   {coaches.map((coach) => {
-                    const isCustom = coach.commission_rate !== null && coach.commission_rate !== undefined;
-                    const currentRate = isCustom ? coach.commission_rate : globalCommission;
+                    const perf = coach.performance || { currentLevel: 1, baseCommission: 45, personalDiscount: coach.commission_discount || 0, currentCommission: Math.max(0, 45 - (coach.commission_discount || 0)) };
+                    const isCustom = perf.personalDiscount > 0;
+                    const discountRate = perf.personalDiscount;
 
                     return (
                       <tr key={coach.user_id || coach.id} style={{ borderBottom: '1px solid var(--color-surface-soft)' }}>
                         <td style={{ padding: '16px 24px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                             {coach.user?.avatar_url ? (
-                              <img
-                                src={coach.user.avatar_url}
-                                alt={coach.user?.name || '教練頭像'}
-                                style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }}
-                              />
+                              <img src={coach.user.avatar_url} alt="教練頭像" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover' }} />
                             ) : (
-                              <div
-                                style={{
-                                  width: 40,
-                                  height: 40,
-                                  borderRadius: '50%',
-                                  background: '#EFF6FF',
-                                  color: BLUE,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  fontWeight: 900,
-                                }}
-                              >
+                              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#EFF6FF', color: BLUE, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900 }}>
                                 {coach.user?.name?.charAt(0) || 'C'}
                               </div>
                             )}
                             <div>
-                              <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>
-                                {coach.user?.name || '未命名教練'}
-                              </div>
+                              <div style={{ fontWeight: 800, color: DARK, fontSize: 14 }}>{coach.user?.name || '未命名教練'}</div>
                               <div style={{ color: MUTED, fontSize: 12, marginTop: 2 }}>{coach.user?.email || '-'}</div>
                             </div>
                           </div>
                         </td>
                         <td style={{ padding: '16px 24px' }}>
-                          {isCustom ? (
-                            <span style={{ background: '#FEF3C7', color: '#D97706', padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 800 }}>
-                              個別設定
-                            </span>
-                          ) : (
-                            <span style={{ background: 'var(--color-surface-soft)', color: MUTED, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 800 }}>
-                              使用預設
-                            </span>
-                          )}
+                          <span style={{ background: 'var(--color-surface-soft)', color: DARK, padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 800 }}>
+                            Lv.{perf.currentLevel}
+                          </span>
+                        </td>
+                        <td style={{ padding: '16px 24px', fontWeight: 800, color: MUTED, fontSize: 14 }}>
+                          {perf.baseCommission}%
                         </td>
                         <td style={{ padding: '16px 24px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontWeight: 800, color: DARK }}>-</span>
                             <input
                               type="number"
-                              defaultValue={currentRate}
+                              defaultValue={discountRate}
                               min={0}
                               max={100}
                               onBlur={(event) => {
                                 const value = event.target.value;
                                 if (value === '') {
-                                  if (isCustom) handleUpdateCommission(coach.user_id, null);
-                                  event.target.value = String(globalCommission);
+                                  if (isCustom) handleUpdateCommission(coach.user_id, 0);
+                                  event.target.value = '0';
                                   return;
                                 }
-                                const nextRate = Number(value);
-                                if (!Number.isNaN(nextRate) && nextRate !== currentRate) {
-                                  handleUpdateCommission(coach.user_id, nextRate);
+                                const nextDiscount = Number(value);
+                                if (!Number.isNaN(nextDiscount) && nextDiscount !== discountRate) {
+                                  handleUpdateCommission(coach.user_id, nextDiscount);
                                 }
                               }}
                               style={{
-                                width: 70,
-                                padding: '8px 12px',
-                                borderRadius: 10,
-                                border: '1px solid var(--border-input)',
-                                fontSize: 14,
-                                fontWeight: 800,
-                                color: DARK,
-                                background: isCustom ? '#FEF3C7' : WHITE,
+                                width: 70, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-input)',
+                                fontSize: 14, fontWeight: 800, color: DARK, background: isCustom ? '#FEF3C7' : WHITE,
                               }}
                             />
                             <span style={{ color: MUTED, fontSize: 13, fontWeight: 800 }}>%</span>
                           </div>
+                        </td>
+                        <td style={{ padding: '16px 24px', fontWeight: 900, color: '#D97706', fontSize: 15 }}>
+                          = {perf.currentCommission}%
                         </td>
                       </tr>
                     );

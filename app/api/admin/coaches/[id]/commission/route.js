@@ -9,22 +9,24 @@ export async function PATCH(request, { params }) {
 
     const { id: coachUserId } = await params;
     const body = await request.json();
-    const { commission_rate } = body; // Can be a number or null
+    const { commission_discount } = body; // Can be a number or null
 
-    const normalizedRate =
-      commission_rate === null || commission_rate === undefined || commission_rate === ''
+    // Normalize value
+    const normalizedDiscount = 
+      commission_discount === null || commission_discount === undefined || commission_discount === ''
         ? null
-        : Number(commission_rate);
+        : Number(commission_discount);
 
-    if (normalizedRate !== null && (!Number.isInteger(normalizedRate) || normalizedRate < 0 || normalizedRate > 100)) {
-      return NextResponse.json({ error: '抽成比例必須介於 0 到 100 之間' }, { status: 400 });
+    // Validate if it's a valid number between 0-100 when provided
+    if (normalizedDiscount !== null && (isNaN(normalizedDiscount) || normalizedDiscount < 0 || normalizedDiscount > 100)) {
+      return NextResponse.json({ error: '減免比例必須是 0-100 之間的數字' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
 
     const { error } = await adminSupabase
       .from('coaches')
-      .update({ commission_rate: normalizedRate })
+      .update({ commission_discount: normalizedDiscount })
       .eq('user_id', coachUserId);
 
     if (error) throw error;

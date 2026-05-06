@@ -19,7 +19,21 @@ export async function GET(request) {
       `);
 
     if (error) throw error;
-    return NextResponse.json({ coaches });
+
+    const { getCoachPerformance } = require('@/lib/coachPerformance');
+    
+    // 計算每位教練的當前動態績效與最終抽成
+    const coachesWithPerformance = await Promise.all(
+      coaches.map(async (coach) => {
+        const perf = await getCoachPerformance(coach.id, adminSupabase);
+        return {
+          ...coach,
+          performance: perf
+        };
+      })
+    );
+
+    return NextResponse.json({ coaches: coachesWithPerformance });
   } catch (err) {
     console.error('[ADMIN COACH LIST ERROR]', err);
     return NextResponse.json({ error: '無法獲取教練列表' }, { status: 500 });

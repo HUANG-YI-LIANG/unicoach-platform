@@ -4,5 +4,6 @@
 ALTER TABLE public.bookings
 ADD COLUMN IF NOT EXISTS cancel_reason TEXT;
 
--- 2. 在 users (或 coaches) 中若沒有 level 欄位可選加（目前系統可能已有或由 API 動態覆寫）
--- ALTER TABLE public.coaches ADD COLUMN IF NOT EXISTS level INT DEFAULT 1;
+-- 2. 在 coaches 新增「個人抽成減免」欄位，供管理員設定該教練額外的降成比例
+ALTER TABLE public.coaches 
+ADD COLUMN IF NOT EXISTS commission_discount INT DEFAULT 0;
