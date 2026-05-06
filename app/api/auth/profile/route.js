@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { SAFE_USER_PROFILE_FIELDS, sanitizeUserProfile } from '@/lib/securityRules';
+import { getCoachPerformanceByUserId } from '@/lib/coachPerformance';
 
 export async function GET(request) {
   try {

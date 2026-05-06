@@ -37,7 +37,7 @@ export async function PATCH(request, { params }) {
         actor_id: auth.user.id,
         actor_role: 'admin',
         target_id: coachUserId,
-        details: JSON.stringify({ new_rate: normalizedRate })
+        details: JSON.stringify({ commission_discount: normalizedDiscount })
       }]);
     } catch (auditError) {
       console.warn('[UPDATE COMMISSION AUDIT WARNING]', auditError);

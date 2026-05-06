@@ -112,25 +112,33 @@ export async function POST(request, { params }) {
       const student = booking.users;
       // 規則 2 & 3：有推薦人且是首次完課
       if (student && student.referred_by && student.referral_completed === false) {
-        // 更新學員標記，避免後續重複發放
-        await adminSupabase.from('users').update({ referral_completed: true }).eq('id', booking.user_id);
+        // 更新學員標記，避免後續重複發放。加上 .eq('referral_completed', false) 防範併發 (Race Condition)
+        const { data: updatedUsers } = await adminSupabase
+          .from('users')
+          .update({ referral_completed: true })
+          .eq('id', booking.user_id)
+          .eq('referral_completed', false)
+          .select();
         
-        // 規則 4 & 8：產生 pending 狀態日誌，24小時後發放，記錄 IP
-        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-        const suspiciousFlags = { ip };
-        const releaseTime = new Date();
-        releaseTime.setHours(releaseTime.getHours() + 24);
-        
-        await adminSupabase.from('reward_logs').insert([{
-          referrer_user_id: student.referred_by,
-          referred_user_id: booking.user_id,
-          order_id: id,
-          reward_type: 'referral_bonus',
-          reward_amount: 100, // 暫定推薦獎金 100，可後續從設定讀取
-          status: 'pending',
-          release_time: releaseTime.toISOString(),
-          suspicious_flags: suspiciousFlags
-        }]);
+        // 如果成功更新（代表這是第一個到達的請求），才發放獎勵
+        if (updatedUsers && updatedUsers.length > 0) {
+          // 規則 4 & 8：產生 pending 狀態日誌，24小時後發放，記錄 IP
+          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+          const suspiciousFlags = { ip };
+          const releaseTime = new Date();
+          releaseTime.setHours(releaseTime.getHours() + 24);
+          
+          await adminSupabase.from('reward_logs').insert([{
+            referrer_user_id: student.referred_by,
+            referred_user_id: booking.user_id,
+            order_id: id,
+            reward_type: 'referral_bonus',
+            reward_amount: 500, // 統一推薦獎金為 500
+            status: 'pending',
+            release_time: releaseTime.toISOString(),
+            suspicious_flags: suspiciousFlags
+          }]);
+        }
       }
     } else if (newStatus === 'cancelled' || newStatus === 'refunded') {
       // 規則 5：退款追回機制

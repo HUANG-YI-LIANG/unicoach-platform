@@ -70,10 +70,10 @@ export default function PromotionsAdmin() {
         }
 
         setLevelDiscounts({
-          1: settingsData.settings?.level_1_discount !== undefined ? Number(settingsData.settings.level_1_discount) : 5,
-          2: settingsData.settings?.level_2_discount !== undefined ? Number(settingsData.settings.level_2_discount) : 10,
-          3: settingsData.settings?.level_3_discount !== undefined ? Number(settingsData.settings.level_3_discount) : 15,
-          4: settingsData.settings?.level_4_discount !== undefined ? Number(settingsData.settings.level_4_discount) : 20,
+          1: settingsData.settings?.level_1_discount !== undefined ? Number(settingsData.settings.level_1_discount) : DEFAULT_LEVEL_DISCOUNTS[1],
+          2: settingsData.settings?.level_2_discount !== undefined ? Number(settingsData.settings.level_2_discount) : DEFAULT_LEVEL_DISCOUNTS[2],
+          3: settingsData.settings?.level_3_discount !== undefined ? Number(settingsData.settings.level_3_discount) : DEFAULT_LEVEL_DISCOUNTS[3],
+          4: settingsData.settings?.level_4_discount !== undefined ? Number(settingsData.settings.level_4_discount) : DEFAULT_LEVEL_DISCOUNTS[4],
         });
       }
 
@@ -140,7 +140,7 @@ export default function PromotionsAdmin() {
   const handleUpdateCommission = async (coachUserId, newDiscount) => {
     try {
       const response = await fetch(`/api/admin/coaches/${coachUserId}/commission`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ commission_discount: newDiscount }),
       });

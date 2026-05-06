@@ -84,7 +84,7 @@ export default function BookingsPage() {
 
   const fetchPaymentSettings = async () => {
     try {
-      const res = await fetch('/api/admin/settings');
+      const res = await fetch('/api/settings/payment');
       if (!res.ok) return;
       const data = await res.json();
       if (data.settings) {
@@ -766,6 +766,14 @@ export default function BookingsPage() {
                   gap: 8,
                 }}
               >
+                {uploadingReceipt || reportingPayment ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    處理中...
+                  </>
+                ) : (
+                  '送出付款回報'
+                )}
               </button>
             </div>
           </div>

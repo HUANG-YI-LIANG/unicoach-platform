@@ -11,6 +11,7 @@ import {
   getServerCouponDiscount,
   isBookingTimeAllowed,
 } from '@/lib/bookingSecurity';
+import { getCoachPerformanceByUserId } from '@/lib/coachPerformance';
 
 const OPTIONAL_BOOKING_COLUMNS = new Set([
   'grade',
@@ -257,10 +258,11 @@ export async function POST(request) {
     if (userDataErr) throw userDataErr;
 
     let couponResult;
+    let metadata = {};
     try {
       const { data: authUser, error: authUserError } = await adminSupabase.auth.admin.getUserById(userId);
       if (authUserError) throw authUserError;
-      const metadata = authUser?.user?.user_metadata || {};
+      metadata = authUser?.user?.user_metadata || {};
       couponResult = getServerCouponDiscount({
         requestedCouponId: couponId,
         claimedCoupons: metadata.coupons || [],
@@ -296,9 +298,7 @@ export async function POST(request) {
 
     const baseDiscountPercent = calcBaseDiscount(levelDiscount + customDiscount, isFirst);
 
-    // Fetch dynamic commission rate based on coach performance
-    const { getCoachPerformance } = require('@/lib/coachPerformance');
-    const coachPerformance = await getCoachPerformance(coachId, adminSupabase);
+    const coachPerformance = await getCoachPerformanceByUserId(coachId, adminSupabase);
     const coachCommission = coachPerformance.currentCommission;
 
     // 3. 累加折扣 (基礎 + server 驗證後的優惠券)

@@ -48,6 +48,7 @@ export default function CoachPerformanceAdmin() {
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/admin/settings');
+      if (!res.ok) throw new Error('Failed to fetch settings');
       const data = await res.json();
       if (data.settings) {
         setSettings(prev => ({
@@ -72,6 +73,9 @@ export default function CoachPerformanceAdmin() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value: settings[key], description: '動態教練績效參數' })
+        }).then(res => {
+          if (!res.ok) throw new Error(`Failed to save ${key}`);
+          return res;
         })
       );
       
