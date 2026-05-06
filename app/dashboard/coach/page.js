@@ -199,27 +199,80 @@ export default function CoachDashboard() {
           <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>{profile?.email}</p>
         </div>
 
-        {/* Stats Row */}
+        {/* Stats Row & Dynamic Performance Panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
           <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              MEMBER LEVEL
+              CURRENT LEVEL
             </p>
             <p style={{ margin: '8px 0 4px', fontSize: 24, fontWeight: 900, color: ORANGE, letterSpacing: '0.05em' }}>
-              ELITE
+              Lv.{coachDetail?.level || 1}
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>Level {coachDetail?.level || 4} Coach</p>
+            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>每月動態績效評估</p>
           </div>
           <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
             <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              DISCOUNT
+              PLATFORM COMMISSION
             </p>
             <p style={{ margin: '8px 0 4px', fontSize: 24, fontWeight: 900 }}>
-              15%
+              {coachDetail?.commission_rate || 45}%
             </p>
-            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>Active Perks</p>
+            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>平台抽成比例</p>
           </div>
         </div>
+
+        {/* 30-Day Performance Details */}
+        {coachDetail?.performance_metrics && (
+          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '24px 20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: TEXT_LIGHT }}>近 30 天績效目標</h3>
+              <span style={{ background: 'rgba(249, 115, 22, 0.1)', color: ORANGE, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 800 }}>
+                次月等級預測：Lv.{coachDetail.level}
+              </span>
+            </div>
+            <p style={{ fontSize: 13, color: MUTED, marginBottom: 20, lineHeight: 1.5 }}>
+              💡 教練等級為「每月動態績效制」。系統會自動根據您過去 30 天的表現，決定您當下的等級與平台抽成率，請維持優質服務！
+            </p>
+
+            {/* Metrics List */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {(() => {
+                const metrics = coachDetail.performance_metrics;
+                const targetLv = Math.min((coachDetail.level || 1) + 1, 4);
+                const thresholds = coachDetail.performance_thresholds || {};
+                
+                const targetLessons = targetLv === 4 ? (thresholds.lv4_lessons||6) : targetLv === 3 ? (thresholds.lv3_lessons||4) : (thresholds.lv2_lessons||2);
+                const targetRating = targetLv === 4 ? 4.8 : targetLv === 3 ? 4.7 : 4.5;
+                const targetResponse = targetLv === 4 ? '< 15分' : targetLv === 3 ? '< 60分' : '> 80%';
+                
+                const renderMetric = (label, value, targetStr, isPass) => (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: isPass ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isPass ? <Check size={14} color="#10B981" /> : <div style={{ width: 8, height: 2, background: '#EF4444', borderRadius: 2 }} />}
+                      </div>
+                      <span style={{ fontSize: 14, fontWeight: 600, color: TEXT_LIGHT }}>{label}</span>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: isPass ? '#10B981' : '#EF4444' }}>{value}</div>
+                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>門檻: {targetStr}</div>
+                    </div>
+                  </div>
+                );
+
+                return (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: ORANGE, marginBottom: 4 }}>目標：達到或維持 Lv.{targetLv}</div>
+                    {renderMetric('近30天完課數', `${metrics.monthly_lessons} 堂`, `${targetLessons} 堂`, metrics.monthly_lessons >= targetLessons)}
+                    {renderMetric('平均評分', `${metrics.average_rating} 顆星`, `≥ ${targetRating}`, Number(metrics.average_rating) >= targetRating)}
+                    {renderMetric('回覆速度/率', targetLv < 3 ? `${metrics.response_rate}%` : `${metrics.average_response_time} 分鐘`, targetResponse, targetLv < 3 ? metrics.response_rate >= 80 : metrics.average_response_time <= (targetLv===4?15:60))}
+                    {renderMetric('惡意取消紀錄', `${metrics.malicious_cancels} 次`, '0 次 (含逾期未接)', metrics.malicious_cancels === 0)}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Wallet Balance Card */}
         <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>

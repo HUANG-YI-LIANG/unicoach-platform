@@ -296,25 +296,10 @@ export async function POST(request) {
 
     const baseDiscountPercent = calcBaseDiscount(levelDiscount + customDiscount, isFirst);
 
-    // Fetch global commission setting from platform key/value store
-    const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
-      .from('platform_settings')
-      .select('value')
-      .eq('key', 'commission_rate')
-      .maybeSingle();
-
-    if (commissionSettingError) {
-      throw commissionSettingError;
-    }
-
-    const parsedGlobalCommission = Number(commissionSetting?.value);
-    const globalCommission = Number.isFinite(parsedGlobalCommission) && parsedGlobalCommission >= 0
-      ? parsedGlobalCommission
-      : 20;
-
-    const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
-      ? coach.commission_rate 
-      : globalCommission;
+    // Fetch dynamic commission rate based on coach performance
+    const { getCoachPerformance } = require('@/lib/coachPerformance');
+    const coachPerformance = await getCoachPerformance(coachId, adminSupabase);
+    const coachCommission = coachPerformance.currentCommission;
 
     // 3. 累加折扣 (基礎 + server 驗證後的優惠券)
     const couponDiscountPercent = couponResult.percent;

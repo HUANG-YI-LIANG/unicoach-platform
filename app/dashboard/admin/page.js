@@ -224,6 +224,23 @@ export default function AdminDashboard() {
           </div>
           <ArrowRight color="var(--border-input)" />
         </div>
+
+        {/* Coach Performance */}
+        <div
+          onClick={() => router.push('/admin/coach-performance')}
+          style={cardStyle('#D1FAE5', '#059669')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#D1FAE5', padding: '12px', borderRadius: '12px', color: '#059669' }}>
+              <TrendingUp size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>動態教練績效</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>管理教練門檻與抽成比例</p>
+            </div>
+          </div>
+          <ArrowRight color="var(--border-input)" />
+        </div>
       </div>
 
       <h2 style={{ fontSize: '20px', fontWeight: 800, padding: '0 8px', color: DARK, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>

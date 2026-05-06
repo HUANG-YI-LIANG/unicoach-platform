@@ -39,6 +39,7 @@ export async function GET(request) {
 
     // 3. 讀取教練資料 (coaches 表)
     let coachData = null;
+    let coachPerformance = null;
     if (user.role === 'coach') {
       const { data: coach } = await adminSupabase
         .from('coaches')
@@ -46,6 +47,17 @@ export async function GET(request) {
         .eq('user_id', user.id)
         .single();
       coachData = coach;
+      
+      const { getCoachPerformance } = require('@/lib/coachPerformance');
+      coachPerformance = await getCoachPerformance(coach.id, adminSupabase);
+      
+      // Override level and commission rate dynamically
+      if (coachData && coachPerformance) {
+        coachData.level = coachPerformance.currentLevel;
+        coachData.commission_rate = coachPerformance.currentCommission;
+        coachData.performance_metrics = coachPerformance.metrics;
+        coachData.performance_thresholds = coachPerformance.thresholds;
+      }
     }
 
 

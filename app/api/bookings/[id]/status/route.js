@@ -33,7 +33,7 @@ export async function POST(request, { params }) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
     
     const { id } = await params;
-    const { status: newStatus } = await request.json(); 
+    const { status: newStatus, cancelReason } = await request.json(); 
     
     const adminSupabase = getAdminSupabase();
     
@@ -92,6 +92,10 @@ export async function POST(request, { params }) {
       updateData.completed_at = new Date().toISOString();
     } else if (newStatus === 'cancelled') {
       updateData.cancelled_at = new Date().toISOString();
+      // 加入取消原因
+      if (cancelReason) {
+        updateData.cancel_reason = cancelReason;
+      }
     } else if (newStatus === 'refunded') {
       updateData.refunded_at = new Date().toISOString();
     }
