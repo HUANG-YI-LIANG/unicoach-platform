@@ -128,7 +128,7 @@ export default function Header() {
               </div>
 
               {/* 滿級獎勵提示 */}
-              {(!user?.level || user?.level < 3) && (
+              {(!user?.level || user?.level < 4) && (
                 <div style={{ marginTop: 24, padding: 16, background: 'rgba(16, 185, 129, 0.1)', borderRadius: 12, border: '1px solid rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div style={{ width: 48, height: 48, background: 'linear-gradient(135deg, #10B981, #059669)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)' }}>
                     <span style={{ fontSize: 24 }}>🎖️</span>
@@ -140,6 +140,8 @@ export default function Header() {
                         <>獲得「新手完成徽章」與 $50 專屬優惠券，並自動晉升至 <strong>等級 2</strong>！</>
                       ) : user?.level === 2 ? (
                         <>獲得專屬 8 折優惠券，並自動晉升至 <strong>等級 3</strong>！</>
+                      ) : user?.level === 3 ? (
+                        <>恭喜即將破關！完成所有挑戰即可解鎖目前最高殿堂 <strong>等級 4</strong>！</>
                       ) : (
                         <>您已完成目前所有等級任務！</>
                       )}

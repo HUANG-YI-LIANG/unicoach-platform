@@ -140,6 +140,37 @@ export async function GET(request) {
         { id: 6, title: '邀請 1 位朋友完成註冊', subtitle: '分享學習樂趣', progress: l2t6, link: '/dashboard/user' }
       ];
       overallProgress = Math.round(tasks.reduce((sum, task) => sum + task.progress, 0) / tasks.length);
+    } else if (user.level === 3) {
+      const l3t1 = Math.min(Math.round(((completedClasses || 0) / 10) * 100), 100);
+      const l3t2 = Math.min(Math.round(((reviewCount || 0) / 5) * 100), 100);
+      const l3t3 = Math.min(Math.round(((reportViewCount || 0) / 5) * 100), 100);
+      
+      // 計算推薦完課人數
+      const { data: referredUsersData } = await adminSupabase.from('users').select('id').eq('referred_by', userId);
+      let friendsCompletedClass = 0;
+      if (referredUsersData && referredUsersData.length > 0) {
+        const referredUserIds = referredUsersData.map(u => u.id);
+        const { data: refCompletedBookings } = await adminSupabase.from('bookings').select('user_id').in('user_id', referredUserIds).eq('status', 'completed');
+        friendsCompletedClass = new Set((refCompletedBookings || []).map(b => b.user_id)).size;
+      }
+      const l3t4 = Math.min(Math.round((friendsCompletedClass / 2) * 100), 100);
+
+      // 計算累積消費
+      const { data: completedBookingsData } = await adminSupabase.from('bookings').select('final_price').eq('user_id', userId).eq('status', 'completed');
+      const totalSpent = (completedBookingsData || []).reduce((sum, b) => sum + (b.final_price || 0), 0);
+      const l3t5 = Math.min(Math.round((totalSpent / 10000) * 100), 100);
+
+      tasks = [
+        { id: 1, title: '累積完成 10 堂課', subtitle: '邁向大師之路', progress: l3t1, link: '/coaches' },
+        { id: 2, title: '留下 5 則評價', subtitle: '成為社群指標', progress: l3t2, link: '/bookings' },
+        { id: 3, title: '查看 5 份學習紀錄', subtitle: '深度掌握學習成效', progress: l3t3, link: '/bookings' },
+        { id: 4, title: '推薦 2 位朋友完課', subtitle: '(任選一完成) 散播學習熱情', progress: l3t4, link: '/dashboard/user' },
+        { id: 5, title: '累積消費滿 NT$10,000', subtitle: '(任選一完成) 頂級會員里程碑', progress: l3t5, link: '/bookings' }
+      ];
+      
+      // 二選一邏輯：取任務 4 與 5 進度的最高值
+      const orProgress = Math.max(l3t4, l3t5);
+      overallProgress = Math.round((l3t1 + l3t2 + l3t3 + orProgress) / 4);
     } else {
       overallProgress = 100;
     }
@@ -181,6 +212,12 @@ export async function GET(request) {
             max_amount: 500,
             valid_until: validUntil.toISOString()
           }]);
+        }
+      } else if (newLevel === 3) {
+        newLevel = 4;
+        const { error: updateError } = await adminSupabase.from('users').update({ level: newLevel }).eq('id', userId);
+        if (!updateError) {
+          levelUpMessage = '恭喜破關！您已達到目前最高等級 4！';
         }
       }
     }
