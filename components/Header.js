@@ -34,10 +34,33 @@ export default function Header() {
 
   return (
     <>
-      <header className="global-header">
+      <header className="global-header" style={{ position: 'relative' }}>
         <div className="header-left">
           <span className="brand-name">UniCoach</span>
         </div>
+        
+        {user?.role === 'coach' && (
+          <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center' }}>
+            <Link 
+              href="/dashboard/coach"
+              style={{
+                fontSize: '13px', 
+                fontWeight: '800', 
+                color: 'var(--color-accent, #F97316)', 
+                background: 'rgba(249, 115, 22, 0.1)', 
+                padding: '6px 16px', 
+                borderRadius: '100px', 
+                textDecoration: 'none',
+                transition: 'transform 0.2s, background 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(249, 115, 22, 0.15)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(249, 115, 22, 0.1)'; }}
+            >
+              如何開始接單
+            </Link>
+          </div>
+        )}
+
         <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <button
             type="button"
