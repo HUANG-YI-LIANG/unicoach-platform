@@ -1,5 +1,9 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { getAdminSupabase } from "@/lib/supabase";
 import { sendPasswordUpdateNotification } from "@/lib/email";
+import { maskEmail, safeErrorDetails } from "@/lib/safeLogging";
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
@@ -68,7 +72,7 @@ export async function POST(request) {
       .single();
 
     if (profileError || !userProfile) {
-      console.error("[PROFILE ERROR]", profileError);
+      console.error("[PROFILE ERROR]", safeErrorDetails(profileError));
       return NextResponse.json(
         { error: "無法找到用戶資料，請聯繫客服。" },
         { status: 500 }
@@ -82,7 +86,7 @@ export async function POST(request) {
     );
 
     if (passwordError) {
-      console.error("[PASSWORD UPDATE ERROR]", passwordError);
+      console.error("[PASSWORD UPDATE ERROR]", safeErrorDetails(passwordError));
       return NextResponse.json(
         { error: "密碼更新失敗，請稍後再試。" },
         { status: 500 }
@@ -96,27 +100,27 @@ export async function POST(request) {
       .eq("user_id", tokenData.user_id);
 
     if (markUsedError) {
-      console.error("[TOKEN MARK ERROR]", markUsedError);
+      console.error("[TOKEN MARK ERROR]", safeErrorDetails(markUsedError));
       // 不中斷流程，僅記錄錯誤
     }
 
     // ✅ 發送密碼更新確認郵件（雙重安全通知）
     try {
       await sendPasswordUpdateNotification(userProfile.email, userProfile.name);
-      console.log(`[SECURITY] 密碼更新確認郵件已發送: ${userProfile.email}`);
+      console.log(`[SECURITY] 密碼更新確認郵件已發送: ${maskEmail(userProfile.email)}`);
     } catch (emailError) {
-      console.error("[NOTIFICATION EMAIL ERROR]", emailError);
+      console.error("[NOTIFICATION EMAIL ERROR]", safeErrorDetails(emailError));
       // 不中斷主流程
     }
 
-    console.log(`[SUCCESS] 用戶密碼重設成功: ${userProfile.email}`);
+    console.log(`[SUCCESS] 用戶密碼重設成功: ${maskEmail(userProfile.email)}`);
 
     return NextResponse.json(
       { message: "密碼重設成功！您現在可以使用新密碼登入。" },
       { status: 200 }
     );
   } catch (error) {
-    console.error("[RESET PASSWORD ERROR]", error);
+    console.error("[RESET PASSWORD ERROR]", safeErrorDetails(error));
     return NextResponse.json(
       { error: "伺服器內部錯誤，請稍後再試。" },
       { status: 500 }

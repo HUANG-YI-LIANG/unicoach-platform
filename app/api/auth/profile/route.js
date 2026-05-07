@@ -1,8 +1,10 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { SAFE_USER_PROFILE_FIELDS, sanitizeUserProfile } from '@/lib/securityRules';
-import { getCoachPerformanceByUserId } from '@/lib/coachPerformance';
 
 export async function GET(request) {
   try {
@@ -40,25 +42,13 @@ export async function GET(request) {
 
     // 3. 讀取教練資料 (coaches 表)
     let coachData = null;
-    let coachPerformance = null;
     if (user.role === 'coach') {
       const { data: coach } = await adminSupabase
         .from('coaches')
-        .select('*')
+        .select('user_id, university, location, service_areas, languages, experience, philosophy, teaching_features, communication_style, policy_rules, trust_badges, base_price, available_times, approval_status, commission_rate, referral_code')
         .eq('user_id', user.id)
         .single();
       coachData = coach;
-      
-      const { getCoachPerformance } = require('@/lib/coachPerformance');
-      coachPerformance = await getCoachPerformance(coach.id, adminSupabase);
-      
-      // Override level and commission rate dynamically
-      if (coachData && coachPerformance) {
-        coachData.level = coachPerformance.currentLevel;
-        coachData.commission_rate = coachPerformance.currentCommission;
-        coachData.performance_metrics = coachPerformance.metrics;
-        coachData.performance_thresholds = coachPerformance.thresholds;
-      }
     }
 
 
@@ -74,23 +64,18 @@ export async function GET(request) {
     }, {});
 
     // 5. 計算總折扣
-    let levelDiscount = 0;
+    let baseDiscount = 0; // 預設 0%
     const levelKey = `level_${user.level || 1}_discount`;
     
-    if (settingsObj[levelKey] !== undefined) {
-      levelDiscount = settingsObj[levelKey];
-    } else {
-      // 如果還沒有全域設定，使用預設值
-      const defaultDiscounts = { 1: 0, 2: 3, 3: 6, 4: 12 };
-      levelDiscount = defaultDiscounts[user.level || 1] ?? 12;
-    }
-
-    let customDiscount = 0;
     if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
-      customDiscount = Number(userMetadata.custom_discount);
+      baseDiscount = Number(userMetadata.custom_discount);
+    } else if (settingsObj[levelKey] !== undefined) {
+      baseDiscount = settingsObj[levelKey];
+    } else {
+      // 如果還沒有全域設定，使用預設值：Lv1=0, Lv2=5, Lv3=10, Lv4=12
+      const defaultDiscounts = { 1: 0, 2: 5, 3: 10, 4: 12 };
+      baseDiscount = defaultDiscounts[user.level || 1] ?? 12;
     }
-
-    let baseDiscount = levelDiscount + customDiscount;
 
     const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
 

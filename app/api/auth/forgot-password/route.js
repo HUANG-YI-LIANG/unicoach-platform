@@ -1,6 +1,10 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { getAdminSupabase } from "@/lib/supabase";
 import { sendPasswordResetEmail } from "@/lib/email";
 import { generatePasswordResetToken } from "@/lib/tokenUtils";
+import { maskEmail, safeErrorDetails } from "@/lib/safeLogging";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
@@ -30,7 +34,7 @@ export async function POST(request) {
     
     if (userError || !user) {
       // 僅在伺服器端記錄，不告知請求者用戶不存在
-      console.log(`[SECURITY] 未知郵件嘗試重設密碼: ${normalizedEmail}`);
+      console.log(`[SECURITY] 未知郵件嘗試重設密碼: ${maskEmail(normalizedEmail)}`);
       return NextResponse.json(
         { message: standardMessage },
         { status: 200 }
@@ -54,7 +58,7 @@ export async function POST(request) {
       });
 
     if (tokenError) {
-      console.error("[TOKEN ERROR]", tokenError);
+      console.error("[TOKEN ERROR]", safeErrorDetails(tokenError));
       return NextResponse.json(
         { error: "系統暫時無法處理您的要求，請稍後再試。" },
         { status: 500 }
@@ -64,9 +68,9 @@ export async function POST(request) {
     // ✅ 發送重設郵件
     try {
       await sendPasswordResetEmail(user.email, token, user.name);
-      console.log(`[SUCCESS] 密碼重設郵件已發送: ${user.email}`);
+      console.log(`[SUCCESS] 密碼重設郵件已發送: ${maskEmail(user.email)}`);
     } catch (emailError) {
-      console.error("[EMAIL ERROR]", emailError);
+      console.error("[EMAIL ERROR]", safeErrorDetails(emailError));
       return NextResponse.json(
         { error: "郵件發送失敗，請檢查您的電子郵件地址或稍後再試。" },
         { status: 500 }
@@ -78,7 +82,7 @@ export async function POST(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("[FORGOT PASSWORD ERROR]", error);
+    console.error("[FORGOT PASSWORD ERROR]", safeErrorDetails(error));
     return NextResponse.json(
       { error: "伺服器內部錯誤，請稍後再試。" },
       { status: 500 }

@@ -1,8 +1,13 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeErrorDetails } from '@/lib/safeLogging';
 
-export const dynamic = 'force-dynamic';
+const PUBLIC_VIDEO_FEED_SELECT = 'id, coach_id, video_url, title, category, view_count, like_count, share_count, created_at';
+
 
 export async function GET() {
   try {
@@ -14,13 +19,13 @@ export async function GET() {
     // we can do a nested join.
     const { data: rawVideos, error } = await adminSupabase
       .from('coach_videos')
-      .select('*')
+      .select(PUBLIC_VIDEO_FEED_SELECT)
       .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(20);
 
     if (error) {
-      console.error('Error fetching video feed:', error);
+      console.error('Error fetching video feed:', safeErrorDetails(error));
       return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
     }
 
@@ -37,57 +42,37 @@ export async function GET() {
       (coachesData || []).forEach(c => { coachesMap[c.user_id] = c; });
     }
 
-    const populatedVideos = videos.map(v => ({
-      ...v,
-      user: usersMap[v.coach_id] || null,
-      coach: coachesMap[v.coach_id] || null
-    }));
-
-    const videoIds = populatedVideos.map((video) => video.id);
+    const videoIds = videos.map((video) => video.id);
     let likedVideoIds = new Set();
-    let favoriteCoachIds = new Set();
 
-    if (!auth.error && auth.user?.id) {
-      if (videoIds.length > 0) {
-        const { data: likes } = await adminSupabase
-          .from('video_likes')
-          .select('video_id')
-          .eq('user_id', auth.user.id)
-          .in('video_id', videoIds);
+    if (!auth.error && auth.user?.id && videoIds.length > 0) {
+      const { data: likes } = await adminSupabase
+        .from('video_likes')
+        .select('video_id')
+        .eq('user_id', auth.user.id)
+        .in('video_id', videoIds);
 
-        likedVideoIds = new Set((likes || []).map((like) => like.video_id));
-      }
-
-      if (coachIds.length > 0) {
-        const { data: favorites } = await adminSupabase
-          .from('favorite_coaches')
-          .select('coach_id')
-          .eq('user_id', auth.user.id)
-          .in('coach_id', coachIds);
-        
-        favoriteCoachIds = new Set((favorites || []).map((fav) => fav.coach_id));
-      }
+      likedVideoIds = new Set((likes || []).map((like) => like.video_id));
     }
 
-    const formattedVideos = populatedVideos.map(v => ({
+    const formattedVideos = videos.map(v => ({
       id: v.id,
       video_url: v.video_url,
       title: v.title,
       category: v.category,
       coach_id: v.coach_id,
-      coach_name: v.user?.name || '教練',
-      coach_avatar: v.user?.avatar_url || null,
-      base_price: v.coach?.base_price || 1000,
+      coach_name: usersMap[v.coach_id]?.name || '教練',
+      coach_avatar: usersMap[v.coach_id]?.avatar_url || null,
+      base_price: coachesMap[v.coach_id]?.base_price || 1000,
       view_count: v.view_count || 0,
       like_count: v.like_count || 0,
       share_count: v.share_count || 0,
-      liked: likedVideoIds.has(v.id),
-      is_favorite: favoriteCoachIds.has(v.coach_id)
+      liked: likedVideoIds.has(v.id)
     }));
 
     return NextResponse.json({ videos: formattedVideos });
   } catch (error) {
-    console.error('Video feed error:', error);
+    console.error('Video feed error:', safeErrorDetails(error));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

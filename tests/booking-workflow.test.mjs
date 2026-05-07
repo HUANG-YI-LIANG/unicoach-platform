@@ -85,7 +85,14 @@ test('student can complete only from pending_completion and only when report exi
 
   assert.equal(canTransitionBookingStatus({
     actor: { id: 'user-1', role: 'user' },
-    booking: { user_id: 'user-1', coach_id: 'coach-1', status: 'pending_completion', payment_status: 'paid' },
+    booking: {
+      user_id: 'user-1',
+      coach_id: 'coach-1',
+      status: 'pending_completion',
+      payment_status: 'paid',
+      expected_time: '2026-05-02T08:00:00.000Z',
+      duration_minutes: 60,
+    },
     newStatus: 'completed',
     hasFinalReport: true,
   }).ok, true);

@@ -1,7 +1,10 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { calculateBookingPrice, canAdjustBookingPrice } from '@/lib/bookingSecurity';
+import { calculateBookingPrice, canAdjustBookingPrice, roundMoney } from '@/lib/bookingSecurity';
 import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
 
 /**
@@ -53,8 +56,8 @@ export async function POST(request, { params }) {
 
     // 3. 計算新價格
     // 公式：final_price = base_price - discount_amount + adjustment
-    const baseFinalPrice = Math.max(0, booking.base_price - (booking.discount_amount || 0));
-    const newFinalPrice = Math.max(0, baseFinalPrice + adjustment);
+    const baseFinalPrice = roundMoney(booking.base_price - (booking.discount_amount || 0));
+    const newFinalPrice = roundMoney(baseFinalPrice + adjustment);
     const newDepositPaid = calculateBookingPrice({ basePrice: newFinalPrice }).depositPaid;
 
     // 4. 更新資料庫

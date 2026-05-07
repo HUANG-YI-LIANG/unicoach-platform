@@ -1,6 +1,10 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { clampPercent } from '@/lib/bookingSecurity';
 
 export async function PATCH(request, { params }) {
   try {
@@ -9,24 +13,18 @@ export async function PATCH(request, { params }) {
 
     const { id: coachUserId } = await params;
     const body = await request.json();
-    const { commission_discount } = body; // Can be a number or null
+    const { commission_rate } = body; // Can be a number or null
 
-    // Normalize value
-    const normalizedDiscount = 
-      commission_discount === null || commission_discount === undefined || commission_discount === ''
+    const normalizedRate =
+      commission_rate === null || commission_rate === undefined || commission_rate === ''
         ? null
-        : Number(commission_discount);
-
-    // Validate if it's a valid number between 0-100 when provided
-    if (normalizedDiscount !== null && (isNaN(normalizedDiscount) || normalizedDiscount < 0 || normalizedDiscount > 100)) {
-      return NextResponse.json({ error: '減免比例必須是 0-100 之間的數字' }, { status: 400 });
-    }
+        : Math.round(clampPercent(commission_rate));
 
     const adminSupabase = getAdminSupabase();
 
     const { error } = await adminSupabase
       .from('coaches')
-      .update({ commission_discount: normalizedDiscount })
+      .update({ commission_rate: normalizedRate })
       .eq('user_id', coachUserId);
 
     if (error) throw error;
@@ -37,7 +35,7 @@ export async function PATCH(request, { params }) {
         actor_id: auth.user.id,
         actor_role: 'admin',
         target_id: coachUserId,
-        details: JSON.stringify({ commission_discount: normalizedDiscount })
+        details: JSON.stringify({ new_rate: normalizedRate })
       }]);
     } catch (auditError) {
       console.warn('[UPDATE COMMISSION AUDIT WARNING]', auditError);

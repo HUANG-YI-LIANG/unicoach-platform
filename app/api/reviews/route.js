@@ -1,6 +1,12 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeErrorDetails } from '@/lib/safeLogging';
+
+const REVIEW_BOOKING_SELECT = 'id, user_id, coach_id, status';
 
 export async function POST(request) {
   try {
@@ -8,12 +14,19 @@ export async function POST(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { bookingId, rating, comment } = await request.json();
+    if (rating === null || rating === undefined || (typeof rating === 'string' && rating.trim() === '')) {
+      return NextResponse.json({ error: 'Rating must be a number between 1 and 5' }, { status: 400 });
+    }
+    const normalizedRating = Number(rating);
+    if (!Number.isFinite(normalizedRating) || normalizedRating < 1 || normalizedRating > 5) {
+      return NextResponse.json({ error: 'Rating must be a number between 1 and 5' }, { status: 400 });
+    }
     const adminSupabase = getAdminSupabase();
 
     // 1. Verify Booking
     const { data: booking, error: bError } = await adminSupabase
       .from('bookings')
-      .select('*')
+      .select(REVIEW_BOOKING_SELECT)
       .eq('id', bookingId)
       .single();
 
@@ -47,7 +60,7 @@ export async function POST(request) {
         booking_id: bookingId,
         reviewer_id: auth.user.id,
         reviewee_id: booking.coach_id,
-        rating: Math.max(1, Math.min(5, rating)),
+        rating: normalizedRating,
         comment
       }]);
 
@@ -55,7 +68,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, message: 'Review submitted successfully' });
   } catch (err) {
-    console.error('Submit review error:', err);
+    console.error('Submit review error:', safeErrorDetails(err));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

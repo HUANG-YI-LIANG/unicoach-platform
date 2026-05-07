@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import VideoUpload from '@/components/VideoUpload';
+import CoachOnboardingTasks from '@/components/CoachOnboardingTasks';
 
 const BG = 'var(--color-bg)';
 const CARD = 'var(--color-surface)';
@@ -198,6 +199,9 @@ export default function CoachDashboard() {
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>{profile?.email}</p>
         </div>
+
+        {/* Onboarding Tasks */}
+        <CoachOnboardingTasks profile={profile} coachDetail={coachDetail} />
 
         {/* Stats Row & Dynamic Performance Panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>

@@ -5,22 +5,54 @@
 ## File: lib/coachPerformance.js
 
 ```javascript
-import { getAdminSupabase } from './supabase';
+import { safeErrorDetails } from './safeLogging.js';
+
+const COACH_FAULT_PARTIES = new Set(['coach_fault', 'coach_pending_review']);
+
+export function isCoachFaultCancellation(booking) {
+  return booking?.status === 'cancelled' && COACH_FAULT_PARTIES.has(booking?.cancel_fault_party);
+}
+
+export function calculateCoachPerformance(bookings = []) {
+  const safeBookings = Array.isArray(bookings) ? bookings : [];
+  const completed = safeBookings.filter((booking) => booking?.status === 'completed').length;
+  const cancelled = safeBookings.filter((booking) => booking?.status === 'cancelled').length;
+  const maliciousCancels = safeBookings.filter(isCoachFaultCancellation).length;
+  const totalFinished = completed + cancelled;
+
+  return {
+    total_bookings: safeBookings.length,
+    completed_bookings: completed,
+    cancelled_bookings: cancelled,
+    malicious_cancels: maliciousCancels,
+    completion_rate: totalFinished > 0 ? completed / totalFinished : 0,
+  };
+}
+
+export { COACH_FAULT_PARTIES };
+
+async function getDefaultAdminSupabase() {
+  const { getAdminSupabase } = await import('./supabase.js');
+  return getAdminSupabase();
+}
+
+
+
 
 /**
  * 取得教練近 30 天的動態績效、符合的等級與對應的抽成率
- * @param {string} coachId 
+ * @param {string} userId (即 users.id，對應到 coaches.user_id)
  * @param {object} supabaseAdmin 
  */
-export async function getCoachPerformance(coachId, supabaseAdmin) {
-  const supabase = supabaseAdmin || getAdminSupabase();
+export async function getCoachPerformanceByUserId(userId, supabaseAdmin) {
+  const supabase = supabaseAdmin || await getDefaultAdminSupabase();
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoIso = thirtyDaysAgo.toISOString();
 
   try {
     // 1. 取得全域設定的門檻參數
-    const { data: settingsData } = await supabase.from('platform_settings').select('*');
+    const { data: settingsData } = await supabase.from('platform_settings').select('key, value');
     const settings = (settingsData || []).reduce((acc, curr) => {
       acc[curr.key] = Number(curr.value) || curr.value;
       return acc;
@@ -39,13 +71,13 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
     // 2. 撈取近 30 天 bookings 資料 (包含完課、逾期取消)
     const { data: recentBookings } = await supabase
       .from('bookings')
-      .select('id, status, created_at, expected_time')
-      .eq('coach_id', coachId)
+      .select('id, status, created_at, expected_time, cancel_fault_party')
+      .eq('coach_id', userId)
       .gte('created_at', thirtyDaysAgoIso);
 
     const monthly_lessons = (recentBookings || []).filter(b => b.status === 'completed').length;
     // 逾期未接單算作惡意取消
-    const malicious_cancels = (recentBookings || []).filter(b => b.status === 'expired').length;
+    const malicious_cancels = (recentBookings || []).filter(isCoachFaultCancellation).length;
     // 完課率 (完課數 / (完課數 + 逾期取消數))
     const totalValidBookings = monthly_lessons + malicious_cancels;
     const completion_rate = totalValidBookings === 0 ? 100 : Math.round((monthly_lessons / totalValidBookings) * 100);
@@ -54,7 +86,7 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
     const { data: reviews } = await supabase
       .from('reviews')
       .select('rating')
-      .eq('coach_id', coachId)
+      .eq('coach_id', userId)
       .gte('created_at', thirtyDaysAgoIso);
     
     let average_rating = 0;
@@ -69,7 +101,7 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
     const { data: chatRooms } = await supabase
       .from('chat_rooms')
       .select('id, created_at')
-      .eq('coach_id', coachId)
+      .eq('coach_id', userId)
       .gte('created_at', thirtyDaysAgoIso);
     
     let average_response_time = 0; // 分鐘
@@ -90,11 +122,11 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
       if (messages) {
         roomIds.forEach(roomId => {
           const roomMessages = messages.filter(m => m.room_id === roomId);
-          const firstUserMsg = roomMessages.find(m => m.sender_id !== coachId);
+          const firstUserMsg = roomMessages.find(m => m.sender_id !== userId);
           if (firstUserMsg) {
             roomsWithUserMessage++;
             // 找第一則教練的回覆
-            const firstCoachReply = roomMessages.find(m => m.sender_id === coachId && new Date(m.created_at) > new Date(firstUserMsg.created_at));
+            const firstCoachReply = roomMessages.find(m => m.sender_id === userId && new Date(m.created_at) > new Date(firstUserMsg.created_at));
             if (firstCoachReply) {
               respondedRooms++;
               const diffMins = (new Date(firstCoachReply.created_at) - new Date(firstUserMsg.created_at)) / 60000;
@@ -118,21 +150,23 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
     const { count: videoCount } = await supabase
       .from('coach_videos')
       .select('id', { count: 'exact', head: true })
-      .eq('coach_id', coachId);
+      .eq('coach_id', userId);
     const intro_video_uploaded = (videoCount || 0) > 0;
 
     // Fetch coach personal discount with error handling in case the column doesn't exist yet
     let personalDiscount = 0;
     try {
-      const { data: coachData, error: coachError } = await supabase.from('coaches').select('commission_discount').eq('id', coachId).maybeSingle();
+      const { data: coachData, error: coachError } = await supabase.from('coaches').select('commission_discount').eq('user_id', userId).maybeSingle();
       if (!coachError && coachData) {
         personalDiscount = coachData.commission_discount || 0;
       }
     } catch (e) {
-      console.warn('[Coach Performance] Missing commission_discount column', e);
+      console.warn('[Coach Performance] Missing commission_discount column', safeErrorDetails(e));
     }
 
     let baseCommission = thresholds.lv1_commission;
+    let currentLevel = 1;
+    let currentCommission = thresholds.lv1_commission;
 
     // 判斷 Lv4
     const isLv4 = 
@@ -187,7 +221,7 @@ export async function getCoachPerformance(coachId, supabaseAdmin) {
     };
 
   } catch (err) {
-    console.error('[Coach Performance Error]', err);
+    console.error('[Coach Performance Error]', safeErrorDetails(err));
     // 預設回退
     return {
       currentLevel: 1,
@@ -263,6 +297,7 @@ export default function CoachPerformanceAdmin() {
   const fetchSettings = async () => {
     try {
       const res = await fetch('/api/admin/settings');
+      if (!res.ok) throw new Error('Failed to fetch settings');
       const data = await res.json();
       if (data.settings) {
         setSettings(prev => ({
@@ -287,6 +322,9 @@ export default function CoachPerformanceAdmin() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, value: settings[key], description: '動態教練績效參數' })
+        }).then(res => {
+          if (!res.ok) throw new Error(`Failed to save ${key}`);
+          return res;
         })
       );
       
@@ -476,10 +514,10 @@ export default function PromotionsAdmin() {
         }
 
         setLevelDiscounts({
-          1: settingsData.settings?.level_1_discount !== undefined ? Number(settingsData.settings.level_1_discount) : 5,
-          2: settingsData.settings?.level_2_discount !== undefined ? Number(settingsData.settings.level_2_discount) : 10,
-          3: settingsData.settings?.level_3_discount !== undefined ? Number(settingsData.settings.level_3_discount) : 15,
-          4: settingsData.settings?.level_4_discount !== undefined ? Number(settingsData.settings.level_4_discount) : 20,
+          1: settingsData.settings?.level_1_discount !== undefined ? Number(settingsData.settings.level_1_discount) : DEFAULT_LEVEL_DISCOUNTS[1],
+          2: settingsData.settings?.level_2_discount !== undefined ? Number(settingsData.settings.level_2_discount) : DEFAULT_LEVEL_DISCOUNTS[2],
+          3: settingsData.settings?.level_3_discount !== undefined ? Number(settingsData.settings.level_3_discount) : DEFAULT_LEVEL_DISCOUNTS[3],
+          4: settingsData.settings?.level_4_discount !== undefined ? Number(settingsData.settings.level_4_discount) : DEFAULT_LEVEL_DISCOUNTS[4],
         });
       }
 
@@ -546,7 +584,7 @@ export default function PromotionsAdmin() {
   const handleUpdateCommission = async (coachUserId, newDiscount) => {
     try {
       const response = await fetch(`/api/admin/coaches/${coachUserId}/commission`, {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ commission_discount: newDiscount }),
       });
@@ -1092,6 +1130,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import VideoUpload from '@/components/VideoUpload';
+import CoachOnboardingTasks from '@/components/CoachOnboardingTasks';
 
 const BG = 'var(--color-bg)';
 const CARD = 'var(--color-surface)';
@@ -1264,6 +1303,9 @@ export default function CoachDashboard() {
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>{profile?.email}</p>
         </div>
+
+        {/* Onboarding Tasks */}
+        <CoachOnboardingTasks profile={profile} coachDetail={coachDetail} />
 
         {/* Stats Row & Dynamic Performance Panel */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
@@ -1531,9 +1573,13 @@ export default function CoachDashboard() {
 ## File: app/api/bookings/route.js
 
 ```javascript
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { maskIdentifier, safeErrorDetails } from '@/lib/safeLogging';
 import { calcBaseDiscount } from '@/lib/discountRules';
 import { addWeeks } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
@@ -1543,92 +1589,191 @@ import {
   calculateBookingPrice,
   getServerCouponDiscount,
   isBookingTimeAllowed,
+  clampPercent,
+  roundMoney,
 } from '@/lib/bookingSecurity';
 
-const OPTIONAL_BOOKING_COLUMNS = new Set([
+const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed'];
+const BOOKING_PLAN_SELECT = 'id, coach_id, title, description, duration_minutes, price, is_active, is_default';
+const GET_BOOKING_FIELDS = [
+  'id',
+  'user_id',
+  'coach_id',
+  'expected_time',
+  'status',
+  'created_at',
+  'updated_at',
+  'base_price',
+  'discount_amount',
+  'final_price',
+  'deposit_paid',
+  'price_adjustment',
   'grade',
   'gender',
   'attendees_count',
   'learning_status',
-  'coupon_id',
   'coupon_discount',
   'series_id',
   'recurrence_pattern',
   'session_number',
   'duration_minutes',
   'payment_expires_at',
+  'payment_status',
+  'paid_at',
+  'payment_reference',
   'plan_id',
   'plan_title',
-  'plan_snapshot',
-]);
+  'cancel_reason',
+  'cancel_fault_party',
+  'cancelled_at',
+  'completed_at',
+  'platform_fee',
+  'coach_payout',
+];
 
-function getMissingColumnName(error) {
-  const text = [error?.message, error?.details, error?.hint]
+function isExpiredPendingPayment(booking) {
+  if (booking?.status !== 'pending_payment' || !booking.payment_expires_at) return false;
+  return Date.now() > new Date(booking.payment_expires_at).getTime();
+}
+
+function getBookingCreationErrorResponse(error) {
+  const text = [error?.code, error?.message, error?.details, error?.hint]
     .filter(Boolean)
     .join(' ');
 
-  return (
-    text.match(/'([^']+)' column/)?.[1] ||
-    text.match(/column "([^"]+)"/)?.[1] ||
-    null
-  );
-}
-
-async function fetchExistingBookings(adminSupabase, coachId, nowIso) {
-  const optionalFields = ['payment_expires_at', 'duration_minutes'];
-  let fields = ['id', 'expected_time', 'status', ...optionalFields];
-
-  for (let attempt = 0; attempt <= optionalFields.length; attempt += 1) {
-    const { data, error } = await adminSupabase
-      .from('bookings')
-      .select(fields.join(', '))
-      .eq('coach_id', coachId)
-      .gte('expected_time', nowIso)
-      .in('status', ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed']);
-
-    if (!error) return data || [];
-
-    const missingColumn = getMissingColumnName(error);
-    if (!missingColumn || !fields.includes(missingColumn)) {
-      throw error;
-    }
-
-    console.warn(`[BOOKING] Missing optional select column "${missingColumn}", retrying without it.`);
-    fields = fields.filter((field) => field !== missingColumn);
+  if (/23505|coupon_redemptions|unique/i.test(text)) {
+    return { status: 409, error: '優惠券已使用，請重新選擇其他優惠券' };
   }
 
-  return [];
-}
-
-async function insertBookingsWithSchemaFallback(adminSupabase, rows) {
-  let currentRows = rows.map((row) => ({ ...row }));
-  const removedColumns = [];
-
-  for (let attempt = 0; attempt <= OPTIONAL_BOOKING_COLUMNS.size; attempt += 1) {
-    const { data, error } = await adminSupabase
-      .from('bookings')
-      .insert(currentRows)
-      .select('id');
-
-    if (!error) {
-      return { data, removedColumns };
-    }
-
-    const missingColumn = getMissingColumnName(error);
-    if (!missingColumn || !OPTIONAL_BOOKING_COLUMNS.has(missingColumn)) {
-      throw error;
-    }
-
-    removedColumns.push(missingColumn);
-    console.warn(`[BOOKING] Missing optional insert column "${missingColumn}", retrying without it.`);
-    currentRows = currentRows.map((row) => {
-      const next = { ...row };
-      delete next[missingColumn];
-      return next;
-    });
+  if (/23P01|booking_time_conflict|時段衝突|conflict/i.test(text)) {
+    return { status: 409, error: '時段衝突：該時段已被預約，請重新選擇其他時間' };
   }
 
-  throw new Error('預約建立失敗，資料庫欄位缺失過多');
+  if (/booking_user_mismatch|coupon_id_mismatch|invalid_booking_time_or_duration|missing_booking_rows/i.test(text)) {
+    return { status: 400, error: '預約資料不合法，請重新送出' };
+  }
+
+  return null;
+}
+
+const REQUIRED_BOOKING_SAFETY_FIELDS = [
+  'expected_time',
+  'duration_minutes',
+  'payment_expires_at',
+  'base_price',
+  'final_price',
+  'deposit_paid',
+  'platform_fee',
+  'coach_payout',
+  'attendees_count',
+  'plan_id',
+];
+
+function validateRequiredBookingSafetyFields(bookingsToInsert) {
+  for (const [index, booking] of bookingsToInsert.entries()) {
+    for (const field of REQUIRED_BOOKING_SAFETY_FIELDS) {
+      const value = booking?.[field];
+      if (value === null || value === undefined || value === '') {
+        throw new Error(`missing_required_booking_safety_field:${field}:row:${index + 1}`);
+      }
+    }
+  }
+}
+
+async function createBookingsSafely(adminSupabase, { bookingsToInsert, userId, couponId }) {
+  validateRequiredBookingSafetyFields(bookingsToInsert);
+
+  const { data, error } = await adminSupabase.rpc('create_booking_safe', {
+    p_user_id: userId,
+    p_coupon_id: couponId || null,
+    p_bookings: bookingsToInsert,
+  });
+
+  if (error) {
+    const mapped = getBookingCreationErrorResponse(error);
+    if (mapped) return { ok: false, ...mapped };
+    throw error;
+  }
+
+  const bookings = Array.isArray(data?.bookings) ? data.bookings : [];
+  const bookingIds = Array.isArray(data?.booking_ids) ? data.booking_ids : [];
+  const clientGeneratedBookings = bookingsToInsert
+    .filter((booking) => Boolean(booking.id))
+    .map((booking) => ({ id: booking.id }));
+  const normalizedBookings = clientGeneratedBookings.length
+    ? clientGeneratedBookings
+    : bookings.length
+      ? bookings
+      : bookingIds.map((id) => ({ id }));
+
+  return { ok: true, bookings: normalizedBookings, bookingIds };
+}
+
+function baseBookingDto(b) {
+  return {
+    id: b.id,
+    user_id: b.user_id,
+    coach_id: b.coach_id,
+    expected_time: b.expected_time,
+    status: b.status,
+    created_at: b.created_at,
+    base_price: b.base_price,
+    discount_amount: b.discount_amount,
+    final_price: b.final_price,
+    deposit_paid: b.deposit_paid,
+    price_adjustment: b.price_adjustment || 0,
+    grade: b.grade,
+    gender: b.gender,
+    attendees_count: b.attendees_count,
+    learning_status: b.learning_status,
+    coupon_discount: b.coupon_discount,
+    series_id: b.series_id,
+    recurrence_pattern: b.recurrence_pattern,
+    session_number: b.session_number,
+    duration_minutes: b.duration_minutes,
+    payment_expires_at: b.payment_expires_at,
+    payment_status: b.payment_status,
+    paid_at: b.paid_at,
+    plan_id: b.plan_id,
+    plan_title: b.plan_title,
+    user_name: b.users?.name || '未知使用者',
+    coach_name: b.coaches?.name || '未知教練',
+    review_id: b.reviews && b.reviews.length > 0 ? b.reviews[0].id : null,
+  };
+}
+
+function formatBookingForRole(b, role) {
+  const dto = baseBookingDto(b);
+
+  switch (role) {
+    case 'admin':
+      return {
+        ...dto,
+        updated_at: b.updated_at,
+        payment_reference: b.payment_reference,
+        cancel_reason: b.cancel_reason,
+        cancel_fault_party: b.cancel_fault_party,
+        cancelled_at: b.cancelled_at,
+        completed_at: b.completed_at,
+        platform_fee: b.platform_fee,
+        coach_payout: b.coach_payout,
+      };
+    case 'coach':
+      return {
+        ...dto,
+        cancel_reason: b.cancel_reason,
+        cancel_fault_party: b.cancel_fault_party,
+        cancelled_at: b.cancelled_at,
+        completed_at: b.completed_at,
+      };
+    case 'student':
+    case 'user':
+    default:
+      return {
+        ...dto,
+        payment_reference: b.payment_reference,
+      };
+  }
 }
 
 export async function POST(request) {
@@ -1683,7 +1828,7 @@ export async function POST(request) {
 
     const { data: coachPlans, error: coachPlansError } = await adminSupabase
       .from('coach_plans')
-      .select('*')
+      .select(BOOKING_PLAN_SELECT)
       .eq('coach_id', coachId)
       .eq('is_active', true);
 
@@ -1732,10 +1877,6 @@ export async function POST(request) {
     const seriesId = isRecurring ? uuidv4() : null;
     const recurrencePattern = isRecurring ? 'weekly' : null;
 
-    // 獲取該教練未來的所有有效預約 (為了在記憶體中進行區間比對)
-    const nowIso = new Date().toISOString();
-    const existingBookings = await fetchExistingBookings(adminSupabase, coachId, nowIso);
-
     for (let i = 0; i < totalSessions; i++) {
       const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
       const availabilityCheck = isBookingTimeAllowed({
@@ -1748,29 +1889,6 @@ export async function POST(request) {
       if (!availabilityCheck.ok) {
         return NextResponse.json({ error: `第 ${i + 1} 堂課無法預約：${availabilityCheck.error}` }, { status: 400 });
       }
-
-      const newStart = sessionTime.getTime();
-      const newEnd = newStart + durationMinutes * 60 * 1000;
-
-      // 嚴格比對時間區間重疊
-      const hasOverlap = existingBookings?.some(booking => {
-        // 若為 pending_payment 且已過期，則不視為衝突
-        if (booking.status === 'pending_payment' && booking.payment_expires_at) {
-          const expiresAt = new Date(booking.payment_expires_at).getTime();
-          if (Date.now() > expiresAt) return false;
-        }
-
-        const existingStart = new Date(booking.expected_time).getTime();
-        const existingDuration = booking.duration_minutes || 60; 
-        const existingEnd = existingStart + existingDuration * 60 * 1000;
-        
-        // 區間重疊條件: (StartA < EndB) && (StartB < EndA)
-        return (newStart < existingEnd) && (existingStart < newEnd);
-      });
-
-      if (hasOverlap) {
-        return NextResponse.json({ error: `時段衝突：第 ${i + 1} 堂課的時段（包含課程長度）已與現有預約重疊。` }, { status: 409 });
-      }
     }
 
     const basePrice = planPrice;
@@ -1779,7 +1897,8 @@ export async function POST(request) {
     const { count: userBookingsCount } = await adminSupabase
       .from('bookings')
       .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId);
+      .eq('user_id', userId)
+      .in('status', ACTIVE_BOOKING_STATUSES);
     
     const { data: userData, error: userDataErr } = await adminSupabase
       .from('users')
@@ -1790,10 +1909,14 @@ export async function POST(request) {
     if (userDataErr) throw userDataErr;
 
     let couponResult;
+    const { data: authUser, error: authUserError } = await adminSupabase.auth.admin.getUserById(userId);
+    if (authUserError) {
+      console.error('Coupon auth lookup error:', safeErrorDetails(authUserError));
+      return NextResponse.json({ error: '優惠券驗證失敗' }, { status: 400 });
+    }
+
+    const metadata = authUser?.user?.user_metadata || {};
     try {
-      const { data: authUser, error: authUserError } = await adminSupabase.auth.admin.getUserById(userId);
-      if (authUserError) throw authUserError;
-      const metadata = authUser?.user?.user_metadata || {};
       couponResult = getServerCouponDiscount({
         requestedCouponId: couponId,
         claimedCoupons: metadata.coupons || [],
@@ -1803,42 +1926,32 @@ export async function POST(request) {
     }
     
     const isFirst = (userBookingsCount || 0) === 0;
-    // Fetch global level settings
-    const { data: settings } = await adminSupabase
-      .from('platform_settings')
-      .select('*')
-      .like('key', 'level_%_discount');
-      
-    const settingsObj = (settings || []).reduce((acc, curr) => {
-      acc[curr.key] = Number(curr.value);
-      return acc;
-    }, {});
+    const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
 
-    const levelKey = `level_${userData?.level || 1}_discount`;
-    let levelDiscount = 0;
-    if (settingsObj[levelKey] !== undefined) {
-      levelDiscount = settingsObj[levelKey];
-    } else {
-      const defaultDiscounts = { 1: 0, 2: 3, 3: 6, 4: 12 };
-      levelDiscount = defaultDiscounts[userData?.level || 1] ?? 12;
+    // Fetch global commission setting from platform key/value store
+    const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'commission_rate')
+      .maybeSingle();
+
+    if (commissionSettingError) {
+      throw commissionSettingError;
     }
 
-    const customDiscount = metadata.custom_discount !== undefined && metadata.custom_discount !== null 
-      ? Number(metadata.custom_discount) 
-      : 0;
+    const parsedGlobalCommission = Number(commissionSetting?.value);
+    const globalCommission = Number.isFinite(parsedGlobalCommission)
+      ? clampPercent(parsedGlobalCommission, 20)
+      : 20;
 
-    const baseDiscountPercent = calcBaseDiscount(levelDiscount + customDiscount, isFirst);
-
-    // Fetch dynamic commission rate based on coach performance
-    const { getCoachPerformance } = require('@/lib/coachPerformance');
-    const coachPerformance = await getCoachPerformance(coachId, adminSupabase);
-    const coachCommission = coachPerformance.currentCommission;
+    const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
+      ? coach.commission_rate 
+      : globalCommission;
 
     // 3. 累加折扣 (基礎 + server 驗證後的優惠券)
     const couponDiscountPercent = couponResult.percent;
     const pricing = calculateBookingPrice({
       basePrice,
-      attendeesCount,
       baseDiscountPercent,
       couponDiscountPercent,
       coachCommission,
@@ -1857,6 +1970,7 @@ export async function POST(request) {
     for (let i = 0; i < totalSessions; i++) {
       const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
       bookingsToInsert.push({
+        id: uuidv4(),
         user_id: userId,
         coach_id: coachId,
         expected_time: sessionTime.toISOString(),
@@ -1868,7 +1982,7 @@ export async function POST(request) {
         coach_payout: coachPayout,
         grade: finalGrade,
         gender: gender,
-        attendees_count: attendeesCount,
+        attendees_count: Math.max(1, Math.round(Number(attendeesCount) || 1)),
         learning_status: learningStatus,
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
@@ -1891,12 +2005,17 @@ export async function POST(request) {
       });
     }
 
-    const { data: bookings, removedColumns } = await insertBookingsWithSchemaFallback(adminSupabase, bookingsToInsert);
+    const bookingCreation = await createBookingsSafely(adminSupabase, {
+      bookingsToInsert,
+      userId,
+      couponId: couponResult.couponId,
+    });
 
-    if (removedColumns.length) {
-      console.warn(`[BOOKING] Created booking with schema fallback. Missing columns: ${removedColumns.join(', ')}`);
+    if (!bookingCreation.ok) {
+      return NextResponse.json({ error: bookingCreation.error }, { status: bookingCreation.status });
     }
 
+    const bookings = bookingCreation.bookings;
     if (!bookings || bookings.length === 0) {
       throw new Error('預約建立失敗，無回傳資料');
     }
@@ -1919,7 +2038,7 @@ export async function POST(request) {
           .from('chat_rooms')
           .update({ booking_id: bookingId })
           .eq('id', existingRoom.id);
-        console.log(`[AUTO-CHAT] Linked booking ${bookingId} to existing room ${existingRoom.id}`);
+        console.log(`[AUTO-CHAT] Linked booking ${maskIdentifier(bookingId)} to existing room ${maskIdentifier(existingRoom.id)}`);
       } else {
         // 建立新聊天室
         const { data: newRoom, error: roomErr } = await adminSupabase
@@ -1933,11 +2052,11 @@ export async function POST(request) {
           .single();
         
         if (!roomErr) {
-          console.log(`[AUTO-CHAT] Created new room ${newRoom.id} for booking ${bookingId}`);
+          console.log(`[AUTO-CHAT] Created new room ${maskIdentifier(newRoom.id)} for booking ${maskIdentifier(bookingId)}`);
         }
       }
     } catch (chatErr) {
-      console.error('[AUTO-CHAT ERROR] Failed to sync chat room:', chatErr);
+      console.error('[AUTO-CHAT ERROR] Failed to sync chat room:', safeErrorDetails(chatErr));
       // 不要因為聊天室建立失敗而導致預約失敗，僅記錄錯誤
     }
 
@@ -1946,15 +2065,15 @@ export async function POST(request) {
       bookingId: bookings[0].id,
       seriesId: seriesId,
       perSessionFinalPrice: finalPrice,
-      totalFinalPrice: finalPrice * totalSessions,
-      finalPrice: finalPrice * totalSessions,
+      totalFinalPrice: roundMoney(finalPrice * totalSessions),
+      finalPrice: roundMoney(finalPrice * totalSessions),
       perSessionDepositPaid: depositPaid,
-      totalDepositPaid: depositPaid * totalSessions,
-      depositPaid: depositPaid * totalSessions,
+      totalDepositPaid: roundMoney(depositPaid * totalSessions),
+      depositPaid: roundMoney(depositPaid * totalSessions),
       totalSessions
     });
   } catch (error) {
-    console.error('Booking creation error:', error);
+    console.error('Booking creation error:', safeErrorDetails(error));
     return NextResponse.json({ error: '預約失敗，伺服器內部錯誤' }, { status: 500 });
   }
 }
@@ -1968,9 +2087,9 @@ export async function GET(request) {
     let query = adminSupabase
       .from('bookings')
       .select(`
-        *, 
-        users!bookings_user_id_fkey(name), 
-        coaches:users!bookings_coach_id_fkey(name), 
+        ${GET_BOOKING_FIELDS.join(', ')},
+        users!bookings_user_id_fkey(name),
+        coaches:users!bookings_coach_id_fkey(name),
         reviews(id)
       `)
       .order('created_at', { ascending: false });
@@ -1988,25 +2107,12 @@ export async function GET(request) {
 
     // 5. 格式化回傳資料（確保安全取值），並過濾掉已過期的待付款訂單
     const formatted = (bookings || [])
-      .filter(b => {
-        if (b.status === 'pending_payment' && b.payment_expires_at) {
-          const expiresAt = new Date(b.payment_expires_at).getTime();
-          if (Date.now() > expiresAt) {
-            return false; // 過期的待付款訂單直接消失
-          }
-        }
-        return true;
-      })
-      .map(b => ({
-      ...b,
-      user_name: b.users?.name || '未知使用者',
-      coach_name: b.coaches?.name || '未知教練',
-      review_id: b.reviews && b.reviews.length > 0 ? b.reviews[0].id : null
-    }));
+      .filter((b) => !isExpiredPendingPayment(b))
+      .map((b) => formatBookingForRole(b, auth.user.role));
 
     return NextResponse.json({ bookings: formatted });
   } catch (err) {
-    console.error('Booking list error:', err);
+    console.error('Booking list error:', safeErrorDetails(err));
     return NextResponse.json({ error: '無法取得預約資料' }, { status: 500 });
   }
 }
@@ -2016,26 +2122,34 @@ export async function GET(request) {
 ## File: app/api/bookings/[id]/status/route.js
 
 ```javascript
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { canTransitionBookingStatus, buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from "@/lib/bookingWorkflow";
+import {
+  canCompleteBooking,
+  canTransitionBookingStatus,
+  buildExpiredPendingPaymentUpdate,
+  getPendingPaymentExpirationState,
+} from "@/lib/bookingWorkflow";
 
 // ============================================================
 // 預約狀態機：精確定義每個角色可執行的轉換
+// 注意：實際驗證由 lib/bookingWorkflow.js 執行；此表保留作為 route 層文件化規則。
 // ============================================================
 const STATUS_TRANSITION_RULES = {
   // 目前狀態: { 角色: [允許轉換到的目標狀態] }
   pending_payment: {
     student: ["cancelled"],
-    coach: ["cancelled"],
   },
   scheduled: {
     student: ["cancelled"],
-    coach: ["in_progress", "completed", "cancelled"],
+    coach: ["in_progress", "cancelled"],
   },
   in_progress: {
-    coach: ["pending_completion", "completed"],
+    coach: ["pending_completion"],
   },
   pending_completion: {
     student: ["completed"], // 學生確認完課
@@ -2045,20 +2159,40 @@ const STATUS_TRANSITION_RULES = {
   refunded: {},   // 終態
 };
 
+function mapCompletionRpcError(error) {
+  const text = [error?.code, error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(' ');
+
+  if (/booking_completion_conflict|409|P0001/i.test(text)) {
+    return { status: 409, error: '預約狀態已被其他操作更新，請重新整理後再試。' };
+  }
+  if (/booking_not_paid/i.test(text)) {
+    return { status: 400, error: '預約尚未完成付款，不能標記為完成。' };
+  }
+  if (/booking_not_ended/i.test(text)) {
+    return { status: 400, error: '課程尚未結束，不能標記為完成。' };
+  }
+  if (/missing_final_learning_report/i.test(text)) {
+    return { status: 400, error: '必須先填寫正式學習報告，才能將課程標記為完成。' };
+  }
+  return null;
+}
+
 export async function POST(request, { params }) {
   try {
     const auth = await requireAuth();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
     
     const { id } = await params;
-    const { status: newStatus, cancelReason } = await request.json(); 
+    const { status: newStatus, cancel_reason: cancelReason } = await request.json();
     
     const adminSupabase = getAdminSupabase();
     
     // 1. 讀取預約現況並驗證身份
     const { data: booking, error: bError } = await adminSupabase
       .from('bookings')
-      .select('*, users!bookings_user_id_fkey(referred_by, referral_completed)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -2085,6 +2219,11 @@ export async function POST(request, { params }) {
         .neq('completed_items', '__AI_DRAFT__')
         .maybeSingle();
       hasFinalReport = Boolean(report);
+
+      const completionCheck = canCompleteBooking(booking, { hasFinalReport });
+      if (!completionCheck.ok) {
+        return NextResponse.json({ error: completionCheck.error }, { status: completionCheck.status });
+      }
     }
 
     const transition = canTransitionBookingStatus({
@@ -2102,70 +2241,42 @@ export async function POST(request, { params }) {
     }
 
     const role = transition.role;
+    const isCoachCancellation = role === 'coach' && newStatus === 'cancelled';
+    const isStudentCancellation = role === 'student' && newStatus === 'cancelled';
 
-    // 3. 執行更新
-    const updateData = { status: newStatus };
-    
+    // 3. 執行更新；completed 需由 DB Transaction RPC 一次完成狀態更新與推薦獎勵發放
     if (newStatus === 'completed') {
-      updateData.completed_at = new Date().toISOString();
-    } else if (newStatus === 'cancelled') {
-      updateData.cancelled_at = new Date().toISOString();
-      // 加入取消原因
-      if (cancelReason) {
-        updateData.cancel_reason = cancelReason;
+      const { error: completeError } = await adminSupabase.rpc('complete_booking_with_referral', {
+        p_booking_id: id,
+        p_actor_id: auth.user.id,
+        p_previous_status: booking.status,
+      });
+
+      if (completeError) {
+        const mapped = mapCompletionRpcError(completeError);
+        if (mapped) return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+        throw completeError;
       }
-    } else if (newStatus === 'refunded') {
-      updateData.refunded_at = new Date().toISOString();
-    }
-
-    const { error: updateError } = await adminSupabase
-      .from('bookings')
-      .update(updateData)
-      .eq('id', id);
-
-    if (updateError) throw updateError;
-
-    // 4. 防作弊機制：推薦獎勵處理
-    if (newStatus === 'completed') {
-      const student = booking.users;
-      // 規則 2 & 3：有推薦人且是首次完課
-      if (student && student.referred_by && student.referral_completed === false) {
-        // 更新學員標記，避免後續重複發放
-        await adminSupabase.from('users').update({ referral_completed: true }).eq('id', booking.user_id);
-        
-        // 規則 4 & 8：產生 pending 狀態日誌，24小時後發放，記錄 IP
-        const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-        const suspiciousFlags = { ip };
-        const releaseTime = new Date();
-        releaseTime.setHours(releaseTime.getHours() + 24);
-        
-        await adminSupabase.from('reward_logs').insert([{
-          referrer_user_id: student.referred_by,
-          referred_user_id: booking.user_id,
-          order_id: id,
-          reward_type: 'referral_bonus',
-          reward_amount: 100, // 暫定推薦獎金 100，可後續從設定讀取
-          status: 'pending',
-          release_time: releaseTime.toISOString(),
-          suspicious_flags: suspiciousFlags
-        }]);
-      }
-    } else if (newStatus === 'cancelled' || newStatus === 'refunded') {
-      // 規則 5：退款追回機制
-      const { data: logs } = await adminSupabase.from('reward_logs').select('id, status').eq('order_id', id);
-      if (logs && logs.length > 0) {
-        for (const log of logs) {
-          if (log.status === 'pending') {
-            await adminSupabase.from('reward_logs')
-              .update({ status: 'cancelled', cancelled_reason: `Order ${newStatus}` })
-              .eq('id', log.id);
-          } else if (log.status === 'released') {
-            await adminSupabase.from('reward_logs')
-              .update({ status: 'reversed', cancelled_reason: `Order ${newStatus} after release` })
-              .eq('id', log.id);
-          }
+    } else {
+      const updateData = { status: newStatus };
+      if (newStatus === 'cancelled') {
+        updateData.cancelled_at = new Date().toISOString();
+        if (typeof cancelReason === 'string' && cancelReason.trim()) {
+          updateData.cancel_reason = cancelReason.trim().slice(0, 500);
+        }
+        if (isCoachCancellation) {
+          updateData.cancel_fault_party = 'coach_pending_review';
+        } else if (isStudentCancellation) {
+          updateData.cancel_fault_party = 'student_fault';
         }
       }
+      const { error: updateError } = await adminSupabase
+        .from('bookings')
+        .update(updateData)
+        .eq('id', id)
+        .eq('status', booking.status);
+
+      if (updateError) throw updateError;
     }
 
     // 6. 管理員審計日誌
@@ -2281,7 +2392,7 @@ export default function BookingsPage() {
 
   const fetchPaymentSettings = async () => {
     try {
-      const res = await fetch('/api/admin/settings');
+      const res = await fetch('/api/settings/payment');
       if (!res.ok) return;
       const data = await res.json();
       if (data.settings) {
@@ -2963,6 +3074,14 @@ export default function BookingsPage() {
                   gap: 8,
                 }}
               >
+                {uploadingReceipt || reportingPayment ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    處理中...
+                  </>
+                ) : (
+                  '送出付款回報'
+                )}
               </button>
             </div>
           </div>
@@ -3028,6 +3147,9 @@ export default function BookingsPage() {
 ## File: app/api/auth/profile/route.js
 
 ```javascript
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
@@ -3069,25 +3191,13 @@ export async function GET(request) {
 
     // 3. 讀取教練資料 (coaches 表)
     let coachData = null;
-    let coachPerformance = null;
     if (user.role === 'coach') {
       const { data: coach } = await adminSupabase
         .from('coaches')
-        .select('*')
+        .select('user_id, university, location, service_areas, languages, experience, philosophy, teaching_features, communication_style, policy_rules, trust_badges, base_price, available_times, approval_status, commission_rate, referral_code')
         .eq('user_id', user.id)
         .single();
       coachData = coach;
-      
-      const { getCoachPerformance } = require('@/lib/coachPerformance');
-      coachPerformance = await getCoachPerformance(coach.id, adminSupabase);
-      
-      // Override level and commission rate dynamically
-      if (coachData && coachPerformance) {
-        coachData.level = coachPerformance.currentLevel;
-        coachData.commission_rate = coachPerformance.currentCommission;
-        coachData.performance_metrics = coachPerformance.metrics;
-        coachData.performance_thresholds = coachPerformance.thresholds;
-      }
     }
 
 
@@ -3103,23 +3213,18 @@ export async function GET(request) {
     }, {});
 
     // 5. 計算總折扣
-    let levelDiscount = 0;
+    let baseDiscount = 0; // 預設 0%
     const levelKey = `level_${user.level || 1}_discount`;
     
-    if (settingsObj[levelKey] !== undefined) {
-      levelDiscount = settingsObj[levelKey];
-    } else {
-      // 如果還沒有全域設定，使用預設值
-      const defaultDiscounts = { 1: 0, 2: 3, 3: 6, 4: 12 };
-      levelDiscount = defaultDiscounts[user.level || 1] ?? 12;
-    }
-
-    let customDiscount = 0;
     if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
-      customDiscount = Number(userMetadata.custom_discount);
+      baseDiscount = Number(userMetadata.custom_discount);
+    } else if (settingsObj[levelKey] !== undefined) {
+      baseDiscount = settingsObj[levelKey];
+    } else {
+      // 如果還沒有全域設定，使用預設值：Lv1=0, Lv2=5, Lv3=10, Lv4=12
+      const defaultDiscounts = { 1: 0, 2: 5, 3: 10, 4: 12 };
+      baseDiscount = defaultDiscounts[user.level || 1] ?? 12;
     }
-
-    let baseDiscount = levelDiscount + customDiscount;
 
     const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
 
@@ -3209,6 +3314,9 @@ export async function POST(request) {
 ## File: app/api/admin/coaches/route.js
 
 ```javascript
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
@@ -3230,21 +3338,7 @@ export async function GET(request) {
       `);
 
     if (error) throw error;
-
-    const { getCoachPerformance } = require('@/lib/coachPerformance');
-    
-    // 計算每位教練的當前動態績效與最終抽成
-    const coachesWithPerformance = await Promise.all(
-      coaches.map(async (coach) => {
-        const perf = await getCoachPerformance(coach.id, adminSupabase);
-        return {
-          ...coach,
-          performance: perf
-        };
-      })
-    );
-
-    return NextResponse.json({ coaches: coachesWithPerformance });
+    return NextResponse.json({ coaches });
   } catch (err) {
     console.error('[ADMIN COACH LIST ERROR]', err);
     return NextResponse.json({ error: '無法獲取教練列表' }, { status: 500 });
@@ -3256,9 +3350,13 @@ export async function GET(request) {
 ## File: app/api/admin/coaches/[id]/commission/route.js
 
 ```javascript
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { clampPercent } from '@/lib/bookingSecurity';
 
 export async function PATCH(request, { params }) {
   try {
@@ -3267,24 +3365,18 @@ export async function PATCH(request, { params }) {
 
     const { id: coachUserId } = await params;
     const body = await request.json();
-    const { commission_discount } = body; // Can be a number or null
+    const { commission_rate } = body; // Can be a number or null
 
-    // Normalize value
-    const normalizedDiscount = 
-      commission_discount === null || commission_discount === undefined || commission_discount === ''
+    const normalizedRate =
+      commission_rate === null || commission_rate === undefined || commission_rate === ''
         ? null
-        : Number(commission_discount);
-
-    // Validate if it's a valid number between 0-100 when provided
-    if (normalizedDiscount !== null && (isNaN(normalizedDiscount) || normalizedDiscount < 0 || normalizedDiscount > 100)) {
-      return NextResponse.json({ error: '減免比例必須是 0-100 之間的數字' }, { status: 400 });
-    }
+        : Math.round(clampPercent(commission_rate));
 
     const adminSupabase = getAdminSupabase();
 
     const { error } = await adminSupabase
       .from('coaches')
-      .update({ commission_discount: normalizedDiscount })
+      .update({ commission_rate: normalizedRate })
       .eq('user_id', coachUserId);
 
     if (error) throw error;

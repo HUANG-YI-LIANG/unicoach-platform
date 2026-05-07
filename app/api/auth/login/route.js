@@ -1,8 +1,14 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { supabase, getAdminSupabase } from '@/lib/supabase';
 import { encrypt } from '@/lib/auth';
+import { maskEmail, safeErrorDetails } from '@/lib/safeLogging';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+
+const USER_SESSION_SELECT = 'id, email, name, role, level, is_frozen';
 
 export async function POST(request) {
   try {
@@ -24,13 +30,13 @@ export async function POST(request) {
     // 2. 獲取對應的 Profile (users 表)
     let { data: user, error: userError } = await adminSupabase
       .from('users')
-      .select('*')
+      .select(USER_SESSION_SELECT)
       .eq('id', authData.user.id)
       .single();
     
     // ✅ 關鍵修復：如果 Profile 缺失，則建立它 (確保符合 NOT NULL password 與 age 等欄位)
     if (!user) {
-      console.log(`[LOGIN SYNC] 偵測到 Profile 缺失，正在為 ${email} 進行自動同步...`);
+      console.log(`[LOGIN SYNC] 偵測到 Profile 缺失，正在為 ${maskEmail(email)} 進行自動同步...`);
       
       const hashedPassword = await bcrypt.hash(password, 10);
       const { data: newUser, error: insertError } = await adminSupabase
@@ -44,18 +50,18 @@ export async function POST(request) {
           level: 1,
           is_frozen: false,
           created_at: new Date().toISOString()
-        }]).select('*').single();
+        }]).select(USER_SESSION_SELECT).single();
       
       if (insertError) {
-        console.error('[LOGIN SYNC ERROR]', insertError);
-        return NextResponse.json({ error: '同步用戶資料失敗', details: insertError.message }, { status: 500 });
+        console.error('[LOGIN SYNC ERROR]', safeErrorDetails(insertError));
+        return NextResponse.json({ error: '同步用戶資料失敗' }, { status: 500 });
       }
       user = newUser;
     }
 
     // 3. 安全檢查：驗證帳號是否被凍結
     if (user.is_frozen) {
-      console.warn(`[SECURITY WARNING] 凍結帳號嘗試登入: ${email}`);
+      console.warn(`[SECURITY WARNING] 凍結帳號嘗試登入: ${maskEmail(email)}`);
       return NextResponse.json({ error: '您的帳號已被凍結，請聯絡系統端處理' }, { status: 403 });
     }
 
@@ -79,7 +85,7 @@ export async function POST(request) {
 
     return NextResponse.json({ user: sessionData });
   } catch (err) {
-    console.error('[LOGIN FATAL ERROR]', err);
-    return NextResponse.json({ error: '伺服器內部錯誤', details: err.message }, { status: 500 });
+    console.error('[LOGIN FATAL ERROR]', safeErrorDetails(err));
+    return NextResponse.json({ error: '伺服器內部錯誤' }, { status: 500 });
   }
 }

@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
@@ -96,7 +99,7 @@ export async function GET(request) {
 
     const { data: messages, error } = await adminSupabase
       .from("chat_messages")
-      .select("*, users!chat_messages_sender_id_fkey(name, role, avatar_url)")
+      .select("*, users!chat_messages_sender_id_fkey(name, role)")
       .eq("room_id", roomId)
       .order("created_at", { ascending: true })
       .limit(100);
@@ -107,7 +110,6 @@ export async function GET(request) {
       ...message,
       sender_name: message.users?.name,
       sender_role: message.users?.role,
-      sender_avatar: message.users?.avatar_url,
     }));
 
     const unreadMessageIds = formattedMessages

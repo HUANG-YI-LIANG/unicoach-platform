@@ -1,23 +1,31 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import { canTransitionBookingStatus, buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from "@/lib/bookingWorkflow";
+import {
+  canCompleteBooking,
+  canTransitionBookingStatus,
+  buildExpiredPendingPaymentUpdate,
+  getPendingPaymentExpirationState,
+} from "@/lib/bookingWorkflow";
 
 // ============================================================
 // 預約狀態機：精確定義每個角色可執行的轉換
+// 注意：實際驗證由 lib/bookingWorkflow.js 執行；此表保留作為 route 層文件化規則。
 // ============================================================
 const STATUS_TRANSITION_RULES = {
   // 目前狀態: { 角色: [允許轉換到的目標狀態] }
   pending_payment: {
     student: ["cancelled"],
-    coach: ["cancelled"],
   },
   scheduled: {
     student: ["cancelled"],
-    coach: ["in_progress", "completed", "cancelled"],
+    coach: ["in_progress", "cancelled"],
   },
   in_progress: {
-    coach: ["pending_completion", "completed"],
+    coach: ["pending_completion"],
   },
   pending_completion: {
     student: ["completed"], // 學生確認完課
@@ -27,20 +35,40 @@ const STATUS_TRANSITION_RULES = {
   refunded: {},   // 終態
 };
 
+function mapCompletionRpcError(error) {
+  const text = [error?.code, error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(' ');
+
+  if (/booking_completion_conflict|409|P0001/i.test(text)) {
+    return { status: 409, error: '預約狀態已被其他操作更新，請重新整理後再試。' };
+  }
+  if (/booking_not_paid/i.test(text)) {
+    return { status: 400, error: '預約尚未完成付款，不能標記為完成。' };
+  }
+  if (/booking_not_ended/i.test(text)) {
+    return { status: 400, error: '課程尚未結束，不能標記為完成。' };
+  }
+  if (/missing_final_learning_report/i.test(text)) {
+    return { status: 400, error: '必須先填寫正式學習報告，才能將課程標記為完成。' };
+  }
+  return null;
+}
+
 export async function POST(request, { params }) {
   try {
     const auth = await requireAuth();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
     
     const { id } = await params;
-    const { status: newStatus, cancelReason } = await request.json(); 
+    const { status: newStatus, cancel_reason: cancelReason } = await request.json();
     
     const adminSupabase = getAdminSupabase();
     
     // 1. 讀取預約現況並驗證身份
     const { data: booking, error: bError } = await adminSupabase
       .from('bookings')
-      .select('*, users!bookings_user_id_fkey(referred_by, referral_completed)')
+      .select('*')
       .eq('id', id)
       .single();
 
@@ -67,6 +95,11 @@ export async function POST(request, { params }) {
         .neq('completed_items', '__AI_DRAFT__')
         .maybeSingle();
       hasFinalReport = Boolean(report);
+
+      const completionCheck = canCompleteBooking(booking, { hasFinalReport });
+      if (!completionCheck.ok) {
+        return NextResponse.json({ error: completionCheck.error }, { status: completionCheck.status });
+      }
     }
 
     const transition = canTransitionBookingStatus({
@@ -84,78 +117,42 @@ export async function POST(request, { params }) {
     }
 
     const role = transition.role;
+    const isCoachCancellation = role === 'coach' && newStatus === 'cancelled';
+    const isStudentCancellation = role === 'student' && newStatus === 'cancelled';
 
-    // 3. 執行更新
-    const updateData = { status: newStatus };
-    
+    // 3. 執行更新；completed 需由 DB Transaction RPC 一次完成狀態更新與推薦獎勵發放
     if (newStatus === 'completed') {
-      updateData.completed_at = new Date().toISOString();
-    } else if (newStatus === 'cancelled') {
-      updateData.cancelled_at = new Date().toISOString();
-      // 加入取消原因
-      if (cancelReason) {
-        updateData.cancel_reason = cancelReason;
+      const { error: completeError } = await adminSupabase.rpc('complete_booking_with_referral', {
+        p_booking_id: id,
+        p_actor_id: auth.user.id,
+        p_previous_status: booking.status,
+      });
+
+      if (completeError) {
+        const mapped = mapCompletionRpcError(completeError);
+        if (mapped) return NextResponse.json({ error: mapped.error }, { status: mapped.status });
+        throw completeError;
       }
-    } else if (newStatus === 'refunded') {
-      updateData.refunded_at = new Date().toISOString();
-    }
-
-    const { error: updateError } = await adminSupabase
-      .from('bookings')
-      .update(updateData)
-      .eq('id', id);
-
-    if (updateError) throw updateError;
-
-    // 4. 防作弊機制：推薦獎勵處理
-    if (newStatus === 'completed') {
-      const student = booking.users;
-      // 規則 2 & 3：有推薦人且是首次完課
-      if (student && student.referred_by && student.referral_completed === false) {
-        // 更新學員標記，避免後續重複發放。加上 .eq('referral_completed', false) 防範併發 (Race Condition)
-        const { data: updatedUsers } = await adminSupabase
-          .from('users')
-          .update({ referral_completed: true })
-          .eq('id', booking.user_id)
-          .eq('referral_completed', false)
-          .select();
-        
-        // 如果成功更新（代表這是第一個到達的請求），才發放獎勵
-        if (updatedUsers && updatedUsers.length > 0) {
-          // 規則 4 & 8：產生 pending 狀態日誌，24小時後發放，記錄 IP
-          const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
-          const suspiciousFlags = { ip };
-          const releaseTime = new Date();
-          releaseTime.setHours(releaseTime.getHours() + 24);
-          
-          await adminSupabase.from('reward_logs').insert([{
-            referrer_user_id: student.referred_by,
-            referred_user_id: booking.user_id,
-            order_id: id,
-            reward_type: 'referral_bonus',
-            reward_amount: 500, // 統一推薦獎金為 500
-            status: 'pending',
-            release_time: releaseTime.toISOString(),
-            suspicious_flags: suspiciousFlags
-          }]);
+    } else {
+      const updateData = { status: newStatus };
+      if (newStatus === 'cancelled') {
+        updateData.cancelled_at = new Date().toISOString();
+        if (typeof cancelReason === 'string' && cancelReason.trim()) {
+          updateData.cancel_reason = cancelReason.trim().slice(0, 500);
+        }
+        if (isCoachCancellation) {
+          updateData.cancel_fault_party = 'coach_pending_review';
+        } else if (isStudentCancellation) {
+          updateData.cancel_fault_party = 'student_fault';
         }
       }
-    } else if (newStatus === 'cancelled' || newStatus === 'refunded') {
-      // 規則 5：退款追回機制
-      const { data: logs } = await adminSupabase.from('reward_logs').select('id, status').eq('order_id', id);
-      if (logs && logs.length > 0) {
-        for (const log of logs) {
-          if (log.status === 'pending') {
-            await adminSupabase.from('reward_logs')
-              .update({ status: 'cancelled', cancelled_reason: `Order ${newStatus}` })
-              .eq('id', log.id);
-          } else if (log.status === 'released') {
-            await adminSupabase.from('reward_logs')
-              .update({ status: 'reversed', cancelled_reason: `Order ${newStatus} after release` })
-              .eq('id', log.id);
-          }
-        }
-      }
+      const { error: updateError } = await adminSupabase
+        .from('bookings')
+        .update(updateData)
+        .eq('id', id)
+        .eq('status', booking.status);
+
+      if (updateError) throw updateError;
     }
 
     // 6. 管理員審計日誌

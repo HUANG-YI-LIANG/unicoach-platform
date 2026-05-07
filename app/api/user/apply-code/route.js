@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
@@ -15,67 +18,38 @@ export async function POST(request) {
     const cleanCode = code.trim().toUpperCase();
     const adminSupabase = getAdminSupabase();
 
-    // 1. 檢查是否為推廣碼 (promotion_code)
+    // 1. 檢查是否為教練固定推薦碼 (coaches.referral_code)
     const { data: referrer } = await adminSupabase
-      .from('users')
-      .select('id, name, email, is_suspended')
-      .eq('promotion_code', cleanCode)
+      .from('coaches')
+      .select('user_id, referral_code, users!inner(id, name)')
+      .eq('referral_code', cleanCode)
       .maybeSingle();
 
     if (referrer) {
-      // 防作弊規則 7：推薦人不可被停權
-      if (referrer.is_suspended) {
-        return NextResponse.json({ error: '無效的推廣碼（推薦人帳號狀態異常）' }, { status: 400 });
-      }
-
-      // 防作弊規則 6：不能推薦自己
-      if (referrer.id === auth.user.id) {
+      if (referrer.user_id === auth.user.id) {
         return NextResponse.json({ error: '不能輸入自己的推廣碼' }, { status: 400 });
       }
 
-      // 取得當前使用者完整資料
+      // 確認該用戶是否已經綁定推薦人
       const { data: currentUser } = await adminSupabase
         .from('users')
-        .select('referred_by, email')
+        .select('referred_by')
         .eq('id', auth.user.id)
         .single();
 
-      // 防作弊規則 7：相同 Email 不可互相推薦 (防分身)
-      if (currentUser.email === referrer.email) {
-        return NextResponse.json({ error: '無法使用此推廣碼（帳號關聯異常）' }, { status: 400 });
-      }
-
-      // 防作弊規則 1：已經有推薦人則不可修改或覆蓋
       if (currentUser.referred_by) {
         return NextResponse.json({ error: '您已經綁定過推薦人了，無法重複綁定。' }, { status: 400 });
       }
 
-      // 綁定推薦人並記錄時間
+      // 綁定推薦人
       const { error: updateError } = await adminSupabase
         .from('users')
-        .update({ 
-          referred_by: referrer.id,
-          referral_bound_at: new Date().toISOString()
-        })
+        .update({ referred_by: referrer.user_id })
         .eq('id', auth.user.id);
 
       if (updateError) throw updateError;
 
-      // 發放推薦入會折價券 (9折=10% off，最高折150，30天效期)
-      const validUntil = new Date();
-      validUntil.setDate(validUntil.getDate() + 30);
-      
-      const { error: couponError } = await adminSupabase.from('coupons').insert([{
-        user_id: auth.user.id,
-        type: 'referral',
-        discount_percent: 10,
-        max_amount: 150,
-        valid_until: validUntil.toISOString()
-      }]);
-      
-      if (couponError) console.error('[COUPON ERROR]', couponError);
-
-      return NextResponse.json({ success: true, type: 'referral', message: `成功綁定推薦人：${referrer.name || '未知使用者'}，並獲得專屬 9 折優惠券！` });
+      return NextResponse.json({ success: true, type: 'referral', message: `成功綁定推薦人：${referrer.users?.name || '未知使用者'}` });
     }
 
     // 2. 檢查是否為一般優惠碼

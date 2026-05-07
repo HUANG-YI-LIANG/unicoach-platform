@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { getNextAvailableSlot } from '@/lib/coachAvailability';
@@ -13,6 +16,26 @@ const LEVEL_META = {
   3: { key: 'professional', label: '專業教練' },
 };
 
+const PUBLIC_COACH_DETAIL_SELECT = `
+  user_id,
+  university,
+  location,
+  service_areas,
+  languages,
+  experience,
+  philosophy,
+  teaching_features,
+  communication_style,
+  policy_rules,
+  trust_badges,
+  base_price,
+  available_times,
+  approval_status,
+  commission_rate,
+  referral_code,
+  users!inner(name, id, avatar_url, level)
+`;
+
 function normalizeLevel(levelValue) {
   const numeric = Number(levelValue);
   return LEVEL_META[numeric] ? numeric : 1;
@@ -25,7 +48,7 @@ export async function GET(_request, { params }) {
 
     const { data: coach, error } = await adminSupabase
       .from('coaches')
-      .select('*, users!inner(name, id, avatar_url, level)')
+      .select(PUBLIC_COACH_DETAIL_SELECT)
       .eq('user_id', id)
       .eq('approval_status', 'approved')
       .single();
@@ -99,10 +122,10 @@ export async function GET(_request, { params }) {
     const coachLevelValue = normalizeLevel(coach.users.level);
     const planOptions = activePlans;
     const coachWithFormalAvailability = {
-      ...coach,
+      user_id: coach.user_id,
+      available_times: null,
       availability_rules: formalAvailabilityRules,
       availability_exceptions: availabilityExceptions || [],
-      available_times: null,
     };
     const nextAvailableSlot = saleability.canSell ? getNextAvailableSlot(coachWithFormalAvailability, bookings || []) : null;
 
@@ -118,6 +141,20 @@ export async function GET(_request, { params }) {
       user_id: coach.user_id,
       name: coach.users.name,
       avatar_url: coach.users.avatar_url,
+      university: coach.university,
+      location: coach.location,
+      service_areas: coach.service_areas,
+      languages: coach.languages,
+      experience: coach.experience,
+      philosophy: coach.philosophy,
+      teaching_features: coach.teaching_features,
+      communication_style: coach.communication_style,
+      policy_rules: coach.policy_rules,
+      trust_badges: coach.trust_badges,
+      base_price: coach.base_price,
+      approval_status: coach.approval_status,
+      commission_rate: coach.commission_rate,
+      referral_code: coach.referral_code || null,
       rating_avg: ratingAvg,
       review_count: reviewCount,
       coach_level: LEVEL_META[coachLevelValue].key,
@@ -133,8 +170,6 @@ export async function GET(_request, { params }) {
       plan_options: planOptions,
       plan_count: planOptions.length,
       min_price: planOptions.length ? Math.min(...planOptions.map((plan) => plan.price)) : null,
-      ...coach,
-      users: undefined,
     };
 
     const formattedReviews = (reviews || []).map((review) => ({

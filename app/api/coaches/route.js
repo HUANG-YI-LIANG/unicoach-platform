@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import {
@@ -13,12 +16,31 @@ import {
   getFormalActiveAvailabilityRules,
   getFormalActivePlans,
 } from '@/lib/salableCoachRules';
+import { safeErrorDetails } from '@/lib/safeLogging';
 
 const LEVEL_META = {
   1: { key: 'beginner', label: '初階教練', rank: 1 },
   2: { key: 'advanced', label: '進階教練', rank: 2 },
   3: { key: 'professional', label: '專業教練', rank: 3 },
 };
+
+const PUBLIC_COACH_LIST_SELECT = `
+  user_id,
+  university,
+  location,
+  service_areas,
+  philosophy,
+  experience,
+  base_price,
+  commission_rate,
+  approval_status,
+  available_times,
+  referral_code,
+  users!inner(id, name, avatar_url, level)
+`;
+const PUBLIC_COACH_PLAN_SELECT = 'id, coach_id, title, description, duration_minutes, price, is_active, is_default';
+const PUBLIC_AVAILABILITY_RULE_SELECT = 'coach_id, weekday, start_time, end_time, slot_minutes, is_active';
+const PUBLIC_AVAILABILITY_EXCEPTION_SELECT = 'coach_id, exception_date, exception_type, start_time, end_time';
 
 function normalizeLevel(levelValue) {
   const numeric = Number(levelValue);
@@ -79,19 +101,46 @@ function matchesLevel(coach, levelFilter) {
   return String(coach.coach_level_value) === String(levelFilter);
 }
 
+function buildCoachListModel(coach, { reviewCount = 0, ratingAverage = 0 } = {}) {
+  return {
+    user_id: coach.user_id,
+    users: {
+      id: coach.users?.id,
+      name: coach.users?.name,
+      avatar_url: coach.users?.avatar_url,
+      level: coach.users?.level,
+    },
+    review_count: reviewCount,
+    rating_avg: ratingAverage,
+    university: coach.university,
+    location: coach.location,
+    referral_code: coach.referral_code || null,
+    service_areas: coach.service_areas,
+    philosophy: coach.philosophy,
+    experience: coach.experience,
+    base_price: coach.base_price,
+    commission_rate: coach.commission_rate,
+    approval_status: coach.approval_status,
+    available_times: coach.available_times,
+  };
+}
+
 function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availabilityExceptions, selectedDate, selectedTime) {
   const formalAvailabilityRules = getFormalActiveAvailabilityRules(availabilityRules);
   const activePlans = getFormalActivePlans(coachPlans);
+  const saleabilityCoach = {
+    approval_status: coach.approval_status,
+  };
   const saleability = getCoachSaleability({
-    coach,
+    coach: saleabilityCoach,
     plans: activePlans,
     availabilityRules: formalAvailabilityRules,
   });
   const coachWithAvailability = {
-    ...coach,
+    user_id: coach.user_id,
+    available_times: null,
     availability_rules: formalAvailabilityRules,
     availability_exceptions: availabilityExceptions,
-    available_times: null,
   };
   const coachLevelValue = normalizeLevel(coach?.users?.level);
   const nextAvailableSlot = saleability.canSell
@@ -124,6 +173,7 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     rating_avg: coach.rating_avg,
     university: coach.university,
     location: coach.location,
+    referral_code: coach.referral_code || null,
     service_areas: coach.service_areas,
     base_price: coach.base_price,
     commission_rate: coach.commission_rate,
@@ -163,7 +213,7 @@ export async function GET(request) {
 
     const { data: coaches, error: coachError } = await adminSupabase
       .from('coaches')
-      .select('*, users!inner(id, name, avatar_url, level)')
+      .select(PUBLIC_COACH_LIST_SELECT)
       .eq('approval_status', 'approved');
 
     if (coachError) {
@@ -193,7 +243,7 @@ export async function GET(request) {
 
     const { data: coachPlans, error: planError } = await adminSupabase
       .from('coach_plans')
-      .select('*')
+      .select(PUBLIC_COACH_PLAN_SELECT)
       .in('coach_id', coachIds.length ? coachIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('is_active', true);
 
@@ -203,7 +253,7 @@ export async function GET(request) {
 
     const { data: availabilityRules, error: rulesError } = await adminSupabase
       .from('coach_availability_rules')
-      .select('*')
+      .select(PUBLIC_AVAILABILITY_RULE_SELECT)
       .in('coach_id', coachIds.length ? coachIds : ['00000000-0000-0000-0000-000000000000'])
       .eq('is_active', true);
 
@@ -215,7 +265,7 @@ export async function GET(request) {
     const endDate = selectedDate || addDays(startDate, 13);
     const { data: availabilityExceptions, error: exceptionsError } = await adminSupabase
       .from('coach_availability_exceptions')
-      .select('*')
+      .select(PUBLIC_AVAILABILITY_EXCEPTION_SELECT)
       .in('coach_id', coachIds.length ? coachIds : ['00000000-0000-0000-0000-000000000000'])
       .gte('exception_date', startDate)
       .lte('exception_date', endDate);
@@ -270,11 +320,10 @@ export async function GET(request) {
       const sum = ratings.reduce((accumulator, rating) => accumulator + rating, 0);
 
       return formatCoach(
-        {
-          ...coach,
-          review_count: count,
-          rating_avg: count ? Number((sum / count).toFixed(1)) : 0,
-        },
+        buildCoachListModel(coach, {
+          reviewCount: count,
+          ratingAverage: count ? Number((sum / count).toFixed(1)) : 0,
+        }),
         bookingMap[coach.user_id] || [],
         planMap[coach.user_id] || [],
         availabilityRuleMap[coach.user_id] || [],
@@ -354,7 +403,7 @@ export async function GET(request) {
 
     return NextResponse.json({ coaches: filtered, allSports });
   } catch (error) {
-    console.error('Coaches fetch error:', error);
+    console.error('Coaches fetch error:', safeErrorDetails(error));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

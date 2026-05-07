@@ -1,6 +1,24 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+
+const PERCENTAGE_SETTING_KEYS = new Set([
+  'commission_rate',
+  'commission_discount',
+  'discount_percent',
+  'first_booking_discount',
+  'base_discount_percent',
+]);
+
+function clampSettingValue(key, value) {
+  if (!PERCENTAGE_SETTING_KEYS.has(key)) return String(value);
+  const parsed = Number(value);
+  const normalized = Number.isFinite(parsed) ? parsed : 0;
+  return String(Math.round(Math.min(100, Math.max(0, normalized))));
+}
 
 /**
  * GET: 獲取平台全域設定
@@ -46,11 +64,12 @@ export async function POST(request) {
     }
 
     const adminSupabase = getAdminSupabase();
+    const normalizedValue = clampSettingValue(key, value);
     const { error } = await adminSupabase
       .from('platform_settings')
       .upsert({ 
         key, 
-        value: String(value), 
+        value: normalizedValue,
         description, 
         updated_at: new Date().toISOString() 
       });
