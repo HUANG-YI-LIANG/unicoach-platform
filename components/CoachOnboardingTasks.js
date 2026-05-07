@@ -60,63 +60,63 @@ export default function CoachOnboardingTasks({ profile, coachDetail }) {
 
   if (loading) return null;
 
-  if (allCompleted) {
-    return (
-      <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderRadius: 16, padding: '24px 20px', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div style={{ background: 'rgba(16, 185, 129, 0.2)', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <PartyPopper size={24} color="#10B981" />
-        </div>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#10B981' }}>新手任務全數完成！</h3>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>太棒了！您的教練檔案已經準備就緒，現在可以開始接單，迎接您的第一位學生了！</p>
-        </div>
-      </div>
-    );
-  }
-
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = (completedCount / tasks.length) * 100;
 
   return (
-    <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '24px 20px', border: '1px solid rgba(249, 115, 22, 0.2)', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, height: 4, background: 'rgba(255,255,255,0.05)', width: '100%' }}>
-        <div style={{ width: `${progress}%`, height: '100%', background: ORANGE, transition: 'width 0.5s ease-out' }} />
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: TEXT_LIGHT }}>教練新手啟程清單</h3>
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>完成以下步驟，讓您的檔案更具吸引力</p>
+    <>
+      {allCompleted && (
+        <div style={{ background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)', borderRadius: 16, padding: '24px 20px', border: '1px solid rgba(16, 185, 129, 0.2)', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ background: 'rgba(16, 185, 129, 0.2)', width: 48, height: 48, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <PartyPopper size={24} color="#10B981" />
+          </div>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#10B981' }}>新手任務全數完成！</h3>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>太棒了！您的教練檔案已經準備就緒，現在可以開始接單，迎接您的第一位學生了！</p>
+          </div>
         </div>
-        <div style={{ background: 'rgba(249, 115, 22, 0.1)', color: ORANGE, padding: '4px 12px', borderRadius: 100, fontSize: 13, fontWeight: 800 }}>
-          {completedCount} / {tasks.length}
+      )}
+
+      <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '24px 20px', border: `1px solid ${allCompleted ? 'rgba(16, 185, 129, 0.2)' : 'rgba(249, 115, 22, 0.2)'}`, marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, height: 4, background: 'rgba(255,255,255,0.05)', width: '100%' }}>
+          <div style={{ width: `${progress}%`, height: '100%', background: allCompleted ? '#10B981' : ORANGE, transition: 'width 0.5s ease-out' }} />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: TEXT_LIGHT }}>教練新手啟程清單</h3>
+            <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED }}>{allCompleted ? '您已完成所有基本設定，隨時可回頭修改' : '完成以下步驟，讓您的檔案更具吸引力'}</p>
+          </div>
+          <div style={{ background: allCompleted ? 'rgba(16, 185, 129, 0.1)' : 'rgba(249, 115, 22, 0.1)', color: allCompleted ? '#10B981' : ORANGE, padding: '4px 12px', borderRadius: 100, fontSize: 13, fontWeight: 800 }}>
+            {completedCount} / {tasks.length}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {tasks.map(task => (
+            <button
+              key={task.id}
+              onClick={() => router.push(task.path)}
+              style={{ 
+                display: 'flex', alignItems: 'center', gap: 16, padding: 16, 
+                background: 'var(--bg-input)', border: `1px solid ${task.completed ? 'rgba(16, 185, 129, 0.3)' : 'transparent'}`, 
+                borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'transform 0.1s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.01)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <div style={{ color: task.completed ? '#10B981' : MUTED }}>
+                {task.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 800, color: task.completed ? '#10B981' : TEXT_LIGHT }}>{task.title}</div>
+                <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{task.desc}</div>
+              </div>
+              <ChevronRight size={18} color={MUTED} />
+            </button>
+          ))}
         </div>
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {tasks.map(task => (
-          <button
-            key={task.id}
-            onClick={() => router.push(task.path)}
-            style={{ 
-              display: 'flex', alignItems: 'center', gap: 16, padding: 16, 
-              background: 'var(--bg-input)', border: `1px solid ${task.completed ? 'rgba(16, 185, 129, 0.3)' : 'transparent'}`, 
-              borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'transform 0.1s'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.01)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <div style={{ color: task.completed ? '#10B981' : MUTED }}>
-              {task.completed ? <CheckCircle2 size={24} /> : <Circle size={24} />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 800, color: task.completed ? '#10B981' : TEXT_LIGHT }}>{task.title}</div>
-              <div style={{ fontSize: 12, color: MUTED, marginTop: 2 }}>{task.desc}</div>
-            </div>
-            <ChevronRight size={18} color={MUTED} />
-          </button>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
