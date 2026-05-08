@@ -5,9 +5,17 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { canGenerateAiReportDraft, canUpsertAiDraft } from '@/lib/bookingWorkflow';
+import { safeErrorDetails } from '@/lib/safeLogging';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const AI_MODEL = 'gemini-2.5-flash';
+
+function isDuplicateLearningReportError(error) {
+  const text = [error?.code, error?.message, error?.details, error?.hint]
+    .filter(Boolean)
+    .join(' ');
+  return /23505|duplicate key|learning_reports.*booking_id|booking_id.*unique/i.test(text);
+}
 
 export async function POST(request) {
   try {
@@ -31,7 +39,7 @@ export async function POST(request) {
     const adminSupabase = getAdminSupabase();
     const { data: booking, error: bookingError } = await adminSupabase
       .from('bookings')
-      .select('id, coach_id, status')
+      .select('id, user_id, coach_id, status')
       .eq('id', bookingId)
       .single();
 
@@ -95,8 +103,7 @@ export async function POST(request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini API Error:', errorData);
+      console.error('Gemini API Error:', { status: response.status });
       return NextResponse.json({ error: 'AI 生成失敗，請稍後再試。' }, { status: 500 });
     }
 
@@ -106,7 +113,7 @@ export async function POST(request) {
     // Split the generated text into observation and suggestions
     // The prompt asks for two paragraphs separated by a blank line.
     const paragraphs = generatedText.split('\n\n').map(p => p.trim()).filter(Boolean);
-    
+
     let expandedObservation = paragraphs[0] || observation;
     let expandedSuggestions = paragraphs[1] || suggestions || '';
 
@@ -123,29 +130,66 @@ export async function POST(request) {
       generated_at: new Date().toISOString(),
     });
 
-    const { data: draftReport, error: draftError } = await adminSupabase
-      .from('learning_reports')
-      .upsert({
-        booking_id: bookingId,
-        coach_id: booking.coach_id,
-        completed_items: '__AI_DRAFT__',
-        focus_score: 1,
-        cooperation_score: 1,
-        completion_score: 1,
-        understanding_score: 1,
-        observation: '',
-        suggestions: '',
-        progress_level: 'none',
-        ai_draft_observation: expandedObservation,
-        ai_draft_suggestions: expandedSuggestions,
-        ai_generated_at: new Date().toISOString(),
-        ai_model: AI_MODEL,
-        ai_prompt_snapshot: promptSnapshot,
-      }, { onConflict: 'booking_id' })
-      .select('id, ai_draft_observation, ai_draft_suggestions, ai_generated_at, ai_model')
-      .single();
+    const draftPayload = {
+      booking_id: bookingId,
+      user_id: booking.user_id,
+      coach_id: booking.coach_id,
+      completed_items: '__AI_DRAFT__',
+      focus_score: 1,
+      cooperation_score: 1,
+      completion_score: 1,
+      understanding_score: 1,
+      observation: '',
+      suggestions: '',
+      progress_level: 'none',
+      ai_draft_observation: expandedObservation,
+      ai_draft_suggestions: expandedSuggestions,
+      ai_generated_at: new Date().toISOString(),
+      ai_model: AI_MODEL,
+      ai_prompt_snapshot: promptSnapshot,
+    };
 
-    if (draftError) throw draftError;
+    const { data: draftReport, error: draftError } = existingReport
+      ? await adminSupabase
+          .from('learning_reports')
+          .update(draftPayload)
+          .eq('id', existingReport.id)
+          .eq('completed_items', '__AI_DRAFT__')
+          .select('id, ai_draft_observation, ai_draft_suggestions, ai_generated_at, ai_model')
+          .maybeSingle()
+      : await adminSupabase
+          .from('learning_reports')
+          .insert([{
+            booking_id: bookingId,
+            user_id: booking.user_id,
+            coach_id: booking.coach_id,
+            completed_items: '__AI_DRAFT__',
+            focus_score: 1,
+            cooperation_score: 1,
+            completion_score: 1,
+            understanding_score: 1,
+            observation: '',
+            suggestions: '',
+            progress_level: 'none',
+            ai_draft_observation: expandedObservation,
+            ai_draft_suggestions: expandedSuggestions,
+            ai_generated_at: draftPayload.ai_generated_at,
+            ai_model: AI_MODEL,
+            ai_prompt_snapshot: promptSnapshot,
+          }])
+          .select('id, ai_draft_observation, ai_draft_suggestions, ai_generated_at, ai_model')
+          .maybeSingle();
+
+    if (draftError) {
+      if (isDuplicateLearningReportError(draftError)) {
+        return NextResponse.json({ error: '此預約報告已被其他操作建立，請重新整理後再試。' }, { status: 409 });
+      }
+      throw draftError;
+    }
+
+    if (!draftReport) {
+      return NextResponse.json({ error: '此預約報告已被其他操作更新，請重新整理後再試。' }, { status: 409 });
+    }
 
     await adminSupabase.from('audit_logs').insert([{
       actor_id: auth.user.id,
@@ -155,8 +199,8 @@ export async function POST(request) {
       details: promptSnapshot,
     }]);
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       draftId: draftReport.id,
       draft: {
         observation: draftReport.ai_draft_observation,
@@ -167,7 +211,7 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Generate report error:', error);
+    console.error('Generate report error:', safeErrorDetails(error));
     return NextResponse.json({ error: '伺服器內部錯誤' }, { status: 500 });
   }
 }

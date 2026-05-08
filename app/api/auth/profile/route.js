@@ -4,7 +4,30 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getCoachPerformanceByUserId } from '@/lib/coachPerformance';
 import { SAFE_USER_PROFILE_FIELDS, sanitizeUserProfile } from '@/lib/securityRules';
+
+function clampDiscountPercent(value) {
+  const discount = Number(value);
+  if (!Number.isFinite(discount)) return 0;
+  return Math.min(100, Math.max(0, discount));
+}
+
+function normalizeCoupon(coupon) {
+  if (!coupon || typeof coupon !== 'object') return null;
+  const discount = clampDiscountPercent(coupon.discount);
+  return {
+    code: typeof coupon.code === 'string' ? coupon.code : '',
+    discount,
+    source: typeof coupon.source === 'string' ? coupon.source : undefined,
+    expires_at: typeof coupon.expires_at === 'string' ? coupon.expires_at : undefined,
+  };
+}
+
+function normalizeCoupons(coupons) {
+  if (!Array.isArray(coupons)) return [];
+  return coupons.map((coupon) => normalizeCoupon(coupon)).filter(Boolean);
+}
 
 export async function GET(request) {
   try {
@@ -37,25 +60,37 @@ export async function GET(request) {
     // 2. 讀取 Auth metadata (for coupons)
     const { data: authUser } = await adminSupabase.auth.admin.getUserById(auth.user.id);
     const userMetadata = authUser?.user?.user_metadata || {};
-    const claimedCoupons = userMetadata.coupons || [];
-    const activeCoupon = userMetadata.active_coupon || null;
+    const claimedCoupons = normalizeCoupons(userMetadata.coupons);
+    const activeCoupon = normalizeCoupon(userMetadata.active_coupon);
 
-    // 3. 讀取教練資料 (coaches 表)
+    // 3. 讀取教練資料 (coaches 表) 與動態績效欄位
     let coachData = null;
     if (user.role === 'coach') {
-      const { data: coach } = await adminSupabase
-        .from('coaches')
-        .select('user_id, university, location, service_areas, languages, experience, philosophy, teaching_features, communication_style, policy_rules, trust_badges, base_price, available_times, approval_status, commission_rate, referral_code')
-        .eq('user_id', user.id)
-        .single();
-      coachData = coach;
+      const [{ data: coach }, performance] = await Promise.all([
+        adminSupabase
+          .from('coaches')
+          .select('user_id, university, location, service_areas, languages, experience, philosophy, teaching_features, communication_style, policy_rules, trust_badges, base_price, available_times, approval_status, commission_rate, referral_code')
+          .eq('user_id', user.id)
+          .single(),
+        getCoachPerformanceByUserId(user.id, adminSupabase)
+      ]);
+
+      coachData = coach ? {
+        ...coach,
+        level: performance.currentLevel,
+        commission_rate: performance.currentCommission,
+        base_commission_rate: performance.baseCommission,
+        personal_commission_discount: performance.personalDiscount,
+        performance_metrics: performance.metrics,
+        performance_thresholds: performance.thresholds
+      } : null;
     }
 
 
     // 4. 讀取等級折扣設定
     const { data: settings } = await adminSupabase
       .from('platform_settings')
-      .select('*')
+      .select('key, value')
       .like('key', 'level_%_discount');
       
     const settingsObj = (settings || []).reduce((acc, curr) => {
@@ -68,16 +103,16 @@ export async function GET(request) {
     const levelKey = `level_${user.level || 1}_discount`;
     
     if (userMetadata.custom_discount !== undefined && userMetadata.custom_discount !== null) {
-      baseDiscount = Number(userMetadata.custom_discount);
+      baseDiscount = clampDiscountPercent(userMetadata.custom_discount);
     } else if (settingsObj[levelKey] !== undefined) {
-      baseDiscount = settingsObj[levelKey];
+      baseDiscount = clampDiscountPercent(settingsObj[levelKey]);
     } else {
       // 如果還沒有全域設定，使用預設值：Lv1=0, Lv2=5, Lv3=10, Lv4=12
       const defaultDiscounts = { 1: 0, 2: 5, 3: 10, 4: 12 };
       baseDiscount = defaultDiscounts[user.level || 1] ?? 12;
     }
 
-    const totalDiscount = baseDiscount + (activeCoupon ? activeCoupon.discount : 0);
+    const totalDiscount = clampDiscountPercent(baseDiscount + (activeCoupon ? activeCoupon.discount : 0));
 
     return NextResponse.json({ 
       profile: { 
@@ -156,6 +191,6 @@ export async function POST(request) {
     });
   } catch (err) {
     console.error('Profile update error:', err);
-    return NextResponse.json({ error: err.message || '伺服器錯誤' }, { status: 500 });
+    return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 });
   }
 }

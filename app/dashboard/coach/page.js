@@ -111,9 +111,10 @@ export default function CoachDashboard() {
     0
   );
   
-  const referralCode = `UNICOACH-${profile?.name?.toUpperCase() || 'COACH'}`;
+  const referralCode = typeof coachDetail?.referral_code === 'string' ? coachDetail.referral_code.trim() : '';
 
   const handleCopyCode = async () => {
+    if (!referralCode) return;
     try {
       await navigator.clipboard.writeText(referralCode);
       setCopiedCode(true);
@@ -123,7 +124,7 @@ export default function CoachDashboard() {
     }
   };
 
-  const promotionUrl = typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${referralCode}` : '';
+  const promotionUrl = typeof window !== 'undefined' && referralCode ? `${window.location.origin}/register?ref=${referralCode}` : '';
 
   return (
     <div style={{
@@ -219,7 +220,7 @@ export default function CoachDashboard() {
               PLATFORM COMMISSION
             </p>
             <p style={{ margin: '8px 0 4px', fontSize: 24, fontWeight: 900 }}>
-              {coachDetail?.commission_rate || 45}%
+              {coachDetail?.commission_rate ?? 45}%
             </p>
             <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>平台抽成比例</p>
           </div>
@@ -244,11 +245,11 @@ export default function CoachDashboard() {
                 const metrics = coachDetail.performance_metrics;
                 const targetLv = Math.min((coachDetail.level || 1) + 1, 4);
                 const thresholds = coachDetail.performance_thresholds || {};
-                
+
                 const targetLessons = targetLv === 4 ? (thresholds.lv4_lessons||6) : targetLv === 3 ? (thresholds.lv3_lessons||4) : (thresholds.lv2_lessons||2);
                 const targetRating = targetLv === 4 ? 4.8 : targetLv === 3 ? 4.7 : 4.5;
                 const targetResponse = targetLv === 4 ? '< 15分' : targetLv === 3 ? '< 60分' : '> 80%';
-                
+
                 const renderMetric = (label, value, targetStr, isPass) => (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -331,10 +332,14 @@ export default function CoachDashboard() {
                 <input
                   type="text"
                   readOnly
-                  value={referralCode}
-                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, letterSpacing: '0.1em', textAlign: 'center' }}
+                  value={referralCode || '尚未產生'}
+                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: referralCode ? TEXT_LIGHT : MUTED, letterSpacing: '0.1em', textAlign: 'center' }}
                 />
-                <button onClick={handleCopyCode} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'var(--text-light)' : ORANGE, border: 'none', borderRadius: 12, cursor: 'pointer', transition: '0.2s', fontWeight: 800 }}>
+                <button
+                  onClick={handleCopyCode}
+                  disabled={!referralCode}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'var(--text-light)' : ORANGE, border: 'none', borderRadius: 12, cursor: referralCode ? 'pointer' : 'not-allowed', opacity: referralCode ? 1 : 0.5, transition: '0.2s', fontWeight: 800 }}
+                >
                   {copiedCode ? <Check size={18} /> : <Copy size={18} />}
                 </button>
               </div>
