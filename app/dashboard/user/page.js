@@ -334,7 +334,7 @@ export default function UserDashboard() {
                   <div style={{ width: 32, height: 32, borderRadius: 16, background: 'rgba(245, 158, 11, 0.1)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, flexShrink: 0 }}>1</div>
                   <div>
                     <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800 }}>尋找教練</h3>
-                    <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>在首頁或找教練頁面，篩選你想要的運動項目、時間與地區。</p>
+                    <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>在首頁或找教練頁面，篩選你想要的教學項目、時間與地區。</p>
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 12 }}>

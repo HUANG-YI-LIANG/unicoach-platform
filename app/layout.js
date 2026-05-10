@@ -8,7 +8,7 @@ import { Suspense } from 'react';
 
 export const metadata = {
   title: 'UniCoach',
-  description: '手機優先的運動教練預約平台',
+  description: '手機優先的教練與老師預約平台',
 };
 
 export default function RootLayout({ children }) {

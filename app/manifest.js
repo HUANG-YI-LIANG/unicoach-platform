@@ -2,7 +2,7 @@ export default function manifest() {
   return {
     name: 'UniCoach',
     short_name: 'UniCoach',
-    description: '手機優先的運動教練預約平台',
+    description: '手機優先的教練與老師預約平台',
     start_url: '/',
     display: 'standalone',
     background_color: '#0F172A',
