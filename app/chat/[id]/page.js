@@ -26,24 +26,7 @@ function formatTime(dateStr) {
   return date.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-function Avatar({ name, src, size = 36 }) {
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={name}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          flexShrink: 0,
-          objectFit: 'cover',
-          boxShadow: `0 0 10px rgba(0, 0, 0, 0.1)`
-        }}
-      />
-    );
-  }
-
+function Avatar({ name, size = 36 }) {
   return (
     <div
       style={{
@@ -231,7 +214,7 @@ export default function ChatRoomPage({ params }) {
           ←
         </button>
 
-        <Avatar name={room?.other_name ?? '?'} src={room?.other_avatar} size={40} />
+        <Avatar name={room?.other_name ?? '?'} size={40} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -359,7 +342,7 @@ export default function ChatRoomPage({ params }) {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                  <Avatar name={room.coach_name} src={room.other_avatar} size={44} />
+                  <Avatar name={room.coach_name} size={44} />
                   <div>
                     <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: TEXT_LIGHT }}>{room.coach_name}</p>
                     <p style={{ margin: '2px 0 0', fontSize: 11, color: MUTED }}>教練介紹</p>
@@ -436,7 +419,7 @@ export default function ChatRoomPage({ params }) {
                   marginBottom: 12,
                 }}
               >
-                {!isMe && <Avatar name={message.sender_name ?? room?.coach_name} src={message.sender_avatar ?? room?.other_avatar} size={32} />}
+                {!isMe && <Avatar name={message.sender_name ?? room?.coach_name} size={32} />}
 
                 <div style={{ maxWidth: '70%' }}>
                   {!isMe && message.sender_name && (
@@ -463,7 +446,7 @@ export default function ChatRoomPage({ params }) {
                   </p>
                 </div>
 
-                {isMe && <Avatar name={message.sender_name || '我'} src={currentUser?.avatar_url} size={32} />}
+                {isMe && <Avatar name={message.sender_name || '我'} size={32} />}
               </div>
             );
           })

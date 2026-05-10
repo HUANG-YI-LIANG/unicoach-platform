@@ -48,7 +48,7 @@ export async function POST(request) {
     }
 
     const adminSupabase = getAdminSupabase();
-    const { isValid, reason } = await verifyRoomParticipant(adminSupabase, roomId, auth.user.id);
+    const { isValid, reason, room } = await verifyRoomParticipant(adminSupabase, roomId, auth.user.id);
     if (!isValid) {
       console.warn(`[CHAT SECURITY] invalid post access user=${auth.user.id} room=${roomId}`);
       return NextResponse.json({ error: reason }, { status: 403 });
@@ -73,12 +73,11 @@ export async function POST(request) {
 
     if (error) throw error;
 
-    // Send Push Notification asynchronously
+    // Send Push Notification synchronously to avoid Vercel killing the async task
     const recipientId = room.user_id === auth.user.id ? room.coach_id : room.user_id;
     const senderName = auth.user.name || (auth.user.role === 'coach' ? '教練' : '學員');
-    
-    // Avoid blocking the response
-    sendPushNotification(recipientId, {
+
+    await sendPushNotification(recipientId, {
       title: `${senderName} 傳送了新訊息`,
       body: finalMessage,
       url: `/chat/${roomId}`
@@ -113,10 +112,13 @@ export async function GET(request) {
       .from("chat_messages")
       .select("*, users!chat_messages_sender_id_fkey(name, role)")
       .eq("room_id", roomId)
-      .order("created_at", { ascending: true })
-      .limit(100);
+      .order("created_at", { ascending: false }) // 優先取得最新的訊息
+      .limit(150);
 
     if (error) throw error;
+
+    // 取得最新 150 則後，反轉陣列使其依舊為由舊到新的顯示順序
+    if (messages) messages.reverse();
 
     const formattedMessages = (messages || []).map((message) => ({
       ...message,

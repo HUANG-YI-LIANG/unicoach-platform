@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
@@ -52,11 +52,6 @@ export default function BookingsPage() {
   const [paymentReceiptPreview, setPaymentReceiptPreview] = useState('');
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [reportingPayment, setReportingPayment] = useState(false);
-  
-  const [cancelModalBooking, setCancelModalBooking] = useState(null);
-  const [cancelReason, setCancelReason] = useState('');
-  const [canceling, setCanceling] = useState(false);
-
   const router = useRouter();
   const isCoach = user?.role === 'coach' || user?.role === 'admin';
 
@@ -84,7 +79,7 @@ export default function BookingsPage() {
 
   const fetchPaymentSettings = async () => {
     try {
-      const res = await fetch('/api/settings/payment');
+      const res = await fetch('/api/admin/settings');
       if (!res.ok) return;
       const data = await res.json();
       if (data.settings) {
@@ -264,31 +259,6 @@ export default function BookingsPage() {
       alert('發生系統錯誤');
     } finally {
       setAdjusting(false);
-    }
-  };
-
-  const handleCancelBooking = async () => {
-    if (!cancelReason.trim()) return alert('請填寫取消原因');
-    setCanceling(true);
-    try {
-      const res = await fetch(`/api/bookings/${cancelModalBooking.id}/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled', cancelReason }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert('預約已取消，並送交後台審核');
-        setCancelModalBooking(null);
-        setCancelReason('');
-        fetchBookings();
-      } else {
-        alert(data.error || '操作失敗');
-      }
-    } catch (err) {
-      alert('發生錯誤');
-    } finally {
-      setCanceling(false);
     }
   };
 
@@ -513,19 +483,8 @@ export default function BookingsPage() {
                 )}
 
                 {/* Coach action buttons */}
-                {isCoach && !isCompleted && b.status !== 'cancelled' && (
+                {isCoach && !isCompleted && (
                   <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-                    {(b.status === 'pending_payment' || b.status === 'scheduled') && (
-                      <button
-                        onClick={() => setCancelModalBooking(b)}
-                        style={{
-                          padding: '10px 16px', borderRadius: 12, border: 'none',
-                          background: 'var(--color-surface-soft)', color: 'var(--color-danger)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                        }}
-                      >
-                        取消預約
-                      </button>
-                    )}
                     {user?.role === 'admin' && isPendingPayment && (
                       <button
                         onClick={() => handleConfirmPayment(b.id)}
@@ -766,70 +725,13 @@ export default function BookingsPage() {
                   gap: 8,
                 }}
               >
-                {uploadingReceipt || reportingPayment ? (
-                  <>
-                    <Loader2 className="animate-spin" size={16} />
-                    處理中...
-                  </>
-                ) : (
-                  '送出付款回報'
-                )}
+                {(uploadingReceipt || reportingPayment) ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                {uploadingReceipt ? '上傳中...' : reportingPayment ? '送出中...' : '送出付款資訊'}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      {/* ── Cancel Booking Modal ───────────────────────────────── */}
-      {cancelModalBooking && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 130, padding: 16,
-        }}>
-          <div style={{
-            width: '100%', maxWidth: 400, background: 'var(--color-surface)', borderRadius: 24, padding: 24,
-            boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
-          }}>
-            <h2 style={{ margin: '0 0 8px', color: 'var(--color-danger)', fontWeight: 900, fontSize: 20 }}>
-              取消預約 / 拒絕接單
-            </h2>
-            <p style={{ margin: '0 0 20px', color: MUTED, fontSize: 13, lineHeight: 1.6 }}>
-              請填寫您取消的原因。此原因將送交平台管理員審核，若非合理不可抗力因素，可能會影響您的教練績效評分與抽成比例。
-            </p>
-
-            <textarea
-              placeholder="請詳細說明取消的原因..."
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              style={{
-                width: '100%', minHeight: 120, padding: 16, borderRadius: 16, border: '1px solid var(--color-border)',
-                background: 'var(--color-surface-soft)', color: DARK, fontSize: 14, marginBottom: 20, resize: 'none',
-              }}
-            />
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => { setCancelModalBooking(null); setCancelReason(''); }}
-                style={{ flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'var(--color-surface-soft)', color: MUTED, fontWeight: 800, cursor: 'pointer' }}
-              >
-                返回
-              </button>
-              <button
-                onClick={handleCancelBooking}
-                disabled={canceling}
-                style={{
-                  flex: 1, padding: 14, borderRadius: 14, border: 'none', background: 'var(--color-danger)', color: 'white',
-                  fontWeight: 800, cursor: 'pointer', opacity: canceling ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-                }}
-              >
-                {canceling ? <Loader2 className="animate-spin" size={16} /> : '確認取消'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { canGenerateAiReportDraft, canUpsertAiDraft } from '@/lib/bookingWorkflow';
 import { safeErrorDetails } from '@/lib/safeLogging';
+import { generalLimiter, getClientIp } from '@/lib/rateLimit';
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const AI_MODEL = 'gemini-2.5-flash';
@@ -19,6 +20,12 @@ function isDuplicateLearningReportError(error) {
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await generalLimiter.limit(ip);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: '請求過於頻繁，請稍後再試。' }, { status: 429 });
+    }
+
     const auth = await requireAuth(['coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 

@@ -6,8 +6,6 @@ import {
   User, Mail, Phone, MapPin, Target,
   Languages, Save, ArrowLeft, Loader2, UploadCloud
 } from 'lucide-react';
-import Cropper from 'react-easy-crop';
-import getCroppedImg from '@/lib/cropImage';
 
 const ORANGE = 'var(--color-accent)';
 const BG     = 'var(--color-bg)';
@@ -18,14 +16,6 @@ const RADIUS = '20px';
 const SHADOW = 'var(--shadow-card)';
 const INPUT_BG = 'var(--color-surface-soft)';
 const BORDER = 'var(--color-border)';
-
-function readFile(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.addEventListener('load', () => resolve(reader.result), false);
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function UserProfileEdit() {
   const { user, loading: authLoading } = useAuth();
@@ -45,12 +35,6 @@ export default function UserProfileEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  // Crop State
-  const [imageSrc, setImageSrc] = useState(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   // New Address UI State
   const [newLabel, setNewLabel] = useState('');
@@ -138,31 +122,18 @@ export default function UserProfileEdit() {
     }));
   };
 
-  const handleFileChange = async (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) return alert('圖片大小不得超過 5MB');
-    
-    let imageDataUrl = await readFile(file);
-    setImageSrc(imageDataUrl);
-    // 重設 input，確保選同一張圖也會觸發
-    e.target.value = null;
-  };
+    if (file.size > 2 * 1024 * 1024) return alert('頭像大小不得超過 2MB');
 
-  const onCropComplete = (croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  };
+    setUploading(true);
+    const formDataPayload = new FormData();
+    formDataPayload.append('file', file);
+    formDataPayload.append('fileType', 'avatar');
 
-  const handleCropSave = async () => {
     try {
-      setUploading(true);
-      const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      
-      const formDataPayload = new FormData();
-      formDataPayload.append('file', croppedImageBlob, 'avatar.jpg');
-      formDataPayload.append('fileType', 'avatar');
-
       const res = await fetch('/api/files/upload', {
         method: 'POST',
         body: formDataPayload,
@@ -170,12 +141,11 @@ export default function UserProfileEdit() {
       const data = await res.json();
       if (res.ok) {
         setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        setImageSrc(null); // 關閉裁切視窗
+        alert('頭像已預覽，請點擊「儲存變更」以完成更新。');
       } else {
         alert('上傳失敗：' + data.error);
       }
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
       alert('上傳發生技術錯誤');
     } finally {
       setUploading(false);
@@ -195,33 +165,6 @@ export default function UserProfileEdit() {
 
   return (
     <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
-      
-      {/* --- Crop Modal --- */}
-      {imageSrc && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
-              onCropChange={setCrop}
-              onCropComplete={onCropComplete}
-              onZoomChange={setZoom}
-            />
-          </div>
-          <div style={{ padding: '24px 20px 40px', background: 'var(--color-surface)', display: 'flex', gap: 16, alignItems: 'center' }}>
-            <button type="button" onClick={() => setImageSrc(null)} style={{ flex: 1, padding: 16, borderRadius: 16, border: '1px solid var(--color-border)', background: 'var(--color-surface-soft)', color: 'var(--color-text)', fontWeight: 800, fontSize: 16 }}>取消</button>
-            <button type="button" onClick={handleCropSave} disabled={uploading} style={{ flex: 2, padding: 16, borderRadius: 16, border: 'none', background: ORANGE, color: 'white', fontWeight: 800, fontSize: 16, display: 'flex', justifyContent: 'center', gap: 8 }}>
-              {uploading && <Loader2 size={20} className="animate-spin" />}
-              {uploading ? '處理中...' : '確定裁切'}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Background Gradient */}
       <div style={{
         position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
@@ -266,8 +209,8 @@ export default function UserProfileEdit() {
                 width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}`
               }}>
-                <UploadCloud size={16} />
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
+                {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} disabled={uploading} />
               </label>
             </div>
             <p style={{ fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>點擊更換大頭貼</p>

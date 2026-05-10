@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function MatchPage() {
+function MatchForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const audience = searchParams.get('audience') || 'student'; // 'student', 'parent', or 'coach'
@@ -274,5 +274,13 @@ export default function MatchPage() {
 
       </div>
     </div>
+  );
+}
+
+export default function MatchPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>載入中...</div>}>
+      <MatchForm />
+    </Suspense>
   );
 }

@@ -4,11 +4,22 @@ export const dynamic = 'force-dynamic';
 import { getAdminSupabase } from "@/lib/supabase";
 import { sendPasswordUpdateNotification } from "@/lib/email";
 import { maskEmail, safeErrorDetails } from "@/lib/safeLogging";
+import { passwordResetLimiter, getClientIp } from "@/lib/rateLimit";
 import crypto from "crypto";
+import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await passwordResetLimiter.limit(ip);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: "請求過於頻繁，請稍後再試。" },
+        { status: 429 }
+      );
+    }
+
     const { token, newPassword } = await request.json();
     
     // ✅ 驗證輸入
@@ -79,6 +90,24 @@ export async function POST(request) {
       );
     }
 
+    // ✅ 先以條件更新消耗 Token，避免並發請求同時重設密碼
+    const { data: consumedToken, error: markUsedError } = await adminSupabase
+      .from("password_reset_tokens")
+      .update({ used_at: new Date().toISOString() })
+      .eq("token", hashedToken)
+      .is("used_at", null)
+      .select("token")
+      .maybeSingle();
+
+    if (markUsedError) {
+      console.error("[TOKEN MARK ERROR]", safeErrorDetails(markUsedError));
+      throw markUsedError;
+    }
+
+    if (!consumedToken) {
+      throw new Error("Password reset token was not consumed");
+    }
+
     // ✅ 更新用戶密碼（使用 Supabase Auth Admin API）
     const { error: passwordError } = await adminSupabase.auth.admin.updateUserById(
       tokenData.user_id,
@@ -93,15 +122,19 @@ export async function POST(request) {
       );
     }
 
-    // ✅ 標記 Token 為已使用（防重複使用）
-    const { error: markUsedError } = await adminSupabase
-      .from("password_reset_tokens")
-      .update({ used_at: new Date().toISOString() })
-      .eq("user_id", tokenData.user_id);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    if (markUsedError) {
-      console.error("[TOKEN MARK ERROR]", safeErrorDetails(markUsedError));
-      // 不中斷流程，僅記錄錯誤
+    const { error: profilePasswordError } = await adminSupabase
+      .from("users")
+      .update({ password: hashedPassword })
+      .eq("id", tokenData.user_id);
+
+    if (profilePasswordError) {
+      console.error("[PROFILE PASSWORD UPDATE ERROR]", safeErrorDetails(profilePasswordError));
+      return NextResponse.json(
+        { error: "密碼更新失敗，請稍後再試。" },
+        { status: 500 }
+      );
     }
 
     // ✅ 發送密碼更新確認郵件（雙重安全通知）

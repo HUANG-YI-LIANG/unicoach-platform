@@ -254,7 +254,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-brand {
-  color: #FFFFFF;
+  color: var(--color-surface);
   font-size: 16px;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -269,7 +269,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-title {
-  color: #FFFFFF;
+  color: var(--color-surface);
   font-size: 36px;
   font-weight: 900;
   line-height: 1.2;
@@ -278,7 +278,7 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-subtitle {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-muted);
   font-size: 15px;
   font-weight: 500;
   line-height: 1.5;

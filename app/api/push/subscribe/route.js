@@ -11,11 +11,29 @@ export async function POST(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const subscription = await request.json();
-    if (!subscription || !subscription.endpoint || !subscription.keys) {
+    if (
+      !subscription ||
+      typeof subscription.endpoint !== 'string' ||
+      !subscription.endpoint.startsWith('https://') ||
+      !subscription.keys ||
+      typeof subscription.keys.p256dh !== 'string' ||
+      typeof subscription.keys.auth !== 'string'
+    ) {
       return NextResponse.json({ error: 'Invalid subscription object' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
+
+    const { data: existingSubscription, error: existingError } = await adminSupabase
+      .from('push_subscriptions')
+      .select('user_id')
+      .eq('endpoint', subscription.endpoint)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (existingSubscription && existingSubscription.user_id !== auth.user.id) {
+      return NextResponse.json({ error: 'Subscription endpoint already belongs to another user' }, { status: 409 });
+    }
 
     // Upsert subscription based on endpoint
     const { error } = await adminSupabase.from('push_subscriptions').upsert({

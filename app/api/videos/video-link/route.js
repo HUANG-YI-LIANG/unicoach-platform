@@ -2,8 +2,38 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth, requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { safeErrorDetails } from '@/lib/safeLogging';
+
+const VALID_VIDEO_LINK_CATEGORIES = new Set(['teaching', 'introduction', 'testimonial', 'highlight']);
+const USER_VIDEO_SELECT = 'id, user_id, platform, video_id, original_url, embed_url, thumbnail_url, title, duration, duration_formatted, category, is_featured, is_private, display_order, created_at';
+
+async function requireVideoLinkMutationAuth() {
+  const auth = await requireAuth(['coach', 'admin']);
+  if (auth.error || auth.user?.role === 'admin') return auth;
+  return requireApprovedCoach();
+}
+
+function toVideoDto(video) {
+  return {
+    id: video.id,
+    user_id: video.user_id,
+    platform: video.platform,
+    video_id: video.video_id,
+    original_url: video.original_url,
+    embed_url: video.embed_url,
+    thumbnail_url: video.thumbnail_url,
+    title: video.title,
+    duration: video.duration,
+    duration_formatted: video.duration_formatted,
+    category: video.category,
+    is_featured: video.is_featured,
+    is_private: video.is_private,
+    display_order: video.display_order,
+    created_at: video.created_at
+  };
+}
 
 // ============================================================
 // URL 解析引擎：支援 YouTube 與 Vimeo
@@ -93,7 +123,7 @@ async function fetchVimeoMetadata(videoId) {
       durationFormatted
     };
   } catch (error) {
-    console.error('[VIMEO FETCH ERROR]', error);
+    console.error('[VIMEO FETCH ERROR]', safeErrorDetails(error));
     return { isPrivate: false, fetchError: true };
   }
 }
@@ -103,10 +133,14 @@ async function fetchVimeoMetadata(videoId) {
 // ============================================================
 export async function POST(request) {
   try {
-    const auth = await requireAuth(['coach', 'admin']);
+    const auth = await requireVideoLinkMutationAuth();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { url, category = 'teaching', title: userInputTitle, isFeatured = false } = await request.json();
+
+    if (!VALID_VIDEO_LINK_CATEGORIES.has(category)) {
+      return NextResponse.json({ error: '無效的影片分類' }, { status: 400 });
+    }
 
     const parsed = parseVideoUrl(url);
     if (!parsed) {
@@ -118,7 +152,7 @@ export async function POST(request) {
     // 1. 檢查數量限制 (DB 也會有觸發器防護)
     const { count: videoCount } = await adminSupabase
       .from('user_videos')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', auth.user.id)
       .eq('is_active', true);
 
@@ -160,10 +194,10 @@ export async function POST(request) {
         duration,
         duration_formatted: durationFormatted,
         category,
-        is_featured: isFeatured,
+        is_featured: Boolean(isFeatured),
         is_private: isPrivate
       }])
-      .select('*')
+      .select(USER_VIDEO_SELECT)
       .single();
 
     if (insertError) {
@@ -179,9 +213,9 @@ export async function POST(request) {
       details: JSON.stringify({ platform: parsed.platform, video_id: parsed.videoId })
     }]);
 
-    return NextResponse.json({ success: true, video: newVideo });
+    return NextResponse.json({ success: true, video: toVideoDto(newVideo) });
   } catch (err) {
-    console.error('[VIDEO API ERROR]', err);
+    console.error('[VIDEO API ERROR]', safeErrorDetails(err));
     return NextResponse.json({ error: '發生錯誤，請稍後再試' }, { status: 500 });
   }
 }
@@ -196,17 +230,31 @@ export async function GET(request) {
     if (!userId) return NextResponse.json({ error: '缺少 userId' }, { status: 400 });
 
     const adminSupabase = getAdminSupabase();
+
+    const [{ data: user, error: userError }, { data: coach, error: coachError }] = await Promise.all([
+      adminSupabase.from('users').select('id, is_frozen').eq('id', userId).maybeSingle(),
+      adminSupabase.from('coaches').select('user_id, approval_status').eq('user_id', userId).eq('approval_status', 'approved').maybeSingle()
+    ]);
+
+    if (userError) throw userError;
+    if (coachError) throw coachError;
+
+    if (!user || user.is_frozen || !coach || coach.approval_status !== 'approved') {
+      return NextResponse.json({ videos: [] });
+    }
+
     const { data: videos, error } = await adminSupabase
       .from('user_videos')
-      .select('*')
+      .select(USER_VIDEO_SELECT)
       .eq('user_id', userId)
       .eq('is_active', true)
       .order('is_featured', { ascending: false })
       .order('display_order', { ascending: true });
 
     if (error) throw error;
-    return NextResponse.json({ videos });
+    return NextResponse.json({ videos: (videos || []).map(toVideoDto) });
   } catch (err) {
+    console.error('[VIDEO LINK FETCH ERROR]', safeErrorDetails(err));
     return NextResponse.json({ error: '獲取影片列表失敗' }, { status: 500 });
   }
 }
@@ -216,7 +264,7 @@ export async function GET(request) {
 // ============================================================
 export async function DELETE(request) {
   try {
-    const auth = await requireAuth(['coach', 'admin']);
+    const auth = await requireVideoLinkMutationAuth();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { id } = await request.json();
@@ -225,7 +273,7 @@ export async function DELETE(request) {
     const adminSupabase = getAdminSupabase();
     
     // 權限檢查
-    const { data: video } = await adminSupabase.from('user_videos').select('user_id').eq('id', id).single();
+    const { data: video } = await adminSupabase.from('user_videos').select('id, user_id').eq('id', id).single();
     if (!video) return NextResponse.json({ error: '影片不存在' }, { status: 404 });
     if (video.user_id !== auth.user.id && auth.user.role !== 'admin') {
       return NextResponse.json({ error: '無權限操作' }, { status: 403 });
@@ -240,6 +288,7 @@ export async function DELETE(request) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    console.error('[VIDEO LINK DELETE ERROR]', safeErrorDetails(err));
     return NextResponse.json({ error: '刪除失敗' }, { status: 500 });
   }
 }

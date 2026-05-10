@@ -5,11 +5,18 @@ import { NextResponse } from 'next/server';
 import { supabase, getAdminSupabase } from '@/lib/supabase';
 import { encrypt } from '@/lib/auth';
 import { normalizeRegistrationRole } from '@/lib/securityRules';
+import { strictLimiter, getClientIp } from '@/lib/rateLimit';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await strictLimiter.limit(ip);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: '請求過於頻繁，請稍後再試。' }, { status: 429 });
+    }
+
     const { 
       email, 
       password, 
@@ -228,6 +235,7 @@ export async function POST(request) {
     cookieStore.set('session', sessionToken, { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24
     });

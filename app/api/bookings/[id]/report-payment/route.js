@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeErrorDetails } from '@/lib/safeLogging';
 import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
 
 export async function POST(request, { params }) {
@@ -49,15 +50,22 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: expiration.error }, { status: expiration.status });
     }
 
-    const { error: updateError } = await adminSupabase
+    const { data: updatedBooking, error: updateError } = await adminSupabase
       .from('bookings')
       .update({
         payment_method: 'bank_transfer',
         payment_reference: imageUrl,
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', auth.user.id)
+      .eq('status', 'pending_payment')
+      .select('id')
+      .maybeSingle();
 
     if (updateError) throw updateError;
+    if (!updatedBooking) {
+      return NextResponse.json({ error: '預約狀態已變更，請重新整理後再試。' }, { status: 409 });
+    }
 
     try {
       await adminSupabase.from('audit_logs').insert([{
@@ -72,7 +80,7 @@ export async function POST(request, { params }) {
         }),
       }]);
     } catch (auditErr) {
-      console.warn('[REPORT PAYMENT AUDIT LOG FAIL]', auditErr.message);
+      console.warn('[REPORT PAYMENT AUDIT LOG FAIL]', safeErrorDetails(auditErr));
     }
 
     return NextResponse.json({
@@ -81,7 +89,7 @@ export async function POST(request, { params }) {
       paymentReference: imageUrl,
     });
   } catch (error) {
-    console.error('[REPORT PAYMENT ERROR]', error);
+    console.error('[REPORT PAYMENT ERROR]', safeErrorDetails(error));
     return NextResponse.json({ error: '付款回報失敗' }, { status: 500 });
   }
 }

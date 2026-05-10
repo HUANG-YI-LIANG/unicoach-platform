@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
+import { safeErrorDetails } from '@/lib/safeLogging';
 import { canMarkSettlementStatus } from '@/lib/settlementRules';
 
 /**
@@ -62,7 +63,7 @@ export async function GET(request, { params }) {
     });
 
   } catch (err) {
-    console.error('Fetch settlement detail error:', err);
+    console.error('Fetch settlement detail error:', safeErrorDetails(err));
     return NextResponse.json({ error: '無法讀取明細' }, { status: 500 });
   }
 }
@@ -111,14 +112,22 @@ export async function PATCH(request, { params }) {
       updateData.paid_at = null;
     }
 
-    const { data, error } = await adminSupabase
+    const { data: updatedBatch, error } = await adminSupabase
       .from('settlement_batches')
       .update(updateData)
       .eq('id', id)
-      .select()
-      .single();
+      .eq('status', currentBatch.status)
+      .select('id, status, paid_at')
+      .maybeSingle();
 
     if (error) throw error;
+
+    if (!updatedBatch) {
+      return NextResponse.json(
+        { error: '結算狀態已被其他操作更新，請重新整理後再試。' },
+        { status: 409 }
+      );
+    }
 
     if (status === 'cancelled') {
       await adminSupabase
@@ -135,10 +144,10 @@ export async function PATCH(request, { params }) {
       details: JSON.stringify({ from: currentBatch.status, to: status }),
     }]);
 
-    return NextResponse.json({ success: true, batch: data });
+    return NextResponse.json({ success: true, batch: updatedBatch });
 
   } catch (err) {
-    console.error('Update settlement error:', err);
-    return NextResponse.json({ error: '更新失敗：' + err.message }, { status: 500 });
+    console.error('Update settlement error:', safeErrorDetails(err));
+    return NextResponse.json({ error: '更新失敗' }, { status: 500 });
   }
 }

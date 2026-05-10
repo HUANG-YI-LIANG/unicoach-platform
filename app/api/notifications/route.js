@@ -16,7 +16,8 @@ export async function GET(request) {
       .from('user_notifications')
       .select('*')
       .or(`user_id.eq.${auth.user.id},user_id.is.null`)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(50);
 
     if (error) {
       if (error.code === '42P01') {

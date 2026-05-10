@@ -8,6 +8,21 @@ import { v4 as uuidv4 } from 'uuid';
 
 const VIDEO_UPLOAD_MAX_MB = 500;
 const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
+const COACH_VIDEO_SELECT = 'id, coach_id, video_url, title, category, view_count, like_count, share_count, created_at';
+
+function toCoachVideoDto(video) {
+  return {
+    id: video.id,
+    coach_id: video.coach_id,
+    video_url: video.video_url,
+    title: video.title,
+    category: video.category,
+    view_count: video.view_count || 0,
+    like_count: video.like_count || 0,
+    share_count: video.share_count || 0,
+    created_at: video.created_at
+  };
+}
 
 export async function POST(request) {
   try {
@@ -50,7 +65,7 @@ export async function POST(request) {
     // 3. 檢查影片數量限制 (最多 10 支)
     const { count, error: countError } = await adminSupabase
       .from('coach_videos')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('coach_id', coachId);
 
     if (countError) throw countError;
@@ -93,7 +108,7 @@ export async function POST(request) {
         share_count: 0,
         created_at: new Date().toISOString()
       }])
-      .select()
+      .select(COACH_VIDEO_SELECT)
       .single();
 
     if (dbError) throw dbError;
@@ -106,7 +121,7 @@ export async function POST(request) {
       details: JSON.stringify({ video_id: videoRecord.id, category: category })
     }]);
 
-    return NextResponse.json({ success: true, video: videoRecord }, { status: 201 });
+    return NextResponse.json({ success: true, video: toCoachVideoDto(videoRecord) }, { status: 201 });
 
   } catch (err) {
     console.error('[VIDEO UPLOAD FATAL ERROR]', err);
@@ -122,13 +137,13 @@ export async function GET(request) {
     const adminSupabase = getAdminSupabase();
     const { data: videos, error } = await adminSupabase
       .from('coach_videos')
-      .select('*')
+      .select(COACH_VIDEO_SELECT)
       .eq('coach_id', auth.user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json({ videos });
+    return NextResponse.json({ videos: (videos || []).map(toCoachVideoDto) });
   } catch (err) {
     console.error('[VIDEO FETCH ERROR]', err);
     return NextResponse.json({ error: '載入影片失敗' }, { status: 500 });
@@ -150,7 +165,7 @@ export async function DELETE(request) {
     // 檢查擁有權
     const { data: video } = await adminSupabase
       .from('coach_videos')
-      .select('*')
+      .select('id, video_url')
       .eq('id', videoId)
       .eq('coach_id', auth.user.id)
       .single();

@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import {
@@ -119,13 +122,12 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     id: coach.users.id,
     user_id: coach.user_id,
     name: coach.users.name,
-    email: coach.users.email,
-    phone: coach.users.phone,
     avatar_url: coach.users.avatar_url,
     review_count: coach.review_count,
     rating_avg: coach.rating_avg,
     university: coach.university,
     location: coach.location,
+    referral_code: coach.referral_code || null,
     service_areas: coach.service_areas,
     base_price: coach.base_price,
     commission_rate: coach.commission_rate,
@@ -165,7 +167,7 @@ export async function GET(request) {
 
     const { data: coaches, error: coachError } = await adminSupabase
       .from('coaches')
-      .select('*, users!inner(id, name, email, phone, avatar_url, level)')
+      .select('*, users!inner(id, name, avatar_url, level)')
       .eq('approval_status', 'approved');
 
     if (coachError) {
@@ -315,28 +317,29 @@ export async function GET(request) {
         return left.slot_match ? -1 : 1;
       }
 
-      if (left.has_fixed_schedule !== right.has_fixed_schedule) {
-        return left.has_fixed_schedule ? -1 : 1;
+      // 1. Earliest available
+      if (left.next_available_at && right.next_available_at) {
+        const timeCompare = left.next_available_at.localeCompare(right.next_available_at);
+        if (timeCompare !== 0) return timeCompare;
+      } else if (left.next_available_at) {
+        return -1;
+      } else if (right.next_available_at) {
+        return 1;
       }
 
-      if (left.coach_level_value !== right.coach_level_value) {
-        return right.coach_level_value - left.coach_level_value;
+      // 2. Most booked
+      if ((right.booked_slot_count || 0) !== (left.booked_slot_count || 0)) {
+        return (right.booked_slot_count || 0) - (left.booked_slot_count || 0);
       }
 
+      // 3. Highest rating
       if ((right.rating_avg || 0) !== (left.rating_avg || 0)) {
         return (right.rating_avg || 0) - (left.rating_avg || 0);
       }
 
-      if (left.next_available_at && right.next_available_at) {
-        return left.next_available_at.localeCompare(right.next_available_at);
-      }
-
-      if (left.next_available_at) {
-        return -1;
-      }
-
-      if (right.next_available_at) {
-        return 1;
+      // Fallbacks
+      if (left.coach_level_value !== right.coach_level_value) {
+        return right.coach_level_value - left.coach_level_value;
       }
 
       return (left.base_price || 0) - (right.base_price || 0);

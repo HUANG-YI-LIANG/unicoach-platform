@@ -56,7 +56,7 @@ export default function NotificationsPage() {
   const markAsRead = async (id) => {
     // Optimistic update
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    
+
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
@@ -102,11 +102,11 @@ export default function NotificationsPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {notifications.map((n) => (
-            <div 
-              key={n.id} 
+            <div
+              key={n.id}
               onClick={() => { if (!n.is_read) markAsRead(n.id); }}
-              style={{ 
-                padding: '16px', 
+              style={{
+                padding: '16px',
                 background: n.is_read ? 'transparent' : 'var(--color-surface-soft)',
                 borderBottom: `1px solid ${BORDER}`,
                 display: 'flex',
@@ -115,11 +115,11 @@ export default function NotificationsPage() {
                 transition: 'background 0.2s'
               }}
             >
-              <div style={{ 
-                width: 48, height: 48, borderRadius: '50%', flexShrink: 0, 
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
                 background: n.is_read ? CARD : `linear-gradient(135deg, ${ORANGE}, #FDBA74)`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: n.is_read ? MUTED : '#FFF',
+                color: n.is_read ? MUTED : 'var(--text-light)',
                 border: n.is_read ? `1px solid ${BORDER}` : 'none'
               }}>
                 <Bell size={20} />

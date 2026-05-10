@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { supabase, getAdminSupabase } from '@/lib/supabase';
 import { encrypt } from '@/lib/auth';
 import { maskEmail, safeErrorDetails } from '@/lib/safeLogging';
+import { strictLimiter, getClientIp } from '@/lib/rateLimit';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
@@ -12,6 +13,12 @@ const USER_SESSION_SELECT = 'id, email, name, role, level, is_frozen';
 
 export async function POST(request) {
   try {
+    const ip = getClientIp(request);
+    const rateLimit = await strictLimiter.limit(ip);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: '請求過於頻繁，請稍後再試。' }, { status: 429 });
+    }
+
     const { email, password } = await request.json();
     if (!email || !password) return NextResponse.json({ error: '請輸入帳號和密碼' }, { status: 400 });
 
@@ -46,7 +53,7 @@ export async function POST(request) {
           email: email.toLowerCase(),
           password: hashedPassword, // ✅ 補齊密碼
           name: authData.user.user_metadata?.name || email.split('@')[0],
-          role: authData.user.user_metadata?.role || 'user', 
+          role: 'user',
           level: 1,
           is_frozen: false,
           created_at: new Date().toISOString()
@@ -79,6 +86,7 @@ export async function POST(request) {
     cookieStore.set('session', sessionToken, { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
+      sameSite: 'lax',
       path: '/',
       maxAge: 60 * 60 * 24 // 1天
     });

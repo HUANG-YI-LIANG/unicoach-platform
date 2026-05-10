@@ -7,22 +7,20 @@ import { requireAuth } from '@/lib/auth';
 import { safeErrorDetails } from '@/lib/safeLogging';
 
 const PUBLIC_VIDEO_FEED_SELECT = 'id, coach_id, video_url, title, category, view_count, like_count, share_count, created_at';
-
+const PUBLIC_VIDEO_COACH_SELECT = 'user_id, base_price, approval_status';
+const PUBLIC_VIDEO_USER_SELECT = 'id, name, avatar_url, is_frozen';
 
 export async function GET() {
   try {
     const adminSupabase = getAdminSupabase();
     const auth = await requireAuth();
 
-    // Fetch videos and join with coach (to get base_price) and users (to get name, avatar)
-    // Since we need information from users, and coach_videos links to users via coach_id,
-    // we can do a nested join.
     const { data: rawVideos, error } = await adminSupabase
       .from('coach_videos')
       .select(PUBLIC_VIDEO_FEED_SELECT)
       .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(20);
+      .limit(40);
 
     if (error) {
       console.error('Error fetching video feed:', safeErrorDetails(error));
@@ -30,19 +28,33 @@ export async function GET() {
     }
 
     const videos = rawVideos || [];
-    const coachIds = [...new Set(videos.map(v => v.coach_id))];
+    const coachIds = [...new Set(videos.map(v => v.coach_id).filter(Boolean))];
 
     let usersMap = {};
     let coachesMap = {};
+    let publicCoachIds = new Set();
     if (coachIds.length > 0) {
-      const { data: usersData } = await adminSupabase.from('users').select('id, name, avatar_url').in('id', coachIds);
-      const { data: coachesData } = await adminSupabase.from('coaches').select('user_id, base_price').in('user_id', coachIds);
-      
-      (usersData || []).forEach(u => { usersMap[u.id] = u; });
-      (coachesData || []).forEach(c => { coachesMap[c.user_id] = c; });
+      const [{ data: usersData, error: usersError }, { data: coachesData, error: coachesError }] = await Promise.all([
+        adminSupabase.from('users').select(PUBLIC_VIDEO_USER_SELECT).in('id', coachIds),
+        adminSupabase.from('coaches').select(PUBLIC_VIDEO_COACH_SELECT).in('user_id', coachIds).eq('approval_status', 'approved')
+      ]);
+
+      if (usersError) throw usersError;
+      if (coachesError) throw coachesError;
+
+      (usersData || []).forEach(u => {
+        if (!u.is_frozen) usersMap[u.id] = u;
+      });
+      (coachesData || []).forEach(c => {
+        if (c.approval_status === 'approved' && usersMap[c.user_id]) {
+          coachesMap[c.user_id] = c;
+          publicCoachIds.add(c.user_id);
+        }
+      });
     }
 
-    const videoIds = videos.map((video) => video.id);
+    const publicVideos = videos.filter((video) => publicCoachIds.has(video.coach_id)).slice(0, 20);
+    const videoIds = publicVideos.map((video) => video.id);
     let likedVideoIds = new Set();
 
     if (!auth.error && auth.user?.id && videoIds.length > 0) {
@@ -55,7 +67,7 @@ export async function GET() {
       likedVideoIds = new Set((likes || []).map((like) => like.video_id));
     }
 
-    const formattedVideos = videos.map(v => ({
+    const formattedVideos = publicVideos.map(v => ({
       id: v.id,
       video_url: v.video_url,
       title: v.title,
@@ -63,7 +75,7 @@ export async function GET() {
       coach_id: v.coach_id,
       coach_name: usersMap[v.coach_id]?.name || '教練',
       coach_avatar: usersMap[v.coach_id]?.avatar_url || null,
-      base_price: coachesMap[v.coach_id]?.base_price || 1000,
+      base_price: coachesMap[v.coach_id]?.base_price ?? 1000,
       view_count: v.view_count || 0,
       like_count: v.like_count || 0,
       share_count: v.share_count || 0,

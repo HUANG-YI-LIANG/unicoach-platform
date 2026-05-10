@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { safeErrorDetails } from "@/lib/safeLogging";
 import {
   canCompleteBooking,
   canTransitionBookingStatus,
@@ -34,6 +35,17 @@ const STATUS_TRANSITION_RULES = {
   cancelled: {},  // 終態
   refunded: {},   // 終態
 };
+
+const STATUS_BOOKING_SELECT = [
+  'id',
+  'user_id',
+  'coach_id',
+  'status',
+  'expected_time',
+  'duration_minutes',
+  'payment_status',
+  'payment_expires_at',
+].join(', ');
 
 function mapCompletionRpcError(error) {
   const text = [error?.code, error?.message, error?.details, error?.hint]
@@ -68,7 +80,7 @@ export async function POST(request, { params }) {
     // 1. 讀取預約現況並驗證身份
     const { data: booking, error: bError } = await adminSupabase
       .from('bookings')
-      .select('*')
+      .select(STATUS_BOOKING_SELECT)
       .eq('id', id)
       .single();
 
@@ -146,13 +158,18 @@ export async function POST(request, { params }) {
           updateData.cancel_fault_party = 'student_fault';
         }
       }
-      const { error: updateError } = await adminSupabase
+      const { data: updatedBooking, error: updateError } = await adminSupabase
         .from('bookings')
         .update(updateData)
         .eq('id', id)
-        .eq('status', booking.status);
+        .eq('status', booking.status)
+        .select('id')
+        .maybeSingle();
 
       if (updateError) throw updateError;
+      if (!updatedBooking) {
+        return NextResponse.json({ error: '預約狀態已被其他操作更新，請重新整理後再試。' }, { status: 409 });
+      }
     }
 
     // 6. 管理員審計日誌
@@ -166,13 +183,13 @@ export async function POST(request, { params }) {
           details: `From ${booking.status} to ${newStatus}`
         }]);
       } catch (auditError) {
-        console.warn('[BOOKING STATUS AUDIT LOG ERROR]', auditError);
+        console.warn('[BOOKING STATUS AUDIT LOG ERROR]', safeErrorDetails(auditError));
       }
     }
 
     return NextResponse.json({ success: true, newStatus });
   } catch (err) {
-    console.error("[BOOKING STATUS ERROR]", err);
+    console.error("[BOOKING STATUS ERROR]", safeErrorDetails(err));
     return NextResponse.json({ error: '伺服器內部錯誤' }, { status: 500 });
   }
 }

@@ -7,8 +7,6 @@ import {
   MapPin, DollarSign, Save, ArrowLeft, Loader2, Tag,
   ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
 } from 'lucide-react';
-import Cropper from 'react-easy-crop';
-import getCroppedImg from '@/lib/cropImage';
 
 const ORANGE = 'var(--cta, #F97316)';
 const BG     = 'var(--bg-page)';
@@ -19,14 +17,6 @@ const RADIUS = '20px';
 const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
 const INPUT_BG = 'var(--bg-input)';
 const BORDER = 'var(--border-main)';
-
-function readFile(file) {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.addEventListener('load', () => resolve(reader.result), false);
-    reader.readAsDataURL(file);
-  });
-}
 
 export default function CoachProfileEdit() {
   const { user, loading: authLoading } = useAuth();
@@ -52,12 +42,6 @@ export default function CoachProfileEdit() {
   const [vStatus, setVStatus] = useState('pending');
   const [vNotes, setVNotes] = useState('');
   const [priceError, setPriceError] = useState('');
-
-  // Crop State
-  const [imageSrc, setImageSrc] = useState(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const PRICE_MIN = 600;
   const PRICE_MAX = 2000;
@@ -160,58 +144,18 @@ export default function CoachProfileEdit() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('文件已上傳並進入審核程序');
-        setVStatus('pending');
+        if (type === 'avatar') {
+          setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
+          alert('頭像已更新');
+        } else {
+          alert('文件已上傳並進入審核程序');
+          setVStatus('pending');
+        }
       } else {
         alert('上傳失敗：' + data.error);
       }
     } catch (err) {
       alert('發生技術錯誤');
-    } finally {
-      setUploading(false);
-      setUploadType(null);
-    }
-  };
-
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) return alert('圖片大小不得超過 5MB');
-    
-    let imageDataUrl = await readFile(file);
-    setImageSrc(imageDataUrl);
-    e.target.value = null; // 重設
-  };
-
-  const onCropComplete = (croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  };
-
-  const handleCropSave = async () => {
-    try {
-      setUploading(true);
-      setUploadType('avatar');
-      const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-      
-      const formDataPayload = new FormData();
-      formDataPayload.append('file', croppedImageBlob, 'avatar.jpg');
-      formDataPayload.append('fileType', 'avatar');
-
-      const res = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formDataPayload,
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        setImageSrc(null); // 關閉裁切視窗
-      } else {
-        alert('上傳失敗：' + data.error);
-      }
-    } catch (e) {
-      console.error(e);
-      alert('上傳發生技術錯誤');
     } finally {
       setUploading(false);
       setUploadType(null);
@@ -231,33 +175,6 @@ export default function CoachProfileEdit() {
 
   return (
     <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
-      
-      {/* --- Crop Modal --- */}
-      {imageSrc && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: 'rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Cropper
-              image={imageSrc}
-              crop={crop}
-              zoom={zoom}
-              aspect={1}
-              cropShape="round"
-              showGrid={false}
-              onCropChange={setCrop}
-              onCropComplete={onCropComplete}
-              onZoomChange={setZoom}
-            />
-          </div>
-          <div style={{ padding: '24px 20px 40px', background: 'var(--bg-surface)', display: 'flex', gap: 16, alignItems: 'center' }}>
-            <button type="button" onClick={() => setImageSrc(null)} style={{ flex: 1, padding: 16, borderRadius: 16, border: '1px solid var(--border-main)', background: 'var(--bg-input)', color: 'var(--text-main)', fontWeight: 800, fontSize: 16 }}>取消</button>
-            <button type="button" onClick={handleCropSave} disabled={uploading} style={{ flex: 2, padding: 16, borderRadius: 16, border: 'none', background: ORANGE, color: 'white', fontWeight: 800, fontSize: 16, display: 'flex', justifyContent: 'center', gap: 8 }}>
-              {uploading && <Loader2 size={20} className="animate-spin" />}
-              {uploading ? '處理中...' : '確定裁切'}
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Background Gradient */}
       <div style={{
         position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
@@ -302,8 +219,8 @@ export default function CoachProfileEdit() {
                 width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}`
               }}>
-                <UploadCloud size={16} />
-                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatarChange} />
+                {uploading && uploadType === 'avatar' ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => handleFileUpload(e, 'avatar')} disabled={uploading} />
               </label>
             </div>
             <p style={{ fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>更換教練頭像</p>

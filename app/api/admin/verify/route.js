@@ -56,9 +56,12 @@ export async function POST(request) {
     if (action === 'delete_coach') {
       if (!targetUserId) return NextResponse.json({ error: '缺少教練用戶 ID' }, { status: 400 });
       
-      // 1. 刪除教練資料 (如果有依賴資料會自動級聯，或需要先手動清理，目前平台設計中只要刪除 coaches 即可)
-      const { error: deleteError } = await adminSupabase.from('coaches').delete().eq('user_id', targetUserId);
-      if (deleteError) throw deleteError;
+      // 1. 軟刪除教練資格，避免連鎖刪除既有課程、預約、影片等資料
+      const { error: revokeError } = await adminSupabase
+        .from('coaches')
+        .update({ approval_status: 'revoked' })
+        .eq('user_id', targetUserId);
+      if (revokeError) throw revokeError;
 
       // 2. 將用戶身分改回 user
       const { error: userError } = await adminSupabase.from('users').update({ role: 'user' }).eq('id', targetUserId);

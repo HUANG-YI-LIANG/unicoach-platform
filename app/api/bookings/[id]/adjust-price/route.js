@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { safeErrorDetails } from '@/lib/safeLogging';
 import { calculateBookingPrice, canAdjustBookingPrice, roundMoney } from '@/lib/bookingSecurity';
 import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
 
@@ -61,16 +62,22 @@ export async function POST(request, { params }) {
     const newDepositPaid = calculateBookingPrice({ basePrice: newFinalPrice }).depositPaid;
 
     // 4. 更新資料庫
-    const { error: updateError } = await adminSupabase
+    const { data: updatedBooking, error: updateError } = await adminSupabase
       .from('bookings')
       .update({
         price_adjustment: adjustment,
         final_price: newFinalPrice,
         deposit_paid: newDepositPaid
       })
-      .eq('id', id);
+      .eq('id', id)
+      .eq('status', 'pending_payment')
+      .select('id')
+      .maybeSingle();
 
     if (updateError) throw updateError;
+    if (!updatedBooking) {
+      return NextResponse.json({ error: '預約狀態已變更，請重新整理後再試。' }, { status: 409 });
+    }
 
     // 5. 記錄審計日誌
     await adminSupabase.from('audit_logs').insert([{
@@ -88,7 +95,7 @@ export async function POST(request, { params }) {
       adjustment: adjustment
     });
   } catch (err) {
-    console.error('[PRICE ADJUST ERROR]', err);
+    console.error('[PRICE ADJUST ERROR]', safeErrorDetails(err));
     return NextResponse.json({ error: '金額調整失敗' }, { status: 500 });
   }
 }

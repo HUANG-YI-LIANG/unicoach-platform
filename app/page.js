@@ -147,47 +147,17 @@ export default function Home() {
           <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練</p>
           
           <div className="premium-cta-group">
-            <button onClick={() => router.push('/coaches')} className="premium-btn-primary" style={{
-              width: '100%', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '20px', fontWeight: 900, gap: 8, border: 'none', cursor: 'pointer'
+            <button onClick={() => router.push('/coaches')} style={{
+              width: '100%', height: '64px', background: 'var(--color-accent)', color: 'var(--text-light)',
+              borderRadius: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
+              border: 'none', cursor: 'pointer', gap: 8
             }}>
-              我要找教練
-            </button>
-            <button onClick={() => router.push('/register?role=coach')} className="premium-btn-text" style={{
-              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', cursor: 'pointer'
-            }}>
-              我是教練，想接案
+              👉 我要找教練
             </button>
           </div>
         </div>
       </section>
-
-      {/* 2. 三個信任點 (原版) */}
-      {!isQRUser && (
-        <section className="premium-trust-section">
-          <div className="premium-trust-card">
-            <div className="trust-title">
-              <div className="trust-icon-wrapper"><FileText size={20} /></div>
-              每堂課都有學習紀錄
-            </div>
-            <div className="trust-desc">完整追蹤你的進步旅程</div>
-          </div>
-          <div className="premium-trust-card">
-            <div className="trust-title">
-              <div className="trust-icon-wrapper"><MapPin size={20} /></div>
-              可到府教學 / 球場陪練
-            </div>
-            <div className="trust-desc">地點彈性，教練隨時就緒</div>
-          </div>
-          <div className="premium-trust-card">
-            <div className="trust-title">
-              <div className="trust-icon-wrapper"><User size={20} /></div>
-              真實教練資料與評價
-            </div>
-            <div className="trust-desc">全部通過審核與身分驗證</div>
-          </div>
-        </section>
-      )}
 
       {/* 2. 4步驟卡片 (QR Code 用戶專屬) */}
       {isQRUser && (
