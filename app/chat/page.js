@@ -87,14 +87,15 @@ function RoomCard({ room, onClick }) {
     >
       <Avatar name={room.other_party_name} src={room.other_party_avatar} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: TEXT_LIGHT }}>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: room.unread_count > 0 ? 900 : 800, color: TEXT_LIGHT }}>
           {room.other_party_name || '未命名聊天室'}
         </p>
         <p
           style={{
             margin: '3px 0 0',
             fontSize: 13,
-            color: MUTED,
+            fontWeight: room.unread_count > 0 ? 800 : 400,
+            color: room.unread_count > 0 ? TEXT_LIGHT : MUTED,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',

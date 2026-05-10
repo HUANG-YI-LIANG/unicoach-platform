@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Home, Search, MessageCircle, User, LogIn, PieChart, ShoppingBag, PlaySquare } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -8,9 +9,33 @@ export default function Navigation() {
   const pathname = usePathname();
   const { user } = useAuth();
   const role = user?.role;
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
   
   // Hide nav on chat room inner pages (e.g. /chat/123) to avoid overlapping the input bar
   const isChatRoom = /^\/chat\/[^/]+/.test(pathname);
+
+  useEffect(() => {
+    if (!user || isChatRoom) return;
+    let isMounted = true;
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/user/unread-counts');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) setUnreadChatCount(data.unreadChatCount || 0);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000); // Poll every 10s
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user, isChatRoom]);
+
   if (isChatRoom) return null;
   
   let navItems = [];
@@ -27,7 +52,7 @@ export default function Navigation() {
       { name: '首頁', path: '/dashboard/user', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
       { name: '找教練', path: '/coaches', icon: Search },
-      { name: '聊天', path: '/chat', icon: MessageCircle },
+      { name: '聊天', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/dashboard/user/edit', icon: User }
     ];
   } else if (role === 'coach') {
@@ -35,7 +60,7 @@ export default function Navigation() {
       { name: '後台', path: '/dashboard/coach', icon: PieChart },
       { name: '探索', path: '/explore', icon: PlaySquare },
       { name: '訂單', path: '/bookings', icon: ShoppingBag },
-      { name: '聊天', path: '/chat', icon: MessageCircle },
+      { name: '聊天', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/coach/profile/edit', icon: User }
     ];
   } else if (role === 'admin') {
@@ -54,8 +79,28 @@ export default function Navigation() {
           : (pathname === item.path || pathname.startsWith(item.path + '/'));
 
         return (
-          <Link key={item.path} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`}>
-            <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className="nav-icon" />
+          <Link key={item.path} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
+            <div style={{ position: 'relative' }}>
+              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className="nav-icon" />
+              {item.badge > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -6,
+                  right: -10,
+                  background: '#EF4444',
+                  color: 'white',
+                  fontSize: 10,
+                  fontWeight: 900,
+                  padding: '2px 6px',
+                  borderRadius: 10,
+                  border: '2px solid var(--color-surface)',
+                  minWidth: 18,
+                  textAlign: 'center'
+                }}>
+                  {item.badge}
+                </span>
+              )}
+            </div>
             <span className="nav-text">{item.name}</span>
           </Link>
         );

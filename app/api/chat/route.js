@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
+import { sendPushNotification } from "@/lib/pushManager";
 
 async function verifyRoomParticipant(adminSupabase, roomId, userId) {
   const { data, error } = await adminSupabase
@@ -71,6 +72,17 @@ export async function POST(request) {
       .single();
 
     if (error) throw error;
+
+    // Send Push Notification asynchronously
+    const recipientId = room.user_id === auth.user.id ? room.coach_id : room.user_id;
+    const senderName = auth.user.name || (auth.user.role === 'coach' ? '教練' : '學員');
+    
+    // Avoid blocking the response
+    sendPushNotification(recipientId, {
+      title: `${senderName} 傳送了新訊息`,
+      body: finalMessage,
+      url: `/chat/${roomId}`
+    }).catch(err => console.error('[PUSH NOTIFICATION ERROR]', err));
 
     return NextResponse.json({ success: true, messageId: data.id });
   } catch (error) {

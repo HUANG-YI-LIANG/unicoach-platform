@@ -11,7 +11,29 @@ export default function Header() {
   const [showLevelRules, setShowLevelRules] = useState(false);
   const [tasks, setTasks] = useState([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [rewardConfig, setRewardConfig] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    let isMounted = true;
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/user/unread-counts');
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) setUnreadCount(data.unreadNotificationCount || 0);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user]);
 
   useEffect(() => {
     if (showLevelRules && user && tasks.length === 0) {
@@ -61,7 +83,27 @@ export default function Header() {
           </div>
         )}
 
-        <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {user && (
+            <Link 
+              href="/notifications" 
+              style={{ position: 'relative', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -6,
+                  background: '#EF4444',
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  border: '2px solid var(--color-surface)',
+                }} />
+              )}
+            </Link>
+          )}
           <button
             type="button"
             onClick={toggleTheme}
