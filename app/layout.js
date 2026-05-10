@@ -4,17 +4,15 @@ import Header from '@/components/Header';
 import { AuthProvider } from '@/components/AuthProvider';
 import ConditionalShell from '@/components/ConditionalShell';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { getSession } from '@/lib/auth';
-
-export const dynamic = 'force-dynamic';
+import { Suspense } from 'react';
 
 export const metadata = {
   title: 'UniCoach',
   description: '手機優先的運動教練預約平台',
 };
 
-export default async function RootLayout({ children }) {
-  const session = await getSession();
+export default function RootLayout({ children }) {
+  const session = null;
 
   const headerEl = <Header />;
 
@@ -39,7 +37,9 @@ export default async function RootLayout({ children }) {
           <div className="mobile-container">
             <AuthProvider initialSession={session}>
               <ConditionalShell header={headerEl} navigation={navigationEl}>
-                {children}
+                <Suspense fallback={null}>
+                  {children}
+                </Suspense>
               </ConditionalShell>
             </AuthProvider>
           </div>
