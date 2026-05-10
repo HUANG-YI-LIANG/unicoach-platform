@@ -25,6 +25,19 @@ function RegisterForm() {
   const [termsChecked, setTermsChecked] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [error, setError] = useState('');
+  const [matchData, setMatchData] = useState(null);
+
+  // 初始化時讀取可能存在的媒合/教練申請資料
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const coachApply = localStorage.getItem('unicoach_coach_apply_v1');
+        if (coachApply && defaultRole === 'coach') {
+          setMatchData(JSON.parse(coachApply));
+        }
+      } catch (err) {}
+    }
+  });
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -52,11 +65,15 @@ function RegisterForm() {
           acceptedTerms: termsChecked,
           acceptedPrivacy: form.privacyConsent,
           acceptedDisclaimer: disclaimerChecked,
-          referralCode: referralCode || null
+          referralCode: referralCode || null,
+          matchData: matchData
         })
       });
       const data = await res.json();
       if (res.ok) {
+        if (matchData) {
+          localStorage.removeItem('unicoach_coach_apply_v1');
+        }
         await refresh();
         router.push(getDashboardPathForRole(data.user?.role));
       } else {

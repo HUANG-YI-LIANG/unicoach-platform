@@ -29,7 +29,8 @@ export async function POST(request) {
       isMinor = false,
       guardianConsent = false,
       age,
-      referralCode = null
+      referralCode = null,
+      matchData = null
     } = await request.json();
 
     const role = normalizeRegistrationRole(requestedRole);
@@ -212,6 +213,13 @@ export async function POST(request) {
         commission_rate: 45,
         base_price: 1000
       };
+
+      if (matchData) {
+        if (matchData.sport) coachPayload.service_areas = matchData.sport;
+        if (matchData.experience) coachPayload.experience = matchData.experience;
+        if (matchData.region) coachPayload.location = matchData.region;
+        if (matchData.philosophy) coachPayload.philosophy = matchData.philosophy;
+      }
 
       const coachMutation = existingCoach
         ? adminSupabase.from('coaches').update(coachPayload).eq('user_id', authData.user.id)
