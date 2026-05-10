@@ -80,6 +80,20 @@ function matchesSport(coach, sport) {
   return text.includes(sport.toLowerCase());
 }
 
+function matchesCategory(coach, categoryFilter) {
+  if (!categoryFilter) return true;
+  
+  const text = coach.service_areas || '';
+  // 學科才藝的關鍵字清單
+  const TUTOR_KEYWORDS = ['數', '英', '國文', '語', '文', '理化', '自然', '科學', '伴讀', '程式', '碼', '畫', '美術', '琴', '樂', '會考', '學測'];
+  
+  const hasTutor = TUTOR_KEYWORDS.some(k => text.includes(k));
+  
+  if (categoryFilter === 'tutors') return hasTutor;
+  if (categoryFilter === 'sports') return !hasTutor;
+  return true;
+}
+
 function matchesPriceRange(coach, minPrice, maxPrice) {
   const price = Number(coach.min_price || coach.base_price || 0);
   if (Number.isFinite(minPrice) && price < minPrice) {
@@ -204,6 +218,7 @@ export async function GET(request) {
     const selectedTime = searchParams.get('time') || '';
     const region = searchParams.get('region') || '';
     const sport = searchParams.get('sport') || '';
+    const category = searchParams.get('category') || '';
     const minPriceValue = Number(searchParams.get('minPrice'));
     const maxPriceValue = Number(searchParams.get('maxPrice'));
     const levelFilter = searchParams.get('level') || '';
@@ -342,6 +357,10 @@ export async function GET(request) {
         return false;
       }
 
+      if (!matchesCategory(coach, category)) {
+        return false;
+      }
+
       if (!matchesPriceRange(coach, minPrice, maxPrice)) {
         return false;
       }
@@ -391,7 +410,12 @@ export async function GET(request) {
     });
 
     const allSportsSet = new Set();
+    const TUTOR_KEYWORDS = ['數', '英', '國文', '語', '文', '理化', '自然', '科學', '伴讀', '程式', '碼', '畫', '美術', '琴', '樂', '會考', '學測'];
+    
     formatted.forEach((coach) => {
+      // 依據 category 決定要不要把這個教練的 service_areas 放進 allSports
+      if (!matchesCategory(coach, category)) return;
+      
       if (coach.service_areas) {
         const parts = coach.service_areas.split(/[、,，\s]+/);
         parts.forEach((p) => {

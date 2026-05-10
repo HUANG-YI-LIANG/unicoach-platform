@@ -84,6 +84,7 @@ function buildFiltersFromSearchParams(searchParams) {
     region: searchParams.get('region') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     level: searchParams.get('level') || '',
+    category: searchParams.get('category') || '',
   };
 }
 
@@ -127,6 +128,7 @@ export default function CoachesPage() {
     region: '',
     maxPrice: '',
     level: '',
+    category: '',
   });
   const [coaches, setCoaches] = useState([]);
   const [allSports, setAllSports] = useState([]);
@@ -177,6 +179,7 @@ export default function CoachesPage() {
           region: parsed.region || '',
           maxPrice: parsed.maxPrice || '',
           level: parsed.level || '',
+          category: parsed.category || '',
         });
       }
     } catch (error) {
@@ -299,6 +302,7 @@ export default function CoachesPage() {
       region: '',
       maxPrice: '',
       level: '',
+      category: '',
     });
   }
 
@@ -601,6 +605,41 @@ export default function CoachesPage() {
           </div>
 
           <div className="filters-grid">
+            {/* Category Toggle */}
+            <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`} style={{ gridColumn: '1 / -1' }}>
+              <div className="filter-group-title">
+                <span>找哪一種老師？</span>
+              </div>
+              <div className="mobile-content">
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button"
+                    className={`time-btn ${filters.category === '' ? 'active' : ''}`}
+                    onClick={() => { updateFilter('category', ''); updateFilter('sport', ''); }}
+                    style={{ padding: '8px 16px', borderRadius: '16px' }}
+                  >
+                    全部
+                  </button>
+                  <button
+                    type="button"
+                    className={`time-btn ${filters.category === 'sports' ? 'active' : ''}`}
+                    onClick={() => { updateFilter('category', 'sports'); updateFilter('sport', ''); }}
+                    style={{ padding: '8px 16px', borderRadius: '16px' }}
+                  >
+                    🏀 運動教練
+                  </button>
+                  <button
+                    type="button"
+                    className={`time-btn ${filters.category === 'tutors' ? 'active' : ''}`}
+                    onClick={() => { updateFilter('category', 'tutors'); updateFilter('sport', ''); }}
+                    style={{ padding: '8px 16px', borderRadius: '16px' }}
+                  >
+                    📚 學科才藝
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`}>
               <div className="filter-group-title">
                 <span>教學項目</span>
