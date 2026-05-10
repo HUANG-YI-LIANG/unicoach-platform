@@ -14,6 +14,10 @@ const SPORT_IMAGES = {
   '瑜珈': 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?q=80&w=600&auto=format&fit=crop',
   '桌球': 'https://images.unsplash.com/photo-1534158914592-062992fbe900?q=80&w=600&auto=format&fit=crop',
   '排球': 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?q=80&w=600&auto=format&fit=crop',
+  '數學': 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=600&auto=format&fit=crop',
+  '英文': 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=600&auto=format&fit=crop',
+  '理化': 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=600&auto=format&fit=crop',
+  '全科伴讀': 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop'
 };
 const DEFAULT_SPORT_IMAGE = 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop';
 
@@ -108,10 +112,10 @@ export default function Home() {
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
           }}>
             <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 24, color: 'var(--text-main)' }}>
-              你想學什麼運動？
+              你想學什麼項目？
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-              {['籃球', '羽球', '健身', '網球'].map(s => (
+              {['籃球', '英文', '健身', '伴讀'].map(s => (
                 <button
                   key={s}
                   onClick={() => handleOnboardingSelect(s)}
@@ -187,8 +191,8 @@ export default function Home() {
       {/* 3. 運動分類入口 */}
       <section className="premium-sports-section">
         <div className="sports-header">
-          <h2 className="sports-title">熱門運動類別</h2>
-          <span className="sports-subtitle">依教練專長推薦</span>
+          <h2 className="sports-title">熱門教學類別</h2>
+          <span className="sports-subtitle">依專長推薦</span>
         </div>
         
         {isLoadingSports ? (

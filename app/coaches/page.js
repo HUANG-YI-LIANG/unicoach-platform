@@ -101,6 +101,16 @@ function getSportEmoji(sport) {
   if (value.includes('跑') || value.includes('田徑')) return '🏃';
   if (value.includes('健身') || value.includes('重訓')) return '🏋️';
 
+  // 學科與家教
+  if (value.includes('數')) return '📐';
+  if (value.includes('英')) return '🔤';
+  if (value.includes('國文') || value.includes('語')) return '📖';
+  if (value.includes('理化') || value.includes('自然') || value.includes('科學')) return '🧪';
+  if (value.includes('伴讀')) return '📚';
+  if (value.includes('程式') || value.includes('碼')) return '💻';
+  if (value.includes('畫') || value.includes('美術')) return '🎨';
+  if (value.includes('琴') || value.includes('樂')) return '🎵';
+
   return '🎯';
 }
 
@@ -558,8 +568,8 @@ export default function CoachesPage() {
         <section className="hero">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
             <div style={{ flex: '1 1 240px' }}>
-              <h1>找適合你的教練</h1>
-              <p>依照地區、時段與教學項目，快速找到可預約的教練。</p>
+              <h1>找適合你的老師 / 教練</h1>
+              <p>依照地區、時段與教學項目，快速找到可預約的人選。</p>
             </div>
             <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -593,7 +603,7 @@ export default function CoachesPage() {
           <div className="filters-grid">
             <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`}>
               <div className="filter-group-title">
-                <span>運動項目</span>
+                <span>教學項目</span>
                 <button type="button" className="section-toggle" onClick={() => toggleMobileSection('sport')}>
                   {mobileSections.sport ? '收合' : '展開'}
                 </button>
@@ -612,7 +622,7 @@ export default function CoachesPage() {
                     </button>
                   ))}
                   {allSports.length === 0 && (
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>目前沒有可用運動項目</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>目前沒有可用教學項目</div>
                   )}
                 </div>
               </div>
@@ -724,7 +734,7 @@ export default function CoachesPage() {
         )}
 
         <div className="results-bar">
-          <div>共找到 {coaches.length} 位教練</div>
+          <div>共找到 {coaches.length} 位人選</div>
           <div>排序：最快可約優先</div>
         </div>
         
@@ -739,9 +749,9 @@ export default function CoachesPage() {
         </div>
 
         {loading ? (
-          <div className="loading-state">載入教練資料中...</div>
+          <div className="loading-state">載入資料中...</div>
         ) : coaches.length === 0 ? (
-          <div className="empty-state">目前沒有符合條件的教練，請嘗試調整篩選條件。</div>
+          <div className="empty-state">目前沒有符合條件的教練 / 老師，請嘗試調整篩選條件。</div>
         ) : (
           <div className="card-grid">
             {coaches.map((coach) => (

@@ -275,7 +275,7 @@ export default function CoachProfileEdit() {
                 <input
                   value={formData.service_areas}
                   onChange={e => setFormData({...formData, service_areas: e.target.value})}
-                  placeholder="籃球, 桌球 (多項請用逗號分隔)"
+                  placeholder="例如：籃球, 數學, 伴讀 (多項請用逗號分隔)"
                   style={inputStyle}
                   required
                 />
@@ -400,7 +400,7 @@ export default function CoachProfileEdit() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[
-                    { id: 'coach_license', label: '特定球類教練證 (如中華羽協/籃協 C級教練)' },
+                    { id: 'coach_license', label: '特定項目專業證照 (如教練證、多益金色證書等)' },
                     { id: 'cpr_aed', label: '運動防護/急救證照 (CPR/AED)' },
                     { id: 'police_check', label: '良民證 (無犯罪紀錄證明)' }
                   ].map(badge => (
