@@ -6,6 +6,8 @@ import ConditionalShell from '@/components/ConditionalShell';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { getSession } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'UniCoach',
   description: '手機優先的運動教練預約平台',
