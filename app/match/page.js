@@ -6,17 +6,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function MatchForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const audience = searchParams.get('audience') || 'student'; // 'student', 'parent', or 'coach'
+  const initialAudience = searchParams.get('audience');
+  const [audience, setAudience] = useState(initialAudience); // 'student', 'parent', or 'coach', null if not set
 
   // 'sports' or 'tutor'
   const [category, setCategory] = useState('');
 
-  // 統一表單狀態 (將原本的 sport 改稱 item，但在送出時仍以 sport 參數傳遞以相容舊版)
   const [formData, setFormData] = useState({
-    item: '', // 運動項目或家教科目
-    role: audience === 'parent' ? '家長幫小孩找' : '學生自己找', // for student
-    targetAudience: '皆可', // for coach
-    levelOrGrade: '', // 目前程度(sports) 或 年級(tutor)
+    item: '',
+    role: audience === 'parent' ? '家長幫小孩找' : '學生自己找', 
+    targetAudience: '皆可',
+    levelOrGrade: '',
     experience: '', // for coach
     region: '',
     format: '',
@@ -99,7 +99,57 @@ function MatchForm() {
     color: 'var(--text-main)', marginBottom: '8px'
   };
 
-  // 分流選擇畫面
+  // 1. 最外層：身份選擇 (如果網址沒有帶 audience)
+  if (!audience) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '40px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'var(--primary)' }}>
+            歡迎來到 UniCoach
+          </h1>
+          <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '40px' }}>
+            請選擇您的身分，讓我們為您提供最適合的服務。
+          </p>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <button 
+              onClick={() => { setAudience('student'); setFormData({...formData, role: '學生自己找'}); }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                padding: '24px', background: 'var(--bg-surface)', border: '2px solid var(--border-main)',
+                borderRadius: '24px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: 'var(--shadow-sm)'
+              }}
+              onMouseOver={e => e.currentTarget.style.borderColor = 'var(--primary)'}
+              onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
+            >
+              <span style={{ fontSize: '32px' }}>🎯</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
+                我是學生 / 家長<br/><span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>尋找專業教練與家教</span>
+              </span>
+            </button>
+            
+            <button 
+              onClick={() => setAudience('coach')}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px',
+                padding: '24px', background: 'var(--bg-surface)', border: '2px solid var(--border-main)',
+                borderRadius: '24px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: 'var(--shadow-sm)'
+              }}
+              onMouseOver={e => e.currentTarget.style.borderColor = 'var(--color-accent)'}
+              onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-main)'}
+            >
+              <span style={{ fontSize: '32px' }}>🎓</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>
+                我是大學生<br/><span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: 600 }}>想成為教練 / 老師接案</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. 第二層：類別選擇畫面 (運動 vs 學科)
   if (!category) {
     const isCoach = audience === 'coach';
     return (
@@ -183,10 +233,10 @@ function MatchForm() {
         
         {/* 返回按鈕 */}
         <button 
-          onClick={() => setCategory('')} 
+          onClick={() => category ? setCategory('') : (!initialAudience && setAudience(null))} 
           style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', marginBottom: '16px', fontSize: '14px', fontWeight: 700 }}
         >
-          ← 返回重選類別
+          ← 返回上一步
         </button>
 
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
