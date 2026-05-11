@@ -146,6 +146,19 @@ export default function CoachPlansPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', padding: '24px 16px 96px' }}>
+      <style dangerouslySetInnerHTML={{ __html: `
+        .plans-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+          gap: 18px;
+        }
+        @media (max-width: 800px) {
+          .plans-grid {
+            display: flex;
+            flex-direction: column-reverse;
+          }
+        }
+      ` }} />
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
         <button
           onClick={() => router.push('/dashboard/coach')}
@@ -167,7 +180,7 @@ export default function CoachPlansPage() {
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.8fr)', gap: 18 }}>
+        <div className="plans-grid">
           <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {plans.map((plan) => (
               <div key={plan.id} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 18, padding: 18, boxShadow: 'var(--shadow-sm)' }}>
