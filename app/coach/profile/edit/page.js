@@ -282,9 +282,9 @@ export default function CoachProfileEdit() {
                 <p style={{ fontSize: 11, color: MUTED, marginTop: 4 }}>※ 這會影響到學生在首頁的搜尋結果</p>
               </div>
 
-              <div>
+              <div style={{ background: "rgba(249, 115, 22, 0.05)", padding: 16, borderRadius: 12, border: "1px dashed var(--cta)" }}>
                 <label style={labelStyle}>
-                  <DollarSign size={14} color={ORANGE} /> 每小時課程定價 (TWD)
+                  <DollarSign size={14} color={ORANGE} /> 預設每小時底價 (TWD)
                 </label>
                 <div style={{ position:'relative' }}>
                   <span style={{ position:'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: MUTED, fontSize: 14 }}>$</span>
@@ -308,11 +308,12 @@ export default function CoachProfileEdit() {
                   />
                 </div>
                 {priceError && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4, fontWeight: 700 }}>{priceError}</p>}
-                <div style={{ fontSize: 11, color: MUTED, marginTop: 4, lineHeight: 1.5 }}>
-                  <p style={{ margin: 0 }}>建議價格範圍：</p>
-                  <p style={{ margin: 0 }}>• 新手教練：600 ～ 1,000 TWD/hr</p>
-                  <p style={{ margin: 0 }}>• 熱門教練：1,000 ～ 1,600 TWD/hr</p>
-                  <p style={{ margin: 0 }}>• 進階教練：1,600 以上 TWD/hr</p>
+                <div style={{ fontSize: 12, color: ORANGE, marginTop: 12, fontWeight: 700, display: "flex", gap: 6, alignItems: "flex-start", lineHeight: 1.5 }}>
+                  <Sparkles size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>
+                    擁有雙專長的您，想為「運動」和「伴讀」設定不同價格嗎？<br/>
+                    別擔心！這裡請先填寫一個平均底價。儲存資料後，系統會引導您到「建立課程方案」，屆時就能針對不同科目設定專屬價格囉！
+                  </span>
                 </div>
               </div>
 
