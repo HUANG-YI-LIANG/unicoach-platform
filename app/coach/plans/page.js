@@ -149,14 +149,23 @@ export default function CoachPlansPage() {
       <style dangerouslySetInnerHTML={{ __html: `
         .plans-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
-          gap: 18px;
+          grid-template-columns: minmax(300px, 1.2fr) minmax(320px, 0.8fr);
+          gap: 24px;
+          align-items: start;
         }
-        @media (max-width: 800px) {
+        @media (max-width: 1100px) {
           .plans-grid {
             display: flex;
             flex-direction: column-reverse;
+            gap: 24px;
           }
+        }
+        .form-card {
+          background: var(--bg-surface);
+          border: 1px solid var(--border-main);
+          border-radius: 16px;
+          padding: 20px;
+          box-shadow: var(--shadow-sm);
         }
       ` }} />
       <div style={{ maxWidth: 920, margin: '0 auto' }}>
@@ -216,15 +225,15 @@ export default function CoachPlansPage() {
             ))}
           </section>
 
-          <form onSubmit={savePlan} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 18, padding: 18, alignSelf: 'start', boxShadow: 'var(--shadow-sm)' }}>
-            <h2 style={{ margin: '0 0 14px', fontSize: 18, fontWeight: 900, color: 'var(--text-main)' }}>
+          <form onSubmit={savePlan} className="form-card">
+            <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 900, color: 'var(--text-main)' }}>
               {editingId ? '編輯方案' : '新增方案'}
             </h2>
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', fontWeight: 800, marginBottom: 6 }}>方案名稱</label>
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} style={inputStyle} placeholder="例如：基礎單堂課" />
 
             <label style={labelStyle}>方案說明</label>
-            <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} style={{ ...inputStyle, minHeight: 84, resize: 'vertical' }} placeholder="簡短說明適合的學生或課程內容" />
+            <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} placeholder="簡短說明適合的學生或課程內容" />
 
             <label style={labelStyle}>課程長度</label>
             <select value={form.duration_minutes} onChange={(event) => setForm({ ...form, duration_minutes: Number(event.target.value) })} style={inputStyle}>
@@ -234,16 +243,16 @@ export default function CoachPlansPage() {
             <label style={labelStyle}>價格</label>
             <input type="number" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} style={inputStyle} min="100" max="50000" />
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, color: 'var(--text-main)', fontWeight: 800, fontSize: 13 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, color: 'var(--text-main)', fontWeight: 800, fontSize: 13 }}>
               <input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} />
               啟用此方案
             </label>
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-              <button disabled={saving} type="submit" style={{ flex: 1, padding: 12, borderRadius: 12, border: 'none', background: 'var(--primary)', color: 'var(--text-light)', fontWeight: 900, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button disabled={saving} type="submit" style={{ flex: 1, padding: '10px 0', borderRadius: 10, border: 'none', background: 'var(--primary)', color: 'var(--text-light)', fontWeight: 900, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                 {saving ? '儲存中...' : '儲存方案'}
               </button>
-              <button type="button" onClick={startCreate} style={{ padding: 12, borderRadius: 12, border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-muted)', fontWeight: 900, cursor: 'pointer' }}>
+              <button type="button" onClick={startCreate} style={{ padding: '10px 16px', borderRadius: 10, border: '1px solid var(--border-input)', background: 'transparent', color: 'var(--text-muted)', fontWeight: 900, fontSize: 14, cursor: 'pointer' }}>
                 清空
               </button>
             </div>
