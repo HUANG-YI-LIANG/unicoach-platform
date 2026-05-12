@@ -7,6 +7,8 @@ import {
   MapPin, DollarSign, Save, ArrowLeft, Loader2, Tag,
   ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
 } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '@/lib/cropImage';
 
 const ORANGE = 'var(--cta, #F97316)';
 const BG     = 'var(--bg-page)';
@@ -42,6 +44,12 @@ export default function CoachProfileEdit() {
   const [vStatus, setVStatus] = useState('pending');
   const [vNotes, setVNotes] = useState('');
   const [priceError, setPriceError] = useState('');
+
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [isCropping, setIsCropping] = useState(false);
 
   const PRICE_MIN = 600;
   const PRICE_MAX = 2000;
@@ -131,6 +139,17 @@ export default function CoachProfileEdit() {
 
     if (file.size > 5 * 1024 * 1024) return alert('檔案不得超過 5MB');
 
+    if (type === 'avatar') {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        setCropImageSrc(reader.result);
+        setIsCropping(true);
+      };
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     setUploadType(type);
     const formDataPayload = new FormData();
@@ -144,13 +163,8 @@ export default function CoachProfileEdit() {
       });
       const data = await res.json();
       if (res.ok) {
-        if (type === 'avatar') {
-          setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
-          alert('頭像已更新');
-        } else {
-          alert('文件已上傳並進入審核程序');
-          setVStatus('pending');
-        }
+        alert('文件已上傳並進入審核程序');
+        setVStatus('pending');
       } else {
         alert('上傳失敗：' + data.error);
       }
@@ -159,6 +173,39 @@ export default function CoachProfileEdit() {
     } finally {
       setUploading(false);
       setUploadType(null);
+    }
+  };
+
+  const confirmCropAndUpload = async () => {
+    if (!cropImageSrc || !croppedAreaPixels) return;
+    setUploading(true);
+    setUploadType('avatar');
+    setIsCropping(false);
+    
+    try {
+      const croppedImageBlob = await getCroppedImg(cropImageSrc, croppedAreaPixels);
+      const formDataPayload = new FormData();
+      formDataPayload.append('file', croppedImageBlob, 'avatar.jpg');
+      formDataPayload.append('fileType', 'avatar');
+
+      const res = await fetch('/api/files/upload', {
+        method: 'POST',
+        body: formDataPayload,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
+        alert('頭像已成功更新');
+      } else {
+        alert('上傳失敗：' + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('發生技術錯誤');
+    } finally {
+      setUploading(false);
+      setUploadType(null);
+      setCropImageSrc(null);
     }
   };
 
@@ -510,6 +557,34 @@ export default function CoachProfileEdit() {
 
         </form>
       </div>
+
+      {/* Cropper Modal */}
+      {isCropping && cropImageSrc && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '90%', maxWidth: 400, background: 'var(--bg-surface)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 20px', borderBottom: `1px solid ${BORDER}` }}>
+              <h3 style={{ margin: 0, color: TEXT_LIGHT, fontSize: 16, fontWeight: 800 }}>調整大頭貼</h3>
+            </div>
+            <div style={{ position: 'relative', width: '100%', height: 300, background: '#111' }}>
+              <Cropper
+                image={cropImageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={(croppedArea, croppedAreaPixels) => setCroppedAreaPixels(croppedAreaPixels)}
+              />
+            </div>
+            <div style={{ padding: 20, display: 'flex', gap: 12 }}>
+              <button type="button" onClick={() => { setIsCropping(false); setCropImageSrc(null); }} style={{ flex: 1, padding: 12, borderRadius: 12, background: 'transparent', border: `1px solid ${BORDER}`, color: TEXT_LIGHT, fontWeight: 800, cursor: 'pointer' }}>取消</button>
+              <button type="button" onClick={confirmCropAndUpload} style={{ flex: 1, padding: 12, borderRadius: 12, background: ORANGE, border: 'none', color: '#fff', fontWeight: 800, cursor: 'pointer' }}>確認裁切</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
