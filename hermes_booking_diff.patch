@@ -1,0 +1,261 @@
+diff --git a/app/api/bookings/[id]/adjust-price/route.js b/app/api/bookings/[id]/adjust-price/route.js
+index b9cc87a..7454979 100644
+--- a/app/api/bookings/[id]/adjust-price/route.js
++++ b/app/api/bookings/[id]/adjust-price/route.js
+@@ -1,7 +1,10 @@
++export const runtime = 'nodejs';
++export const dynamic = 'force-dynamic';
++
+ import { NextResponse } from 'next/server';
+ import { requireAuth } from '@/lib/auth';
+ import { getAdminSupabase } from '@/lib/supabase';
+-import { calculateBookingPrice, canAdjustBookingPrice } from '@/lib/bookingSecurity';
++import { calculateBookingPrice, canAdjustBookingPrice, roundMoney } from '@/lib/bookingSecurity';
+ import { buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from '@/lib/bookingWorkflow';
+ 
+ /**
+@@ -53,21 +56,27 @@ export async function POST(request, { params }) {
+ 
+     // 3. 計算新價格
+     // 公式：final_price = base_price - discount_amount + adjustment
+-    const baseFinalPrice = Math.max(0, booking.base_price - (booking.discount_amount || 0));
+-    const newFinalPrice = Math.max(0, baseFinalPrice + adjustment);
++    const baseFinalPrice = roundMoney(booking.base_price - (booking.discount_amount || 0));
++    const newFinalPrice = roundMoney(baseFinalPrice + adjustment);
+     const newDepositPaid = calculateBookingPrice({ basePrice: newFinalPrice }).depositPaid;
+ 
+     // 4. 更新資料庫
+-    const { error: updateError } = await adminSupabase
++    const { data: updatedBooking, error: updateError } = await adminSupabase
+       .from('bookings')
+       .update({
+         price_adjustment: adjustment,
+         final_price: newFinalPrice,
+         deposit_paid: newDepositPaid
+       })
+-      .eq('id', id);
++      .eq('id', id)
++      .eq('status', 'pending_payment')
++      .select('id')
++      .maybeSingle();
+ 
+     if (updateError) throw updateError;
++    if (!updatedBooking) {
++      return NextResponse.json({ error: '預約狀態已變更，請重新整理後再試。' }, { status: 409 });
++    }
+ 
+     // 5. 記錄審計日誌
+     await adminSupabase.from('audit_logs').insert([{
+diff --git a/app/api/bookings/[id]/confirm-payment/route.js b/app/api/bookings/[id]/confirm-payment/route.js
+index c7746af..500b35a 100644
+--- a/app/api/bookings/[id]/confirm-payment/route.js
++++ b/app/api/bookings/[id]/confirm-payment/route.js
+@@ -1,3 +1,6 @@
++export const runtime = 'nodejs';
++export const dynamic = 'force-dynamic';
++
+ import { getAdminSupabase } from "@/lib/supabase";
+ import { requireAuth } from "@/lib/auth";
+ import { NextResponse } from "next/server";
+@@ -47,12 +50,19 @@ export async function POST(request, { params }) {
+       return NextResponse.json({ error: expiration.error }, { status: expiration.status });
+     }
+ 
+-    const { error: updateError } = await adminSupabase
++    const { data: updatedBooking, error: updateError } = await adminSupabase
+       .from("bookings")
+       .update(buildConfirmPaymentUpdate())
+-      .eq("id", id);
++      .eq("id", id)
++      .eq("status", "pending_payment")
++      .eq("payment_reference", booking.payment_reference)
++      .select("id")
++      .maybeSingle();
+ 
+     if (updateError) throw updateError;
++    if (!updatedBooking) {
++      return NextResponse.json({ error: "預約狀態或付款回報已變更，請重新整理後再試。" }, { status: 409 });
++    }
+ 
+     try {
+       await adminSupabase.from("audit_logs").insert([{
+diff --git a/app/api/bookings/[id]/report-payment/route.js b/app/api/bookings/[id]/report-payment/route.js
+index b904355..642abc3 100644
+--- a/app/api/bookings/[id]/report-payment/route.js
++++ b/app/api/bookings/[id]/report-payment/route.js
+@@ -1,3 +1,6 @@
++export const runtime = 'nodejs';
++export const dynamic = 'force-dynamic';
++
+ import { NextResponse } from 'next/server';
+ import { getAdminSupabase } from '@/lib/supabase';
+ import { requireAuth } from '@/lib/auth';
+@@ -46,15 +49,22 @@ export async function POST(request, { params }) {
+       return NextResponse.json({ error: expiration.error }, { status: expiration.status });
+     }
+ 
+-    const { error: updateError } = await adminSupabase
++    const { data: updatedBooking, error: updateError } = await adminSupabase
+       .from('bookings')
+       .update({
+         payment_method: 'bank_transfer',
+         payment_reference: imageUrl,
+       })
+-      .eq('id', id);
++      .eq('id', id)
++      .eq('user_id', auth.user.id)
++      .eq('status', 'pending_payment')
++      .select('id')
++      .maybeSingle();
+ 
+     if (updateError) throw updateError;
++    if (!updatedBooking) {
++      return NextResponse.json({ error: '預約狀態已變更，請重新整理後再試。' }, { status: 409 });
++    }
+ 
+     try {
+       await adminSupabase.from('audit_logs').insert([{
+diff --git a/app/api/bookings/[id]/status/route.js b/app/api/bookings/[id]/status/route.js
+index 21c0a70..2663e27 100644
+--- a/app/api/bookings/[id]/status/route.js
++++ b/app/api/bookings/[id]/status/route.js
+@@ -1,23 +1,31 @@
++export const runtime = 'nodejs';
++export const dynamic = 'force-dynamic';
++
+ import { getAdminSupabase } from "@/lib/supabase";
+ import { requireAuth } from "@/lib/auth";
+ import { NextResponse } from "next/server";
+-import { canTransitionBookingStatus, buildExpiredPendingPaymentUpdate, getPendingPaymentExpirationState } from "@/lib/bookingWorkflow";
++import {
++  canCompleteBooking,
++  canTransitionBookingStatus,
++  buildExpiredPendingPaymentUpdate,
++  getPendingPaymentExpirationState,
++} from "@/lib/bookingWorkflow";
+ 
+ // ============================================================
+ // 預約狀態機：精確定義每個角色可執行的轉換
++// 注意：實際驗證由 lib/bookingWorkflow.js 執行；此表保留作為 route 層文件化規則。
+ // ============================================================
+ const STATUS_TRANSITION_RULES = {
+   // 目前狀態: { 角色: [允許轉換到的目標狀態] }
+   pending_payment: {
+     student: ["cancelled"],
+-    coach: ["cancelled"],
+   },
+   scheduled: {
+     student: ["cancelled"],
+-    coach: ["in_progress", "completed", "cancelled"],
++    coach: ["in_progress", "cancelled"],
+   },
+   in_progress: {
+-    coach: ["pending_completion", "completed"],
++    coach: ["pending_completion"],
+   },
+   pending_completion: {
+     student: ["completed"], // 學生確認完課
+@@ -27,13 +35,33 @@ const STATUS_TRANSITION_RULES = {
+   refunded: {},   // 終態
+ };
+ 
++function mapCompletionRpcError(error) {
++  const text = [error?.code, error?.message, error?.details, error?.hint]
++    .filter(Boolean)
++    .join(' ');
++
++  if (/booking_completion_conflict|409|P0001/i.test(text)) {
++    return { status: 409, error: '預約狀態已被其他操作更新，請重新整理後再試。' };
++  }
++  if (/booking_not_paid/i.test(text)) {
++    return { status: 400, error: '預約尚未完成付款，不能標記為完成。' };
++  }
++  if (/booking_not_ended/i.test(text)) {
++    return { status: 400, error: '課程尚未結束，不能標記為完成。' };
++  }
++  if (/missing_final_learning_report/i.test(text)) {
++    return { status: 400, error: '必須先填寫正式學習報告，才能將課程標記為完成。' };
++  }
++  return null;
++}
++
+ export async function POST(request, { params }) {
+   try {
+     const auth = await requireAuth();
+     if (auth.error) return NextResponse.json(auth, { status: auth.status });
+     
+     const { id } = await params;
+-    const { status: newStatus } = await request.json(); 
++    const { status: newStatus, cancel_reason: cancelReason } = await request.json();
+     
+     const adminSupabase = getAdminSupabase();
+     
+@@ -67,6 +95,11 @@ export async function POST(request, { params }) {
+         .neq('completed_items', '__AI_DRAFT__')
+         .maybeSingle();
+       hasFinalReport = Boolean(report);
++
++      const completionCheck = canCompleteBooking(booking, { hasFinalReport });
++      if (!completionCheck.ok) {
++        return NextResponse.json({ error: completionCheck.error }, { status: completionCheck.status });
++      }
+     }
+ 
+     const transition = canTransitionBookingStatus({
+@@ -84,17 +117,48 @@ export async function POST(request, { params }) {
+     }
+ 
+     const role = transition.role;
++    const isCoachCancellation = role === 'coach' && newStatus === 'cancelled';
++    const isStudentCancellation = role === 'student' && newStatus === 'cancelled';
+ 
+-    // 3. 執行更新
+-    const updateData = { status: newStatus };
+-    if (newStatus === 'completed') updateData.completed_at = new Date().toISOString();
++    // 3. 執行更新；completed 需由 DB Transaction RPC 一次完成狀態更新與推薦獎勵發放
++    if (newStatus === 'completed') {
++      const { error: completeError } = await adminSupabase.rpc('complete_booking_with_referral', {
++        p_booking_id: id,
++        p_actor_id: auth.user.id,
++        p_previous_status: booking.status,
++      });
+ 
+-    const { error: updateError } = await adminSupabase
+-      .from('bookings')
+-      .update(updateData)
+-      .eq('id', id);
++      if (completeError) {
++        const mapped = mapCompletionRpcError(completeError);
++        if (mapped) return NextResponse.json({ error: mapped.error }, { status: mapped.status });
++        throw completeError;
++      }
++    } else {
++      const updateData = { status: newStatus };
++      if (newStatus === 'cancelled') {
++        updateData.cancelled_at = new Date().toISOString();
++        if (typeof cancelReason === 'string' && cancelReason.trim()) {
++          updateData.cancel_reason = cancelReason.trim().slice(0, 500);
++        }
++        if (isCoachCancellation) {
++          updateData.cancel_fault_party = 'coach_pending_review';
++        } else if (isStudentCancellation) {
++          updateData.cancel_fault_party = 'student_fault';
++        }
++      }
++      const { data: updatedBooking, error: updateError } = await adminSupabase
++        .from('bookings')
++        .update(updateData)
++        .eq('id', id)
++        .eq('status', booking.status)
++        .select('id')
++        .maybeSingle();
+ 
+-    if (updateError) throw updateError;
++      if (updateError) throw updateError;
++      if (!updatedBooking) {
++        return NextResponse.json({ error: '預約狀態已被其他操作更新，請重新整理後再試。' }, { status: 409 });
++      }
++    }
+ 
+     // 6. 管理員審計日誌
+     if (role === 'admin') {
