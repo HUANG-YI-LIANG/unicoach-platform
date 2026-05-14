@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { safeErrorDetails } from '@/lib/safeLogging';
-import { canMarkSettlementStatus } from '@/lib/settlementRules';
+
 
 /**
  * GET /api/admin/settlements/[id]
@@ -86,68 +86,25 @@ export async function PATCH(request, { params }) {
 
     const adminSupabase = getAdminSupabase();
 
-    const { data: currentBatch, error: currentError } = await adminSupabase
-      .from('settlement_batches')
-      .select('id, status')
-      .eq('id', id)
-      .single();
-
-    if (currentError || !currentBatch) {
-      return NextResponse.json({ error: '找不到該結算批次' }, { status: 404 });
-    }
-
-    const statusChange = canMarkSettlementStatus({
-      currentStatus: currentBatch.status,
-      nextStatus: status,
+    const { data, error } = await adminSupabase.rpc('mark_settlement_status', {
+      p_batch_id: id,
+      p_next_status: status,
+      p_actor_id: auth.user.id,
     });
-    if (!statusChange.ok) {
-      return NextResponse.json({ error: statusChange.error }, { status: statusChange.status });
+
+    if (error) {
+      console.error('Update settlement RPC error:', safeErrorDetails(error));
+      return NextResponse.json({ error: '更新失敗' }, { status: 500 });
     }
 
-    const updateData = { status };
-    if (status === 'paid') {
-      updateData.paid_at = new Date().toISOString();
-    }
-    if (status === 'cancelled') {
-      updateData.paid_at = null;
+    if (!data.ok) {
+      return NextResponse.json({ error: data.error }, { status: data.status || 400 });
     }
 
-    const { data: updatedBatch, error } = await adminSupabase
-      .from('settlement_batches')
-      .update(updateData)
-      .eq('id', id)
-      .eq('status', currentBatch.status)
-      .select('id, status, paid_at')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (!updatedBatch) {
-      return NextResponse.json(
-        { error: '結算狀態已被其他操作更新，請重新整理後再試。' },
-        { status: 409 }
-      );
-    }
-
-    if (status === 'cancelled') {
-      await adminSupabase
-        .from('bookings')
-        .update({ settlement_id: null })
-        .eq('settlement_id', id);
-    }
-
-    await adminSupabase.from('audit_logs').insert([{
-      actor_id: auth.user.id,
-      actor_role: auth.user.role,
-      action: 'UPDATE_SETTLEMENT_STATUS',
-      target_id: id,
-      details: JSON.stringify({ from: currentBatch.status, to: status }),
-    }]);
-
-    return NextResponse.json({ success: true, batch: updatedBatch });
+    return NextResponse.json({ success: true, batchStatus: data.batchStatus, idempotent: data.idempotent });
 
   } catch (err) {
     console.error('Update settlement error:', safeErrorDetails(err));
-    return NextResponse.json({ error: '更新失敗' }, { status: 500 });
+    return NextResponse.json({ error: '發生未預期錯誤' }, { status: 500 });
   }
 }

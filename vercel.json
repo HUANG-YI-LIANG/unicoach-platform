@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/auto-post",
-      "schedule": "0 12 * * 2,4,6"
+      "schedule": "13 12 * * 2,4,6"
     },
     {
       "path": "/api/cron/renew-meta-token",

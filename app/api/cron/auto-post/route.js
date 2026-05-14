@@ -5,6 +5,8 @@ import { uploadToImgBB } from '@/lib/imgbbApi';
 
 // 強制使用動態渲染，避免靜態快取
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 延長 Vercel Timeout 至免費版極限 60 秒
+
 
 export async function GET(request) {
   // 1. 驗證 CRON_SECRET 保護路由
@@ -16,12 +18,17 @@ export async function GET(request) {
   }
 
   try {
+    const url = new URL(request.url);
+    const forceFile = url.searchParams.get('forceFile');
+
     // 2. 取得所有待發布的貼文
     const pendingPosts = getPendingPosts();
     const now = new Date();
     
-    // 過濾出「發布時間已到」的貼文
+    // 過濾出「發布時間已到」的貼文 (或強制發布的貼文)
     const postsToPublish = pendingPosts.filter(post => {
+      if (forceFile && post.fileName === forceFile) return true;
+      if (forceFile && post.fileName !== forceFile) return false;
       if (!post.frontmatter.date) return false;
       const postDate = new Date(post.frontmatter.date);
       return postDate <= now;
@@ -53,13 +60,13 @@ export async function GET(request) {
         }
 
         // 發布至 Facebook
-        if (platforms.includes('fb')) {
+        if (platforms.includes('fb') || platforms.includes('facebook')) {
           console.log(`[Auto Post] 發布至 FB: ${fileName}`);
           postResult.fb = await postToFacebook(content, null, publicImageUrls, false);
         }
 
         // 發布至 Instagram
-        if (platforms.includes('ig')) {
+        if (platforms.includes('ig') || platforms.includes('instagram')) {
           if (publicImageUrls.length === 0) {
             throw new Error('發布至 IG 需要圖片，但無法取得公開圖片網址。');
           }
