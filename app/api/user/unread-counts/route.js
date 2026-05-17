@@ -42,7 +42,9 @@ export async function GET(request) {
     const { data: notifications, error: notifError } = await adminSupabase
       .from('user_notifications')
       .select('id, user_id, is_read')
-      .or(`user_id.eq.${auth.user.id},user_id.is.null`);
+      .or(`user_id.eq.${auth.user.id},user_id.is.null`)
+      .order('created_at', { ascending: false })
+      .limit(50);
 
     if (notifError && notifError.code !== '42P01') throw notifError;
 
