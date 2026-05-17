@@ -39,13 +39,27 @@ export async function GET(request) {
     }
 
     // 2. Get Unread Notifications
-    const { count: notifCount, error: notifError } = await adminSupabase
+    const { data: notifications, error: notifError } = await adminSupabase
       .from('user_notifications')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', auth.user.id)
-      .eq('is_read', false);
+      .select('id, user_id, is_read')
+      .or(`user_id.eq.${auth.user.id},user_id.is.null`);
 
     if (notifError && notifError.code !== '42P01') throw notifError;
+
+    let notifCount = 0;
+    if (notifications && notifications.length > 0) {
+      const { data: reads } = await adminSupabase
+        .from('notification_reads')
+        .select('notification_id')
+        .eq('user_id', auth.user.id);
+      
+      const readSet = new Set((reads || []).map(r => r.notification_id));
+      
+      notifCount = notifications.filter(n => {
+        if (n.user_id === null) return !readSet.has(n.id);
+        return !n.is_read;
+      }).length;
+    }
 
     return NextResponse.json({
       success: true,

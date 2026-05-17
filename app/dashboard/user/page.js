@@ -207,7 +207,6 @@ export default function UserDashboard() {
   const unreadCount = notifications.filter((notification) => !notification.is_read).length;
 
   const handleMarkAsRead = async (id, isGlobal) => {
-    if (isGlobal) return;
     try {
       await fetch('/api/notifications', {
         method: 'PATCH',
@@ -396,7 +395,7 @@ export default function UserDashboard() {
                           style={{
                             background: 'var(--color-surface)', borderRadius: 16, padding: 16,
                             borderLeft: !notification.is_read ? `4px solid ${ORANGE}` : '4px solid transparent',
-                            boxShadow: SHADOW, cursor: !notification.is_read && !isGlobal ? 'pointer' : 'default',
+                            boxShadow: SHADOW, cursor: !notification.is_read ? 'pointer' : 'default',
                             border: `1px solid ${BORDER}`
                           }}
                         >
