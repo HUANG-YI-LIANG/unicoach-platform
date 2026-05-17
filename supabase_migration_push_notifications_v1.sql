@@ -172,6 +172,8 @@ CREATE TABLE IF NOT EXISTS public.notification_delivery_logs (
   channel TEXT NOT NULL,
   status TEXT NOT NULL,
 
+  -- Store only redacted endpoint strings or endpoint hashes here.
+  -- Do not store full Web Push endpoint URLs in logs exposed to operators.
   endpoint TEXT,
   error_code TEXT,
   error_message TEXT,
@@ -227,10 +229,9 @@ ON public.notification_delivery_logs;
 DROP POLICY IF EXISTS "Admins can read notification delivery logs"
 ON public.notification_delivery_logs;
 
-CREATE POLICY "Users can read their own notification delivery logs"
-ON public.notification_delivery_logs
-FOR SELECT TO authenticated
-USING (auth.uid() = user_id);
+-- Intentionally no general authenticated-user SELECT policy here.
+-- Delivery logs may contain push endpoint metadata and provider error details.
+-- User-facing delivery state should be exposed only through a minimal server API if needed.
 
 CREATE POLICY "Admins can read notification delivery logs"
 ON public.notification_delivery_logs
@@ -301,7 +302,15 @@ USING (auth.uid() = user_id);
 CREATE POLICY "Users can insert their own notification_reads"
 ON public.notification_reads
 FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (
+  auth.uid() = user_id
+  AND EXISTS (
+    SELECT 1
+    FROM public.user_notifications
+    WHERE user_notifications.id = notification_id
+      AND user_notifications.user_id IS NULL
+  )
+);
 
 CREATE POLICY "Admins can read notification_reads"
 ON public.notification_reads
@@ -343,9 +352,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE
 ON public.push_subscriptions
 TO authenticated;
 
-GRANT SELECT
+-- Do not grant notification_delivery_logs to authenticated users.
+-- Admin reads are controlled by RLS through authenticated role privileges when available;
+-- service_role is used by server-side API routes for inserts/updates.
+REVOKE ALL
 ON public.notification_delivery_logs
-TO authenticated;
+FROM authenticated;
 
 GRANT SELECT, INSERT
 ON public.notification_reads

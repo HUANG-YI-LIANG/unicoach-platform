@@ -32,3 +32,6 @@
 
 ===============2026-05-15 12:55:00===============
 使用者回報 Antigravity 已完成 Web Push MVP v1 實作並要求手動 Supabase migration/測試。已唯讀檢查 changed files、執行 npm run build 成功但仍出現 VAPID keys not configured；紅acted 檢查顯示本工作區 .env.local 目前缺 NEXT_PUBLIC_VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY。獨立審查未發現 P0，但指出 P1：notification_delivery_logs 對 authenticated 可 SELECT 且含 endpoint/error_message 過度暴露；public/sw.js click handler 未在 click 階段重新 sanitize URL。建議暫緩執行 DB migration，先修 P1。
+
+===============2026-05-15 13:10:00===============
+使用者同意依雙 AI 協作模式產生 Web Push MVP P1 修正補丁。未修改正式原檔；已建立 _hermes_patches 並寫入完整替換檔：sw.js、pushManager.js、supabase_migration_push_notifications_v1.sql。修正內容：SW click 階段再次 sanitize URL；pushManager 加 server-only、集中 URL sanitize、redact endpoint、normalize error、failure_count 遞增；migration 移除 authenticated 對 notification_delivery_logs 的一般 SELECT policy/grant，並收緊 notification_reads insert policy。

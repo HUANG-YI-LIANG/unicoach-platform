@@ -1,3 +1,16 @@
+function sanitizeNotificationUrl(value) {
+  if (typeof value !== 'string') return '/notifications';
+
+  const trimmed = value.trim();
+
+  if (!trimmed.startsWith('/')) return '/notifications';
+  if (trimmed.startsWith('//')) return '/notifications';
+  if (trimmed.includes('\\')) return '/notifications';
+  if (/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed)) return '/notifications';
+
+  return trimmed;
+}
+
 self.addEventListener('push', (event) => {
   let data = {};
 
@@ -11,11 +24,7 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'UniCoach 通知';
-
-  const rawUrl = typeof data.url === 'string' ? data.url : '/notifications';
-  const safeUrl = rawUrl.startsWith('/') && !rawUrl.startsWith('//')
-    ? rawUrl
-    : '/notifications';
+  const safeUrl = sanitizeNotificationUrl(data.url);
 
   const options = {
     body: data.body || data.content || '',
@@ -38,12 +47,12 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const url = event.notification?.data?.url || '/notifications';
+  const url = sanitizeNotificationUrl(event.notification?.data?.url);
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
-        if ('focus' in client && client.url.includes(self.location.origin)) {
+        if ('focus' in client && client.url.startsWith(self.location.origin)) {
           client.focus();
           if ('navigate' in client) {
             return client.navigate(url);
