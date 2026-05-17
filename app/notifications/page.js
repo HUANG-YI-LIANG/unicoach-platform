@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { Bell, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import PushPrompt from '@/components/PushPrompt';
+import PushNotificationToggle from '@/components/PushNotificationToggle';
 
 const ORANGE = 'var(--color-accent)';
 const BG = 'var(--color-bg)';
@@ -86,7 +86,7 @@ export default function NotificationsPage() {
       </div>
 
       <div style={{ padding: '0 16px', marginBottom: 16 }}>
-        <PushPrompt />
+        <PushNotificationToggle />
       </div>
 
       {notifications.length === 0 ? (

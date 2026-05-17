@@ -210,7 +210,7 @@ export async function POST(request) {
       const coachPayload = {
         user_id: authData.user.id,
         approval_status: 'pending',
-        commission_rate: 45,
+        commission_rate: referredById ? 45 : 50,
         base_price: 1000
       };
 

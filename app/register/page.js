@@ -10,7 +10,8 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
   const defaultRole = searchParams.get('role') || 'user';
-  const referralCode = searchParams.get('ref') || '';
+  const initialRef = searchParams.get('ref') || '';
+  const [referralCode, setReferralCode] = useState(initialRef);
 
   const [form, setForm] = useState({
     email: '',
@@ -178,6 +179,22 @@ function RegisterForm() {
                 onChange={e => setForm({ ...form, password: e.target.value })}
                 required minLength={8} style={inputStyle}
               />
+            </div>
+
+            <div>
+              <label style={labelStyle}>推廣碼 (選填)</label>
+              <input
+                type="text" value={referralCode}
+                onChange={e => setReferralCode(e.target.value.toUpperCase())}
+                placeholder="如有推廣碼請在此輸入"
+                style={{ ...inputStyle, textTransform: 'uppercase' }}
+                maxLength={10}
+              />
+              <p style={{ fontSize: '12px', color: 'var(--color-primary)', marginTop: '6px', fontWeight: 600 }}>
+                {form.role === 'coach' 
+                  ? '輸入推廣碼即可享有平台抽成 45% 優惠（原抽成 50%）' 
+                  : '輸入推廣碼，建立連結後可享有專屬優惠'}
+              </p>
             </div>
 
             {/* 法律合規區 */}

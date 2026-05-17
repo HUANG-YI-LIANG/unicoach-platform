@@ -10,7 +10,10 @@ export async function POST(request) {
     const auth = await requireAuth();
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
-    const subscription = await request.json();
+    const rawBody = await request.json();
+    const subscription = rawBody.subscription || rawBody;
+    const userAgent = rawBody.userAgent || request.headers.get('user-agent') || null;
+
     if (
       !subscription ||
       typeof subscription.endpoint !== 'string' ||
@@ -41,6 +44,11 @@ export async function POST(request) {
       endpoint: subscription.endpoint,
       p256dh: subscription.keys.p256dh,
       auth: subscription.keys.auth,
+      user_agent: userAgent,
+      revoked_at: null,
+      failure_count: 0,
+      last_error: null,
+      last_seen_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, { onConflict: 'endpoint' });
 

@@ -12,22 +12,43 @@ export async function GET(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    const { data: notifications, error } = await adminSupabase
+    const { data: notifications, error: notifError } = await adminSupabase
       .from('user_notifications')
       .select('*')
       .or(`user_id.eq.${auth.user.id},user_id.is.null`)
       .order('created_at', { ascending: false })
       .limit(50);
 
-    if (error) {
-      if (error.code === '42P01') {
-         // Table does not exist yet (migration not run)
+    if (notifError) {
+      if (notifError.code === '42P01') {
          return NextResponse.json({ notifications: [] });
       }
-      throw error;
+      throw notifError;
     }
 
-    return NextResponse.json({ notifications });
+    if (!notifications || notifications.length === 0) {
+      return NextResponse.json({ notifications: [] });
+    }
+
+    const { data: reads, error: readsError } = await adminSupabase
+      .from('notification_reads')
+      .select('notification_id')
+      .eq('user_id', auth.user.id);
+
+    if (readsError && readsError.code !== '42P01') {
+      throw readsError;
+    }
+
+    const readSet = new Set((reads || []).map(r => r.notification_id));
+
+    const enriched = notifications.map(n => {
+      if (n.user_id === null) {
+        return { ...n, is_read: readSet.has(n.id) };
+      }
+      return n;
+    });
+
+    return NextResponse.json({ notifications: enriched });
   } catch (err) {
     console.error('[FETCH NOTIFICATIONS ERROR]', err);
     return NextResponse.json({ error: '無法獲取通知' }, { status: 500 });
@@ -44,18 +65,29 @@ export async function PATCH(request) {
 
     const adminSupabase = getAdminSupabase();
     
-    // Check if it's a global notification (user_id is null)
-    // If it's global, we can't easily mark it as read for just one user without a join table.
-    // For now, we only mark user-specific ones as read. Global ones might just stay.
-    // A simpler approach is to ignore read status for global, or implement a user_read_notifications table.
-    
-    const { error } = await adminSupabase
+    const { data: notification, error: getError } = await adminSupabase
       .from('user_notifications')
-      .update({ is_read: true })
+      .select('user_id')
       .eq('id', id)
-      .eq('user_id', auth.user.id);
+      .single();
 
-    if (error) throw error;
+    if (getError) throw getError;
+
+    if (notification.user_id === auth.user.id) {
+      const { error } = await adminSupabase
+        .from('user_notifications')
+        .update({ is_read: true })
+        .eq('id', id);
+      if (error) throw error;
+    } else if (notification.user_id === null) {
+      const { error } = await adminSupabase
+        .from('notification_reads')
+        .upsert({ user_id: auth.user.id, notification_id: id }, { onConflict: 'notification_id,user_id' });
+      if (error) throw error;
+    } else {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('[MARK READ ERROR]', err);

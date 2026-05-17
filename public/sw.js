@@ -1,30 +1,60 @@
-self.addEventListener('push', function (event) {
-  if (event.data) {
-    try {
-      const data = event.data.json();
-      const options = {
-        body: data.body,
-        icon: data.icon || '/icon.png',
-        badge: data.badge || '/icon.png',
-        vibrate: [100, 50, 100],
-        data: {
-          url: data.url || '/',
-        },
-      };
-      
-      event.waitUntil(self.registration.showNotification(data.title, options));
-    } catch (e) {
-      console.error('Error parsing push data', e);
-    }
+self.addEventListener('push', (event) => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    data = {
+      title: 'UniCoach 通知',
+      body: event.data ? event.data.text() : '',
+    };
   }
+
+  const title = data.title || 'UniCoach 通知';
+
+  const rawUrl = typeof data.url === 'string' ? data.url : '/notifications';
+  const safeUrl = rawUrl.startsWith('/') && !rawUrl.startsWith('//')
+    ? rawUrl
+    : '/notifications';
+
+  const options = {
+    body: data.body || data.content || '',
+    icon: data.icon || '/icon.png',
+    badge: data.badge || '/icon.png',
+    tag: data.tag || data.type || 'unicoach-notification',
+    renotify: false,
+    data: {
+      url: safeUrl,
+      notificationId: data.notificationId || null,
+      type: data.type || null,
+    },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
 });
 
-self.addEventListener('notificationclick', function (event) {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
-  if (event.notification.data && event.notification.data.url) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data.url)
-    );
-  }
+
+  const url = event.notification?.data?.url || '/notifications';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client && client.url.includes(self.location.origin)) {
+          client.focus();
+          if ('navigate' in client) {
+            return client.navigate(url);
+          }
+          return;
+        }
+      }
+
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
 });

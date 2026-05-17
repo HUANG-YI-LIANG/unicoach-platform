@@ -5,13 +5,15 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 
+import { sendPushNotification } from '@/lib/pushManager';
+
 export async function POST(request) {
   try {
     const auth = await requireAuth(['admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();
-    const { title, content, discount_code, discount_percent, user_id } = body;
+    const { title, content, discount_code, discount_percent, user_id, send_push, url, type } = body;
     const normalizedTitle = title?.trim();
     const normalizedContent = content?.trim();
     const normalizedCode = discount_code ? String(discount_code).trim().toUpperCase() : null;
@@ -29,7 +31,7 @@ export async function POST(request) {
     }
 
     const adminSupabase = getAdminSupabase();
-    const { error } = await adminSupabase
+    const { data: notification, error } = await adminSupabase
       .from('user_notifications')
       .insert([{
         title: normalizedTitle,
@@ -37,9 +39,27 @@ export async function POST(request) {
         discount_code: normalizedCode,
         discount_percent: normalizedPercent,
         user_id: user_id || null,
-      }]);
+      }])
+      .select('id')
+      .single();
 
     if (error) throw error;
+
+    if (user_id && send_push) {
+      const rawUrl = typeof url === 'string' ? url : '/notifications';
+      const safeUrl = rawUrl.startsWith('/') && !rawUrl.startsWith('//') ? rawUrl : '/notifications';
+      try {
+        await sendPushNotification(user_id, {
+          title: normalizedTitle,
+          body: normalizedContent,
+          url: safeUrl,
+          type: type || 'admin_broadcast',
+          notificationId: notification.id,
+        });
+      } catch (pushErr) {
+        console.warn('[ADMIN SEND PUSH WARNING]', pushErr);
+      }
+    }
 
     try {
       await adminSupabase.from('audit_logs').insert([{

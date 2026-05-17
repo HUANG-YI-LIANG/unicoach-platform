@@ -2788,12 +2788,6 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
-import {
-  buildSettlementBatchInsert,
-  buildSettlementBookingUpdate,
-  groupSettleableBookingsByCoach,
-  isDuplicateActiveSettlementError,
-} from '@/lib/settlementRules';
 
 /**
  * GET /api/admin/settlements
@@ -2841,120 +2835,32 @@ export async function POST(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    // 由 DB 的 settlement_batches_unique_active_coach_month partial unique index
-    // 防止同一教練、同一月份產生重複未取消批次。
+    const { data, error } = await adminSupabase.rpc('generate_settlement_batches', {
+      p_month: month,
+      p_actor_id: auth.user.id,
+    });
 
-    // 1. 尋找該月份「已完課、已付款、尚未結算」的預約
-    const { data: bookings, error: bError } = await adminSupabase
-      .from('bookings')
-      .select('id, coach_id, coach_payout, completed_at, settlement_id, status, payment_status, paid_at')
-      .eq('status', 'completed')
-      .eq('payment_status', 'paid')
-      .not('paid_at', 'is', null)
-      .is('settlement_id', null)
-      .gte('completed_at', `${month}-01T00:00:00.000Z`)
-      .lt('completed_at', nextMonthStart(month));
-
-    if (bError) {
-      if (bError.message.includes('settlement_id')) {
-        return NextResponse.json({ error: '資料庫缺少 settlement_id 欄位，請先執行 Migration。' }, { status: 500 });
-      }
-      throw bError;
+    if (error) {
+      console.error('Generate settlement RPC error:', error);
+      return NextResponse.json({ error: '結算批次產生失敗' }, { status: 500 });
     }
 
-    if (!bookings || bookings.length === 0) {
-      return NextResponse.json({ success: true, message: '該月份沒有待結算的訂單。', createdCount: 0 });
+    if (!data.ok) {
+      return NextResponse.json({ error: data.error }, { status: data.status || 400 });
     }
-
-    // 2. 按教練分組彙整金額
-    const coachGroups = groupSettleableBookingsByCoach(bookings);
-
-    let createdCount = 0;
-    const createdBatches = [];
-    const skippedCoaches = [];
-
-    // 3. 為每個教練建立結算批次並更新訂單
-    // 採兩階段補償：若訂單關聯失敗，立即將批次標記 cancelled，避免誤撥款。
-    for (const group of coachGroups) {
-      const { coachId, total, bookingIds } = group;
-      if (total <= 0 || bookingIds.length === 0) continue;
-
-      // A. 建立批次；DB partial unique index 會阻擋同教練同月份重複未取消批次。
-      const { data: batch, error: batchErr } = await adminSupabase
-        .from('settlement_batches')
-        .insert([buildSettlementBatchInsert({ month, coachId, total, bookingIds })])
-        .select('id, month, coach_id, total_amount, booking_count, status')
-        .single();
-
-      if (batchErr) {
-        if (isDuplicateActiveSettlementError(batchErr)) {
-          skippedCoaches.push({ coachId, reason: 'duplicate_active_batch' });
-          continue;
-        }
-        console.error(`Coach ${coachId} settlement failed:`, batchErr);
-        skippedCoaches.push({ coachId, reason: 'batch_insert_failed' });
-        continue;
-      }
-
-      // B. 更新訂單關聯時再次加上付款/完課/未結算條件，避免產生批次後被併發改動。
-      const { data: linkedBookings, error: updateErr } = await adminSupabase
-        .from('bookings')
-        .update(buildSettlementBookingUpdate(batch.id))
-        .in('id', bookingIds)
-        .eq('coach_id', coachId)
-        .eq('status', 'completed')
-        .eq('payment_status', 'paid')
-        .not('paid_at', 'is', null)
-        .is('settlement_id', null)
-        .select('id');
-
-      if (updateErr || linkedBookings?.length !== bookingIds.length) {
-        console.error(`Booking linkage failed for batch ${batch.id}:`, updateErr || 'linked booking count mismatch');
-        await adminSupabase
-          .from('settlement_batches')
-          .update({ status: 'cancelled' })
-          .eq('id', batch.id);
-        await adminSupabase
-          .from('bookings')
-          .update({ settlement_id: null })
-          .eq('settlement_id', batch.id);
-        skippedCoaches.push({ coachId, reason: 'booking_linkage_failed' });
-      } else {
-        createdCount++;
-        createdBatches.push(batch);
-      }
-    }
-
-    await adminSupabase.from('audit_logs').insert([{
-      actor_id: auth.user.id,
-      actor_role: auth.user.role,
-      action: 'GENERATE_SETTLEMENT_BATCHES',
-      target_id: month,
-      details: JSON.stringify({
-        createdCount,
-        batchIds: createdBatches.map((batch) => batch.id),
-        skippedCoaches,
-      }),
-    }]);
 
     return NextResponse.json({ 
       success: true, 
-      message: `成功為 ${createdCount} 位教練產生結算批次。`,
-      createdCount,
-      batches: createdBatches,
-      skippedCoaches,
+      message: `成功為 ${data.createdCount} 位教練產生結算批次。`,
+      createdCount: data.createdCount,
+      batches: data.batches,
+      skippedCoaches: data.skippedCoaches,
     });
 
   } catch (err) {
     console.error('Generate settlement error:', err);
-    return NextResponse.json({ error: '結算批次產生失敗：' + err.message }, { status: 500 });
+    return NextResponse.json({ error: '發生未預期錯誤：' + err.message }, { status: 500 });
   }
-}
-
-function nextMonthStart(month) {
-  const [year, monthNumber] = month.split('-').map(Number);
-  const date = new Date(Date.UTC(year, monthNumber, 1));
-  return date.toISOString();
 }
 
 ```
@@ -2971,7 +2877,7 @@ import { NextResponse } from 'next/server';
 import { getAdminSupabase } from '@/lib/supabase';
 import { requireAuth } from '@/lib/auth';
 import { safeErrorDetails } from '@/lib/safeLogging';
-import { canMarkSettlementStatus } from '@/lib/settlementRules';
+
 
 /**
  * GET /api/admin/settlements/[id]
@@ -3052,69 +2958,26 @@ export async function PATCH(request, { params }) {
 
     const adminSupabase = getAdminSupabase();
 
-    const { data: currentBatch, error: currentError } = await adminSupabase
-      .from('settlement_batches')
-      .select('id, status')
-      .eq('id', id)
-      .single();
-
-    if (currentError || !currentBatch) {
-      return NextResponse.json({ error: '找不到該結算批次' }, { status: 404 });
-    }
-
-    const statusChange = canMarkSettlementStatus({
-      currentStatus: currentBatch.status,
-      nextStatus: status,
+    const { data, error } = await adminSupabase.rpc('mark_settlement_status', {
+      p_batch_id: id,
+      p_next_status: status,
+      p_actor_id: auth.user.id,
     });
-    if (!statusChange.ok) {
-      return NextResponse.json({ error: statusChange.error }, { status: statusChange.status });
+
+    if (error) {
+      console.error('Update settlement RPC error:', safeErrorDetails(error));
+      return NextResponse.json({ error: '更新失敗' }, { status: 500 });
     }
 
-    const updateData = { status };
-    if (status === 'paid') {
-      updateData.paid_at = new Date().toISOString();
-    }
-    if (status === 'cancelled') {
-      updateData.paid_at = null;
+    if (!data.ok) {
+      return NextResponse.json({ error: data.error }, { status: data.status || 400 });
     }
 
-    const { data: updatedBatch, error } = await adminSupabase
-      .from('settlement_batches')
-      .update(updateData)
-      .eq('id', id)
-      .eq('status', currentBatch.status)
-      .select('id, status, paid_at')
-      .maybeSingle();
-
-    if (error) throw error;
-
-    if (!updatedBatch) {
-      return NextResponse.json(
-        { error: '結算狀態已被其他操作更新，請重新整理後再試。' },
-        { status: 409 }
-      );
-    }
-
-    if (status === 'cancelled') {
-      await adminSupabase
-        .from('bookings')
-        .update({ settlement_id: null })
-        .eq('settlement_id', id);
-    }
-
-    await adminSupabase.from('audit_logs').insert([{
-      actor_id: auth.user.id,
-      actor_role: auth.user.role,
-      action: 'UPDATE_SETTLEMENT_STATUS',
-      target_id: id,
-      details: JSON.stringify({ from: currentBatch.status, to: status }),
-    }]);
-
-    return NextResponse.json({ success: true, batch: updatedBatch });
+    return NextResponse.json({ success: true, batchStatus: data.batchStatus, idempotent: data.idempotent });
 
   } catch (err) {
     console.error('Update settlement error:', safeErrorDetails(err));
-    return NextResponse.json({ error: '更新失敗' }, { status: 500 });
+    return NextResponse.json({ error: '發生未預期錯誤' }, { status: 500 });
   }
 }
 
@@ -6697,11 +6560,6 @@ export const dynamic = 'force-dynamic';
 import { getAdminSupabase } from "@/lib/supabase";
 import { requireAuth } from "@/lib/auth";
 import { NextResponse } from "next/server";
-import {
-  buildConfirmPaymentUpdate,
-  buildExpiredPendingPaymentUpdate,
-  getPendingPaymentExpirationState,
-} from "@/lib/bookingWorkflow";
 import { safeErrorDetails } from "@/lib/safeLogging";
 
 export async function POST(request, { params }) {
@@ -6712,65 +6570,24 @@ export async function POST(request, { params }) {
     const { id } = await params;
     const adminSupabase = getAdminSupabase();
 
-    const { data: booking, error: bookingError } = await adminSupabase
-      .from("bookings")
-      .select('id, status, payment_status, payment_expires_at, payment_reference')
-      .eq("id", id)
-      .single();
+    const { data, error } = await adminSupabase.rpc('confirm_booking_payment', {
+      p_booking_id: id,
+      p_actor_id: auth.user.id,
+    });
 
-    if (bookingError || !booking) {
-      return NextResponse.json({ error: "找不到此預約" }, { status: 404 });
+    if (error) {
+      console.error("[CONFIRM PAYMENT ERROR]", safeErrorDetails(error));
+      return NextResponse.json({ error: "確認付款失敗" }, { status: 500 });
     }
 
-    if (booking.status !== "pending_payment") {
-      return NextResponse.json({ error: "只有待付款預約可以確認付款" }, { status: 400 });
+    if (!data.ok) {
+      return NextResponse.json({ error: data.error }, { status: data.status || 400 });
     }
 
-    if (!booking.payment_reference) {
-      return NextResponse.json({ error: "請先確認學員已提交付款回報" }, { status: 400 });
-    }
-
-    const expiration = getPendingPaymentExpirationState(booking);
-    if (expiration.expired) {
-      await adminSupabase
-        .from("bookings")
-        .update(buildExpiredPendingPaymentUpdate())
-        .eq("id", id)
-        .eq("status", "pending_payment");
-
-      return NextResponse.json({ error: expiration.error }, { status: expiration.status });
-    }
-
-    const { data: updatedBooking, error: updateError } = await adminSupabase
-      .from("bookings")
-      .update(buildConfirmPaymentUpdate())
-      .eq("id", id)
-      .eq("status", "pending_payment")
-      .eq("payment_reference", booking.payment_reference)
-      .select("id")
-      .maybeSingle();
-
-    if (updateError) throw updateError;
-    if (!updatedBooking) {
-      return NextResponse.json({ error: "預約狀態或付款回報已變更，請重新整理後再試。" }, { status: 409 });
-    }
-
-    try {
-      await adminSupabase.from("audit_logs").insert([{
-        actor_id: auth.user.id,
-        actor_role: "admin",
-        action: "CONFIRM_BOOKING_PAYMENT",
-        target_id: id,
-        details: "Confirmed pending_payment booking as scheduled and marked payment paid",
-      }]);
-    } catch (auditError) {
-      console.warn("[CONFIRM PAYMENT AUDIT WARNING]", safeErrorDetails(auditError));
-    }
-
-    return NextResponse.json({ success: true, newStatus: "scheduled" });
+    return NextResponse.json({ success: true, newStatus: data.newStatus });
   } catch (error) {
     console.error("[CONFIRM PAYMENT ERROR]", safeErrorDetails(error));
-    return NextResponse.json({ error: "確認付款失敗" }, { status: 500 });
+    return NextResponse.json({ error: "確認付款發生未預期錯誤" }, { status: 500 });
   }
 }
 
@@ -9432,6 +9249,8 @@ import { uploadToImgBB } from '@/lib/imgbbApi';
 
 // 強制使用動態渲染，避免靜態快取
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60; // 延長 Vercel Timeout 至免費版極限 60 秒
+
 
 export async function GET(request) {
   // 1. 驗證 CRON_SECRET 保護路由
@@ -14443,6 +14262,51 @@ export async function getDb() {
 
 
 ==================================================
+## File: lib\discordNotifier.js
+==================================================
+```
+export async function sendDiscordAlert(title, description, color = 16711680) {
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (!webhookUrl) return;
+
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        embeds: [{
+          title,
+          description,
+          color,
+          timestamp: new Date().toISOString()
+        }]
+      })
+    });
+  } catch (err) {
+    console.error('[Discord Notifier] 警告發送失敗:', err);
+  }
+}
+
+export async function sendMetaRateLimitWarning(usage) {
+  await sendDiscordAlert(
+    '⚠️ Meta API Rate Limit 警告',
+    `API 使用率即將達標！\n\n**Call Count**: ${usage.call_count}%\n**Total Time**: ${usage.total_time}%\n**CPU Time**: ${usage.total_cputime}%`,
+    16776960 // Yellow
+  );
+}
+
+export async function sendMetaTokenError(code, message) {
+  await sendDiscordAlert(
+    '🚨 Meta API Token 死亡警告',
+    `發文系統已停擺，請立即更新 Token！\n\n**Error Code**: ${code}\n**Message**: ${message}`,
+    16711680 // Red
+  );
+}
+
+```
+
+
+==================================================
 ## File: lib\discountRules.js
 ==================================================
 ```
@@ -14849,6 +14713,32 @@ export async function uploadToImgBB(localPath) {
 ==================================================
 ```
 import { supabase } from './supabase';
+import { sendMetaRateLimitWarning, sendMetaTokenError } from './discordNotifier';
+
+async function handleMetaResponse(res) {
+  const usageHeader = res.headers.get('x-app-usage');
+  if (usageHeader) {
+    try {
+      const usage = JSON.parse(usageHeader);
+      if (usage.call_count >= 80 || usage.total_time >= 80 || usage.total_cputime >= 80) {
+        await sendMetaRateLimitWarning(usage);
+      }
+    } catch (e) {
+      console.error('[Meta API] Failed to parse X-App-Usage header:', e);
+    }
+  }
+
+  const data = await res.json();
+  
+  if (data.error) {
+    const code = data.error.code;
+    if (code === 190 || code === 102 || code === 104) {
+      await sendMetaTokenError(code, data.error.message);
+    }
+  }
+  
+  return data;
+}
 
 const META_GRAPH_URL = 'https://graph.facebook.com/v20.0';
 
@@ -14876,7 +14766,7 @@ export async function verifyConnection() {
   try {
     // 1. 驗證 Facebook Page
     const pageRes = await fetch(`${META_GRAPH_URL}/${pageId}?fields=name,id&access_token=${pageToken}`);
-    const pageData = await pageRes.json();
+    const pageData = await handleMetaResponse(pageRes);
     
     if (pageData.error) {
       throw new Error(`Facebook API 錯誤: ${pageData.error.message}`);
@@ -14886,7 +14776,7 @@ export async function verifyConnection() {
     let igData = null;
     if (igAccountId) {
       const igRes = await fetch(`${META_GRAPH_URL}/${igAccountId}?fields=name,username,profile_picture_url&access_token=${pageToken}`);
-      igData = await igRes.json();
+      igData = await handleMetaResponse(igRes);
       
       if (igData.error) {
         throw new Error(`Instagram API 錯誤: ${igData.error.message}`);
@@ -14932,7 +14822,7 @@ export async function postToFacebook(message, link = null, imageUrls = [], dryRu
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, published: false, access_token: pageToken }),
       });
-      const data = await res.json();
+      const data = await handleMetaResponse(res);
       if (data.error) throw new Error(`FB 圖片上傳失敗: ${data.error.message}`);
       photoIds.push(data.id);
     }
@@ -14946,7 +14836,7 @@ export async function postToFacebook(message, link = null, imageUrls = [], dryRu
     body: JSON.stringify(payload),
   });
   
-  const data = await res.json();
+  const data = await handleMetaResponse(res);
   if (data.error) throw new Error(data.error.message);
   
   return { success: true, id: data.id };
@@ -14984,7 +14874,7 @@ export async function postToInstagram(imageUrls = [], caption = '', dryRun = fal
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrls[0], caption, access_token: pageToken }),
     });
-    const createData = await createRes.json();
+    const createData = await handleMetaResponse(createRes);
     if (createData.error) throw new Error(`IG 單圖建立失敗: ${createData.error.message}`);
     finalCreationId = createData.id;
   } else {
@@ -14997,7 +14887,7 @@ export async function postToInstagram(imageUrls = [], caption = '', dryRun = fal
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_url: url, is_carousel_item: true, access_token: pageToken }),
       });
-      const itemData = await itemRes.json();
+      const itemData = await handleMetaResponse(itemRes);
       if (itemData.error) throw new Error(`IG 輪播子圖建立失敗: ${itemData.error.message}`);
       itemIds.push(itemData.id);
     }
@@ -15006,12 +14896,16 @@ export async function postToInstagram(imageUrls = [], caption = '', dryRun = fal
     const carouselRes = await fetch(`${META_GRAPH_URL}/${igAccountId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ media_type: 'CAROUSEL', children: itemIds, caption, access_token: pageToken }),
+      body: JSON.stringify({ media_type: 'CAROUSEL', children: itemIds.join(','), caption, access_token: pageToken }),
     });
-    const carouselData = await carouselRes.json();
+    const carouselData = await handleMetaResponse(carouselRes);
     if (carouselData.error) throw new Error(`IG 母輪播建立失敗: ${carouselData.error.message}`);
     finalCreationId = carouselData.id;
   }
+
+  // 【等待 Meta 伺服器處理圖片容器】
+  console.log(`[Meta API] 等待 30 秒讓 Meta 伺服器處理圖片容器 ${finalCreationId} (避免 2207008/2207027 錯誤)...`);
+  await new Promise(resolve => setTimeout(resolve, 30000));
 
   // 【最終發布】Publish Container
   const publishRes = await fetch(`${META_GRAPH_URL}/${igAccountId}/media_publish`, {
@@ -15020,7 +14914,7 @@ export async function postToInstagram(imageUrls = [], caption = '', dryRun = fal
     body: JSON.stringify({ creation_id: finalCreationId, access_token: pageToken }),
   });
 
-  const publishData = await publishRes.json();
+  const publishData = await handleMetaResponse(publishRes);
   if (publishData.error) throw new Error(`IG 發布失敗: ${publishData.error.message}`);
 
   return { success: true, id: publishData.id };
