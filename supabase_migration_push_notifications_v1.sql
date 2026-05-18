@@ -42,12 +42,28 @@ SET last_seen_at = COALESCE(last_seen_at, updated_at, created_at, now())
 WHERE last_seen_at IS NULL;
 
 -- Defensive constraints
+-- Keep DB-level validation aligned with /api/push/subscribe so direct SQL/API misuse
+-- cannot poison the table with obviously invalid Web Push subscriptions.
 ALTER TABLE public.push_subscriptions
 DROP CONSTRAINT IF EXISTS push_subscriptions_endpoint_not_empty;
 
 ALTER TABLE public.push_subscriptions
 ADD CONSTRAINT push_subscriptions_endpoint_not_empty
 CHECK (length(trim(endpoint)) > 0);
+
+ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_endpoint_https;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_endpoint_https
+CHECK (endpoint LIKE 'https://%');
+
+ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_endpoint_max_length;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_endpoint_max_length
+CHECK (length(endpoint) <= 2048);
 
 ALTER TABLE public.push_subscriptions
 DROP CONSTRAINT IF EXISTS push_subscriptions_p256dh_not_empty;
@@ -57,11 +73,39 @@ ADD CONSTRAINT push_subscriptions_p256dh_not_empty
 CHECK (length(trim(p256dh)) > 0);
 
 ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_p256dh_sane_length;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_p256dh_sane_length
+CHECK (length(p256dh) BETWEEN 40 AND 512);
+
+ALTER TABLE public.push_subscriptions
 DROP CONSTRAINT IF EXISTS push_subscriptions_auth_not_empty;
 
 ALTER TABLE public.push_subscriptions
 ADD CONSTRAINT push_subscriptions_auth_not_empty
 CHECK (length(trim(auth)) > 0);
+
+ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_auth_sane_length;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_auth_sane_length
+CHECK (length(auth) BETWEEN 10 AND 256);
+
+ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_user_agent_max_length;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_user_agent_max_length
+CHECK (user_agent IS NULL OR length(user_agent) <= 1024);
+
+ALTER TABLE public.push_subscriptions
+DROP CONSTRAINT IF EXISTS push_subscriptions_device_label_max_length;
+
+ALTER TABLE public.push_subscriptions
+ADD CONSTRAINT push_subscriptions_device_label_max_length
+CHECK (device_label IS NULL OR length(device_label) <= 120);
 
 ALTER TABLE public.push_subscriptions
 DROP CONSTRAINT IF EXISTS push_subscriptions_failure_count_non_negative;
@@ -131,27 +175,10 @@ ON public.push_subscriptions;
 DROP POLICY IF EXISTS "Service role has full access to push_subscriptions"
 ON public.push_subscriptions;
 
-CREATE POLICY "Users can insert their own subscriptions"
-ON public.push_subscriptions
-FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own subscriptions"
-ON public.push_subscriptions
-FOR UPDATE TO authenticated
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can read their own subscriptions"
-ON public.push_subscriptions
-FOR SELECT TO authenticated
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own subscriptions"
-ON public.push_subscriptions
-FOR DELETE TO authenticated
-USING (auth.uid() = user_id);
-
+-- Security boundary: push subscription writes must go through Next.js API routes
+-- (/api/push/subscribe and /api/push/unsubscribe), which authenticate the user,
+-- validate endpoint/key shape, enforce endpoint ownership, and write via service_role.
+-- Do not grant direct authenticated INSERT/UPDATE/DELETE access to this table.
 CREATE POLICY "Service role has full access to push_subscriptions"
 ON public.push_subscriptions
 FOR ALL TO service_role
@@ -348,9 +375,15 @@ ON public.user_notifications(user_id, created_at DESC);
 -- 11. Grants
 -- =========================================================
 
-GRANT SELECT, INSERT, UPDATE, DELETE
+-- push_subscriptions is server-write only. Authenticated users interact through
+-- /api/push/status, /api/push/subscribe, and /api/push/unsubscribe.
+REVOKE ALL
 ON public.push_subscriptions
-TO authenticated;
+FROM authenticated;
+
+REVOKE ALL
+ON public.push_subscriptions
+FROM anon;
 
 -- Do not grant notification_delivery_logs to authenticated users.
 -- Admin reads are controlled by RLS through authenticated role privileges when available;
