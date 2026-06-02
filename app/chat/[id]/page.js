@@ -317,6 +317,19 @@ export default function ChatRoomPage({ params }) {
         </div>
       )}
 
+      <section className="booking-state-card" style={{ margin: '10px 14px 0', padding: '12px 14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+          <div>
+            <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>Booking context</p>
+            <h2 style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 760, color: TEXT_LIGHT }}>正在確認時段</h2>
+          </div>
+          <span style={{ fontSize: 11, color: ORANGE, background: ORANGE_BG, borderRadius: 999, padding: '4px 8px', fontWeight: 700 }}>待確認</span>
+        </div>
+        <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.55, color: MUTED }}>
+          先聊清楚目標、地點與時間；建立正式預約後，狀態與付款資訊會以訂單頁為準。
+        </p>
+      </section>
+
       <div
         style={{
           flex: 1,
@@ -396,8 +409,8 @@ export default function ChatRoomPage({ params }) {
                   <span
                     style={{
                       fontSize: 11,
-                      color: '#FCA5A5',
-                      background: 'rgba(239, 68, 68, 0.2)',
+                      color: 'rgba(255,255,255,0.46)',
+                      background: 'rgba(148,163,184,0.08)',
                       padding: '4px 12px',
                       borderRadius: 100,
                     }}
@@ -416,7 +429,7 @@ export default function ChatRoomPage({ params }) {
                   justifyContent: isMe ? 'flex-end' : 'flex-start',
                   gap: 8,
                   alignItems: 'flex-end',
-                  marginBottom: 12,
+                  marginBottom: 10,
                 }}
               >
                 {!isMe && <Avatar name={message.sender_name ?? room?.coach_name} size={32} />}
@@ -435,13 +448,13 @@ export default function ChatRoomPage({ params }) {
                       color: isMe ? 'var(--text-light)' : 'var(--color-text)',
                       fontSize: 14,
                       lineHeight: 1.5,
-                      boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : 'var(--shadow-card)',
+                      boxShadow: isMe ? `0 3px 8px rgba(249, 115, 22, 0.14)` : '0 4px 12px rgba(0,0,0,0.12)',
                       border: isMe ? 'none' : '1px solid var(--color-border)',
                     }}
                   >
                     {message.message}
                   </div>
-                  <p style={{ margin: '4px 4px 0', fontSize: 10, color: MUTED, textAlign: isMe ? 'right' : 'left' }}>
+                  <p style={{ margin: '4px 4px 0', fontSize: 9, color: 'rgba(255,255,255,0.32)', textAlign: isMe ? 'right' : 'left' }}>
                     {formatTime(message.created_at)}
                   </p>
                 </div>
@@ -459,7 +472,7 @@ export default function ChatRoomPage({ params }) {
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          padding: '10px 14px 14px',
+          padding: '10px 14px calc(14px + env(safe-area-inset-bottom, 20px))',
           background: 'var(--color-surface)',
           borderTop: `1px solid ${BORDER}`,
           position: 'sticky',

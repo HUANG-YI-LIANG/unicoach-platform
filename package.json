@@ -8,11 +8,14 @@
     "start": "next start -p 4000"
   },
   "dependencies": {
+    "@google/genai": "^2.6.0",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.102.1",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
     "bcryptjs": "^3.0.3",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.39.0",
     "jose": "^6.2.2",
     "lucide-react": "^1.7.0",
     "next": "16.2.2",
@@ -27,5 +30,8 @@
     "sqlite3": "^6.0.1",
     "uuid": "^13.0.0",
     "web-push": "^3.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
   }
 }

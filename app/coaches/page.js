@@ -1,880 +1,433 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, Clock3, FilterX, GraduationCap, MapPin, SlidersHorizontal, Star, Video } from 'lucide-react';
-import { useAuth } from '@/components/AuthProvider';
+import { Search, MapPin, Star, Zap, ChevronRight } from 'lucide-react';
 
-const STORAGE_KEY = 'coach-search-filters-v1';
-const LEVEL_OPTIONS = [
-  { value: '', label: '全部等級' },
-  { value: '1', label: '初階' },
-  { value: '2', label: '進階' },
-  { value: '3', label: '專業' },
+const CATEGORY_OPTIONS = [
+  { value: '', label: '推薦' },
+  { value: 'sports', label: '運動' },
+  { value: 'academic', label: '學科' },
+  { value: 'talent', label: '才藝' },
 ];
-const PRICE_OPTIONS = [
-  { value: '', label: '不限價格' },
-  { value: '1000', label: '1000 以下' },
-  { value: '1500', label: '1500 以下' },
-  { value: '2000', label: '2000 以下' },
-];
-const TIME_OPTIONS = Array.from({ length: 28 }, (_, index) => {
-  const totalMinutes = (8 * 60) + (index * 30);
-  const hours = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-  const minutes = String(totalMinutes % 60).padStart(2, '0');
-  return `${hours}:${minutes}`;
-});
 
-function getTodayDateString() {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Taipei',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
-}
-
-function addDays(dateString, offsetDays) {
-  const [year, month, day] = dateString.split('-').map(Number);
-  const utcDate = new Date(Date.UTC(year, month - 1, day + offsetDays));
-  return utcDate.toISOString().slice(0, 10);
-}
-
-function formatDateChip(dateString) {
-  const date = new Date(`${dateString}T00:00:00+08:00`);
-  return new Intl.DateTimeFormat('zh-TW', {
-    timeZone: 'Asia/Taipei',
-    month: 'numeric',
-    day: 'numeric',
-    weekday: 'short',
-  }).format(date);
-}
-
-function formatNextAvailable(value) {
-  if (!value) {
-    return '尚未設定固定時段';
-  }
-
-  const date = new Date(value);
-  if (isNaN(date.getTime())) {
-    return '尚未設定固定時段';
-  }
-
-  const parts = new Intl.DateTimeFormat('zh-TW', {
-    timeZone: 'Asia/Taipei',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(date);
-
-  const month = parts.find((part) => part.type === 'month')?.value || '--';
-  const day = parts.find((part) => part.type === 'day')?.value || '--';
-  const hour = parts.find((part) => part.type === 'hour')?.value || '--';
-  const minute = parts.find((part) => part.type === 'minute')?.value || '--';
-  return `${month}/${day} ${hour}:${minute}`;
-}
-
-function buildFiltersFromSearchParams(searchParams) {
-  return {
-    sport: searchParams.get('sport') || '',
-    date: searchParams.get('date') || '',
-    time: searchParams.get('time') || '',
-    region: searchParams.get('region') || '',
-    maxPrice: searchParams.get('maxPrice') || '',
-    level: searchParams.get('level') || '',
-    category: searchParams.get('category') || '',
-  };
-}
-
-function getSportEmoji(sport) {
-  const value = String(sport || '').toLowerCase();
-
-  if (value.includes('籃')) return '🏀';
-  if (value.includes('棒')) return '⚾';
-  if (value.includes('羽')) return '🏸';
-  if (value.includes('網')) return '🎾';
-  if (value.includes('桌')) return '🏓';
-  if (value.includes('排')) return '🏐';
-  if (value.includes('足') || value.includes('soccer')) return '⚽';
-  if (value.includes('游')) return '🏊';
-  if (value.includes('跑') || value.includes('田徑')) return '🏃';
-  if (value.includes('健身') || value.includes('重訓')) return '🏋️';
-
-  // 學科與家教
-  if (value.includes('數')) return '📐';
-  if (value.includes('英')) return '🔤';
-  if (value.includes('國文') || value.includes('語')) return '📖';
-  if (value.includes('理化') || value.includes('自然') || value.includes('科學')) return '🧪';
-  if (value.includes('伴讀')) return '📚';
-  if (value.includes('程式') || value.includes('碼')) return '💻';
-  if (value.includes('畫') || value.includes('美術')) return '🎨';
-  if (value.includes('琴') || value.includes('樂')) return '🎵';
-
-  return '🎯';
-}
-
-export default function CoachesPage() {
+function DiscoverFeed() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, loading: authLoading } = useAuth();
 
   const [filters, setFilters] = useState({
-    sport: '',
-    date: '',
-    time: '',
-    region: '',
-    maxPrice: '',
-    level: '',
-    category: '',
+    q: searchParams.get('q') || '',
+    category: searchParams.get('category') || '',
   });
-  const [coaches, setCoaches] = useState([]);
-  const [allSports, setAllSports] = useState([]);
+  const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
-  const [mobileSections, setMobileSections] = useState({
-    sport: false,
-    availability: false,
-    region: false,
-    price: false,
-    level: false,
-  });
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  const upcomingDates = useMemo(() => {
-    const today = getTodayDateString();
-    return Array.from({ length: 7 }, (_, index) => addDays(today, index));
-  }, []);
-
-  const availableTimeSet = useMemo(() => {
-    if (!filters.date) {
-      return new Set();
-    }
-
-    return new Set(
-      coaches.flatMap((coach) => coach.available_time_options || [])
-    );
-  }, [coaches, filters.date]);
 
   useEffect(() => {
-    const queryFilters = buildFiltersFromSearchParams(searchParams);
-    const hasQueryFilters = Object.values(queryFilters).some(Boolean);
-
-    if (hasQueryFilters) {
-      setFilters(queryFilters);
-      setInitialized(true);
-      return;
-    }
-
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setFilters({
-          sport: parsed.sport || '',
-          date: parsed.date || '',
-          time: parsed.time || '',
-          region: parsed.region || '',
-          maxPrice: parsed.maxPrice || '',
-          level: parsed.level || '',
-          category: parsed.category || '',
-        });
-      }
-    } catch (error) {
-      console.error('Failed to read coach filters:', error);
-    } finally {
-      setInitialized(true);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!initialized) {
-      return;
-    }
-
     const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      }
-    });
+    if (filters.q) params.set('q', filters.q);
+    if (filters.category) params.set('category', filters.category);
 
-    const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
-    router.replace(nextUrl, { scroll: false });
-
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
-    } catch (error) {
-      console.error('Failed to persist coach filters:', error);
-    }
-  }, [filters, initialized, pathname, router]);
-
-  useEffect(() => {
-    if (!initialized) {
-      return;
-    }
-
-    const params = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value) {
-        params.set(key, value);
-      }
-    });
+    // Replace URL silently
+    router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
 
     setLoading(true);
-    fetch(`/api/coaches?${params.toString()}`)
-      .then(async (response) => {
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to load coaches');
-        }
-        setCoaches(data.coaches || []);
-        if (data.allSports) {
-          setAllSports(data.allSports);
-        }
-      })
-      .catch((error) => {
-        console.error('Fetch coaches error:', error);
-        setCoaches([]);
-      })
+    fetch(`/api/services?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => setServices(data.services || []))
+      .catch(console.error)
       .finally(() => setLoading(false));
-  }, [filters, initialized]);
+  }, [filters.q, filters.category, pathname, router]);
 
-  function requireSignedInForAvailability() {
-    if (authLoading) {
-      return false;
-    }
-
-    return redirectToLoginIfNeeded(filters);
-  }
-
-  function redirectToLoginIfNeeded(nextFilters) {
-    if (user) {
-      return true;
-    }
-
-    const nextPath = `${pathname}?${new URLSearchParams(nextFilters).toString()}`;
-    router.push(`/login?redirect=${encodeURIComponent(nextPath)}`);
-    return false;
-  }
-
-  function updateFilter(key, value) {
-    setFilters((current) => ({
-      ...current,
-      [key]: value,
-    }));
-  }
-
-  function handleDateSelect(dateString) {
-    if (!requireSignedInForAvailability()) {
-      return;
-    }
-
-    setFilters((current) => ({
-      ...current,
-      date: current.date === dateString ? '' : dateString,
-      time: current.date === dateString ? '' : current.time,
-    }));
-  }
-
-  function handleTimeSelect(timeValue) {
-    if (!requireSignedInForAvailability()) {
-      return;
-    }
-
-    if (!filters.date) {
-      return;
-    }
-
-    setFilters((current) => ({
-      ...current,
-      time: current.time === timeValue ? '' : timeValue,
-    }));
-  }
-
-  function clearAllFilters() {
-    setFilters({
-      sport: '',
-      date: '',
-      time: '',
-      region: '',
-      maxPrice: '',
-      level: '',
-      category: '',
-    });
-  }
-
-  function syncFromFastest(coach) {
-    if (!coach?.next_available_date || !coach?.next_available_time) {
-      return;
-    }
-
-    const nextFilters = {
-      ...filters,
-      date: coach.next_available_date,
-      time: coach.next_available_time,
-    };
-
-    if (!redirectToLoginIfNeeded(nextFilters)) {
-      return;
-    }
-
-    setFilters(nextFilters);
-  }
-
-  function toggleMobileSection(key) {
-    setMobileSections((current) => ({
-      ...current,
-      [key]: !current[key],
-    }));
-  }
+  const updateCategory = (val) => setFilters(prev => ({ ...prev, category: val }));
 
   return (
-    <div className="coach-page">
+    <>
+      {/* Top Overlay Header */}
+      <div className="discover-header">
+        <div className="header-content">
+          <div className="search-bar">
+            <Search size={18} color="rgba(255,255,255,0.6)" />
+            <input
+              type="text"
+              placeholder="找尋你想學的技能..."
+              value={filters.q}
+              onChange={(e) => setFilters(prev => ({ ...prev, q: e.target.value }))}
+            />
+          </div>
+        </div>
+        <div className="category-pills">
+          {CATEGORY_OPTIONS.map(opt => (
+            <button
+              key={opt.value}
+              className={`category-pill ${filters.category === opt.value ? 'active' : ''}`}
+              onClick={() => updateCategory(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Feed Container */}
+      <div className="feed-container">
+        {loading ? (
+          <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)' }}>載入中...</p>
+          </div>
+        ) : services.length === 0 ? (
+          <div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
+            <p style={{ color: 'rgba(255,255,255,0.5)' }}>找不到相符的教練</p>
+            <button onClick={() => setFilters({ q: '', category: '' })} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#FFF', padding: '8px 16px', borderRadius: 20 }}>清除搜尋</button>
+          </div>
+        ) : (
+          services.map((service) => {
+            const coach = service.coach;
+            const bgImage = service.cover_image || coach.avatar_url;
+            const hasRating = Number(coach.review_count) > 0 && Number(coach.overall_rating) > 0;
+            const coachTarget = service.target_students?.trim();
+            const coachId = coach.user_id || coach.id || service.coach?.id;
+
+            return (
+              <div key={service.id} className="feed-card">
+                {bgImage ? (
+                  <img src={bgImage} alt={`${coach.name || '教練'}教學照片`} className="feed-media" />
+                ) : (
+                  <div className="feed-media media-fallback">
+                    <span>{service.subject_or_sport || 'UniCoach'}</span>
+                    <small>還沒上傳教學照片</small>
+                  </div>
+                )}
+                <div className="feed-overlay" />
+
+                <div className="feed-content">
+
+                  {/* Layer 2: real-person persona headline */}
+                  <div className="coach-persona">
+                    <div className="coach-avatar-wrapper">
+                      <div className="coach-avatar">
+                        {coach.avatar_url ? <img src={coach.avatar_url} alt={`${coach.name || '教練'}頭像`} /> : <span>{coach.name?.[0] || '教'}</span>}
+                      </div>
+                      <span className="coach-name">{coach.name}</span>
+                    </div>
+                    <h2 className="coach-headline">{service.title}</h2>
+                    <p className="service-intro">{service.intro}</p>
+                  </div>
+
+                  {/* Layer 3: Metadata Row */}
+                  <div className="feed-metrics">
+                    <div className="metric-pill">
+                      <Star size={14} fill={hasRating ? 'currentColor' : 'none'} color="var(--accent)" />
+                      <span>{hasRating ? coach.overall_rating : '尚無評價'}</span>
+                    </div>
+                    <div className="metric-pill">
+                      <MapPin size={14} color="rgba(255,255,255,0.6)" />
+                      <span>{service.city}</span>
+                    </div>
+                    <div className="metric-pill">
+                      <Zap size={14} color="rgba(255,255,255,0.6)" />
+                      <span>NT$ {Number(service.price)} /堂</span>
+                    </div>
+                    <div className="metric-pill target-students">
+                      <span>{coachTarget ? `教學風格 · ${coachTarget}` : '教學風格以服務介紹為主'}</span>
+                    </div>
+                  </div>
+
+                  {/* Layer 4: Strong CTAs */}
+                  <div className="feed-actions">
+                    <button className="btn-secondary btn-press" onClick={() => router.push(`/coaches/${coachId}`)}>
+                      查看教練
+                    </button>
+                    <button className="btn-primary btn-press" onClick={() => router.push(`/chat?with=${coachId}`)}>
+                      先聊聊 <ChevronRight size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </>
+  );
+}
+
+export default function DiscoverPage() {
+  return (
+    <div className="discover-native fade-in">
       <style dangerouslySetInnerHTML={{ __html: `
-        .coach-page {
-          min-height: 100vh;
-          background: transparent;
-          color: var(--text-main);
-          padding-bottom: 96px;
+        .discover-native {
+          background: #000; /* Pure black for immersive media feel */
+          color: #FFF;
+          height: 100dvh;
+          width: 100vw;
+          overflow: hidden;
+          position: relative;
+          /* Offsets to bypass global padding if any */
+          margin: calc(-1 * max(16px, env(safe-area-inset-top))) -16px -112px;
         }
-        .coach-shell {
-          width: min(1120px, calc(100vw - 24px));
+
+        /* Top Overlay Header */
+        .discover-header {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          padding: max(20px, env(safe-area-inset-top)) 20px 20px;
+          background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+          pointer-events: none; /* Let clicks pass through except on children */
+        }
+
+        .header-content {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          pointer-events: auto;
+          max-width: 430px;
           margin: 0 auto;
-          padding: 16px 0 32px;
         }
-        .hero {
-          padding: 0 0 16px;
-        }
-        .hero h1 {
-          margin: 0 0 4px;
-          font-size: 22px;
-          line-height: 1.2;
-          font-weight: 900;
-          color: var(--primary);
-        }
-        .hero p {
-          margin: 0;
-          color: var(--text-muted);
-          font-size: 13px;
-        }
-        .filter-panel {
-          background: var(--bg-surface);
-          border: 1px solid var(--border-main);
-          box-shadow: var(--shadow-md);
-          border-radius: 16px;
-          padding: 16px;
-          position: sticky;
-          top: 12px;
-          z-index: 20;
-        }
-        .filter-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-        .filter-title {
+
+        .search-bar {
+          flex: 1;
+          height: 44px;
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 999px;
           display: flex;
           align-items: center;
+          padding: 0 16px;
           gap: 8px;
-          font-size: 14px;
-          font-weight: 900;
-          color: var(--primary);
         }
-        .clear-btn {
-          border: none;
+
+        .search-bar input {
           background: transparent;
-          color: var(--text-muted);
-          font-size: 12px;
-          font-weight: 700;
-          cursor: pointer;
-        }
-        .filters-grid {
-          display: grid;
-          grid-template-columns: 1.7fr 1fr 1fr 1fr;
-          gap: 12px;
-        }
-        .filter-group {
-          background: var(--bg-input);
-          border: 1px solid var(--border-main);
-          border-radius: 12px;
-          padding: 12px;
-        }
-        .filter-group-title {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 8px;
-          font-size: 12px;
-          font-weight: 800;
-          color: var(--text-main);
-        }
-        .filter-helper {
-          color: var(--text-muted);
-          font-size: 11px;
-          margin-bottom: 8px;
-        }
-        .section-toggle {
-          display: none;
           border: none;
-          background: transparent;
-          color: var(--primary);
-          font-weight: 800;
-          font-size: 12px;
-          cursor: pointer;
+          color: #FFF;
+          font-size: 15px;
+          outline: none;
+          width: 100%;
         }
-        .date-row, .time-row {
+        .search-bar input::placeholder {
+          color: rgba(255,255,255,0.6);
+        }
+
+        .category-pills {
           display: flex;
-          gap: 6px;
+          gap: 10px;
+          margin-top: 16px;
+          pointer-events: auto;
           overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
+          max-width: 430px;
+          margin-left: auto;
+          margin-right: auto;
           padding-bottom: 4px;
         }
-        .date-row::-webkit-scrollbar, .time-row::-webkit-scrollbar {
-          display: none;
-        }
-        .date-btn, .time-btn {
-          border: 1px solid var(--border-input);
-          background: transparent;
-          color: var(--text-main);
-          border-radius: 8px;
-          padding: 8px 10px;
-          font-size: 12px;
-          font-weight: 700;
+        .category-pills::-webkit-scrollbar { display: none; }
+
+        .category-pill {
+          padding: 8px 16px;
+          border-radius: 999px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.54);
+          font-size: 14px;
+          font-weight: 600;
           white-space: nowrap;
           cursor: pointer;
         }
-        .date-btn.active, .time-btn.active {
-          background: var(--primary);
-          color: var(--text-light);
-          border-color: var(--primary);
+        .category-pill.active {
+          background: #FFF;
+          color: #000;
         }
-        .time-btn.disabled {
-          background: var(--bg-input);
-          color: var(--text-muted);
-          border-color: transparent;
-          cursor: not-allowed;
+
+        /* Snap Scroll Feed Container */
+        .feed-container {
+          height: 100dvh;
+          width: 100vw;
+          overflow-y: scroll;
+          scroll-snap-type: y mandatory;
+          -webkit-overflow-scrolling: touch;
         }
-        .time-grid {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
+
+        .feed-card {
+          position: relative;
+          height: 100dvh;
+          width: 100vw;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
         }
-        .field, .select {
+
+        .feed-media {
           width: 100%;
-          border: 1px solid var(--border-input);
-          border-radius: 8px;
-          padding: 8px 10px;
-          background: var(--bg-input);
-          color: var(--text-main);
-          font-size: 13px;
-          outline: none;
+          height: 100%;
+          object-fit: cover;
         }
-        .results-bar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin: 12px 0;
-          color: var(--text-muted);
-          font-size: 12px;
-          font-weight: 700;
+
+        .feed-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(
+            to bottom,
+            rgba(0,0,0,0) 0%,
+            rgba(0,0,0,0.1) 40%,
+            rgba(0,0,0,0.72) 88%,
+            #000 100%
+          );
         }
-        .card-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 12px;
-        }
-        .coach-card {
-          background: var(--bg-surface);
-          border: 1px solid var(--border-main);
-          border-radius: 12px;
-          padding: 16px;
-          box-shadow: var(--shadow-sm);
+
+        .feed-content {
+          position: absolute;
+          bottom: calc(100px + env(safe-area-inset-bottom, 20px));
+          left: 0;
+          right: 0;
+          padding: 0 20px;
           display: flex;
           flex-direction: column;
+          gap: 16px;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+
+        .coach-persona {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .coach-avatar-wrapper {
+          display: flex;
+          align-items: center;
           gap: 10px;
         }
-        .avatar {
-          width: 56px;
-          height: 56px;
-          border-radius: 12px;
-          background: var(--primary-bg);
-          color: var(--primary);
+        .coach-avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 16px;
+          border: 1px solid rgba(255,255,255,0.2);
+          overflow: hidden;
+          background: #222;
+        }
+        .coach-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .coach-avatar span {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          color: #FFF;
+          font-size: 14px;
+          font-weight: 800;
+        }
+        .media-fallback {
+          display: grid;
+          place-items: center;
+          align-content: center;
+          gap: 8px;
+          background: radial-gradient(circle at 50% 20%, rgba(255,138,61,0.24), transparent 34%), #111827;
+          color: rgba(255,255,255,0.86);
+          text-align: center;
+        }
+        .media-fallback span { font-size: 28px; font-weight: 900; }
+        .media-fallback small { font-size: 13px; color: rgba(255,255,255,0.58); font-weight: 700; }
+        .coach-name {
+          font-size: 15px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.54);
+          letter-spacing: 0.5px;
+        }
+        .coach-headline {
+          font-size: 28px;
+          font-weight: 900;
+          margin: 0;
+          line-height: 1.2;
+          color: #FFF;
+          text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+        }
+        .service-intro {
+          font-size: 14px;
+          color: rgba(255,255,255,0.75);
+          margin: 0;
+          line-height: 1.5;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+
+        .feed-metrics {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .metric-pill {
+          background: rgba(255,255,255,0.1);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.1);
+          padding: 6px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        .feed-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 4px;
+        }
+
+        .btn-primary {
+          flex: 1;
+          height: 52px;
+          background: var(--accent);
+          color: #FFF;
+          border: none;
+          border-radius: 16px;
+          font-size: 16px;
+          font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          font-weight: 900;
-          flex-shrink: 0;
-        }
-        .card-actions {
-          display: flex;
           gap: 8px;
-        }
-        .ghost-btn, .primary-btn {
-          flex: 1;
-          border: none;
-          border-radius: 8px;
-          padding: 10px;
-          font-size: 13px;
-          font-weight: 800;
           cursor: pointer;
         }
-        .ghost-btn {
-          background: transparent;
-          border: 1px solid var(--border-input);
-          color: var(--text-main);
-        }
-        .primary-btn {
-          background: var(--primary);
-          color: var(--text-light);
-        }
-        .empty-state, .loading-state {
-          padding: 40px 20px;
-          text-align: center;
-          color: var(--text-muted);
-          background: var(--bg-surface);
+
+        .btn-secondary {
+          width: 52px;
+          height: 52px;
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #FFF;
           border-radius: 16px;
-          border: 1px solid var(--border-main);
-          font-size: 13px;
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
         }
-        @media (max-width: 900px) {
-          .filters-grid {
-            grid-template-columns: 1fr;
-          }
-          .section-toggle {
-            display: inline-flex;
-          }
-          .filter-group.mobile-collapsed .mobile-content {
-            display: none;
-          }
+        /* Mobile specific text hiding for the secondary button if we want to save space, but width 52 means icon-only or vertical text. Wait, standard says '查看教練' but we set width 52. Let's make it auto. */
+        .btn-secondary {
+          width: auto;
+          padding: 0 16px;
         }
-        @media (max-width: 640px) {
-          .coach-shell {
-            width: calc(100vw - 24px);
-          }
-          .filter-panel {
-            border-radius: 16px;
-            padding: 12px;
-          }
-          .card-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-      ` }} />
-
-      <div className="coach-shell">
-        
-        <section className="hero">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
-            <div style={{ flex: '1 1 240px' }}>
-              <h1>找適合你的老師 / 教練</h1>
-              <p>依照地區、時段與教學項目，快速找到可預約的人選。</p>
-            </div>
-            <button
-              onClick={() => setIsFilterOpen(!isFilterOpen)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px',
-                background: isFilterOpen ? 'var(--color-accent)' : 'transparent',
-                color: isFilterOpen ? 'var(--text-light)' : 'var(--color-accent)',
-                border: '1px solid var(--color-accent)', borderRadius: 8, fontSize: 13, fontWeight: 700,
-                cursor: 'pointer', whiteSpace: 'nowrap'
-              }}
-            >
-              <SlidersHorizontal size={14} />
-              {isFilterOpen ? '收起篩選' : '篩選教練'}
-            </button>
-          </div>
-        </section>
-
-        {isFilterOpen && (
-          <section className="filter-panel" style={{ marginTop: 24, animation: 'fadeIn 0.3s ease-out' }}>
-          <div className="filter-header">
-            <div className="filter-title">
-              <SlidersHorizontal size={16} />
-              主篩選區
-            </div>
-            <button type="button" className="clear-btn" onClick={clearAllFilters}>
-              <FilterX size={14} style={{ verticalAlign: 'middle', marginRight: 6 }} />
-              清除所有篩選
-            </button>
-          </div>
-
-          <div className="filters-grid">
-            {/* Category Toggle */}
-            <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`} style={{ gridColumn: '1 / -1' }}>
-              <div className="filter-group-title">
-                <span>找哪一種老師？</span>
-              </div>
-              <div className="mobile-content">
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button
-                    type="button"
-                    className={`time-btn ${filters.category === '' ? 'active' : ''}`}
-                    onClick={() => { updateFilter('category', ''); updateFilter('sport', ''); }}
-                    style={{ padding: '8px 16px', borderRadius: '16px' }}
-                  >
-                    全部
-                  </button>
-                  <button
-                    type="button"
-                    className={`time-btn ${filters.category === 'sports' ? 'active' : ''}`}
-                    onClick={() => { updateFilter('category', 'sports'); updateFilter('sport', ''); }}
-                    style={{ padding: '8px 16px', borderRadius: '16px' }}
-                  >
-                    🏀 運動教練
-                  </button>
-                  <button
-                    type="button"
-                    className={`time-btn ${filters.category === 'tutors' ? 'active' : ''}`}
-                    onClick={() => { updateFilter('category', 'tutors'); updateFilter('sport', ''); }}
-                    style={{ padding: '8px 16px', borderRadius: '16px' }}
-                  >
-                    📚 學科才藝
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className={`filter-group ${mobileSections.sport ? '' : 'mobile-collapsed'}`}>
-              <div className="filter-group-title">
-                <span>教學項目</span>
-                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('sport')}>
-                  {mobileSections.sport ? '收合' : '展開'}
-                </button>
-              </div>
-              <div className="mobile-content">
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {allSports.map((sport) => (
-                    <button
-                      key={sport}
-                      type="button"
-                      className={`time-btn ${filters.sport === sport ? 'active' : ''}`}
-                      onClick={() => updateFilter('sport', filters.sport === sport ? '' : sport)}
-                      style={{ padding: '6px 12px', width: 'auto', borderRadius: '16px' }}
-                    >
-                      {sport}
-                    </button>
-                  ))}
-                  {allSports.length === 0 && (
-                    <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>目前沒有可用教學項目</div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className={`filter-group ${mobileSections.availability ? '' : 'mobile-collapsed'}`}>
-              <div className="filter-group-title">
-                <span>可預約時段</span>
-                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('availability')}>
-                  {mobileSections.availability ? '收合' : '展開'}
-                </button>
-              </div>
-              <div className="mobile-content">
-                <div className="filter-helper">先選日期，再選時間。未來 7 天內不可約時段也會顯示。</div>
-                <div className="date-row">
-                  {upcomingDates.map((dateString) => (
-                    <button
-                      key={dateString}
-                      type="button"
-                      className={`date-btn ${filters.date === dateString ? 'active' : ''}`}
-                      onClick={() => handleDateSelect(dateString)}
-                    >
-                      {formatDateChip(dateString)}
-                    </button>
-                  ))}
-                </div>
-                <div style={{ height: 12 }} />
-                {!filters.date ? (
-                  <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px', background: 'var(--bg-input)', borderRadius: 12, textAlign: 'center' }}>
-                    請先選擇上方日期，以查看可預約的時間。
-                  </div>
-                ) : (
-                  <div className="time-grid">
-                    {TIME_OPTIONS.filter((timeValue) => availableTimeSet.has(timeValue)).length > 0 ? (
-                      TIME_OPTIONS.filter((timeValue) => availableTimeSet.has(timeValue)).map((timeValue) => (
-                        <button
-                          key={timeValue}
-                          type="button"
-                          className={`time-btn ${filters.time === timeValue ? 'active' : ''}`}
-                          onClick={() => handleTimeSelect(timeValue)}
-                        >
-                          {timeValue}
-                        </button>
-                      ))
-                    ) : (
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13, padding: '12px', width: '100%', textAlign: 'center' }}>
-                        該日期目前沒有可預約的時段。
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={`filter-group ${mobileSections.region ? '' : 'mobile-collapsed'}`}>
-              <div className="filter-group-title">
-                <span>想上課的地區</span>
-                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('region')}>
-                  {mobileSections.region ? '收合' : '展開'}
-                </button>
-              </div>
-              <div className="mobile-content">
-                <input
-                  className="field"
-                  placeholder="例如：台北、大安、新北"
-                  value={filters.region}
-                  onChange={(event) => updateFilter('region', event.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className={`filter-group ${mobileSections.price ? '' : 'mobile-collapsed'}`}>
-              <div className="filter-group-title">
-                <span>價格區間</span>
-                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('price')}>
-                  {mobileSections.price ? '收合' : '展開'}
-                </button>
-              </div>
-              <div className="mobile-content">
-                <select className="select" value={filters.maxPrice} onChange={(event) => updateFilter('maxPrice', event.target.value)}>
-                  {PRICE_OPTIONS.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className={`filter-group ${mobileSections.level ? '' : 'mobile-collapsed'}`}>
-              <div className="filter-group-title">
-                <span>教練等級</span>
-                <button type="button" className="section-toggle" onClick={() => toggleMobileSection('level')}>
-                  {mobileSections.level ? '收合' : '展開'}
-                </button>
-              </div>
-              <div className="mobile-content">
-                <select className="select" value={filters.level} onChange={(event) => updateFilter('level', event.target.value)}>
-                  {LEVEL_OPTIONS.map((option) => (
-                    <option key={option.value || 'all'} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        </section>
-        )}
-
-        <div className="results-bar">
-          <div>共找到 {coaches.length} 位人選</div>
-          <div>排序：最快可約優先</div>
-        </div>
-        
-        {/* Top Tip */}
-        <div style={{ background: 'var(--primary-bg)', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid var(--border-active)' }}>
-          <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>不知道怎麼選？</div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <span>👉 先看最快可約時間</span>
-            <span>👉 再看最近被預約</span>
-            <span>👉 最後看教學風格</span>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="loading-state">載入資料中...</div>
-        ) : coaches.length === 0 ? (
-          <div className="empty-state">目前沒有符合條件的教練 / 老師，請嘗試調整篩選條件。</div>
-        ) : (
-          <div className="card-grid">
-            {coaches.map((coach) => (
-              <article key={coach.id} className="coach-card">
-                {/* 1. 狀態與評價 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '11px', fontWeight: 800 }}>
-                  <span style={{ color: 'var(--primary)', background: 'var(--primary-bg)', padding: '2px 6px', borderRadius: '4px' }}>
-                    {coach.coach_level_label || '初階教練'}
-                  </span>
-                  {coach.rating_avg > 0 ? (
-                    <span style={{ color: 'var(--cta)' }}>⭐ {coach.rating_avg}</span>
-                  ) : null}
-                  <span style={{ color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                    已驗證
-                  </span>
-                </div>
-
-                {/* 2. 頭像、姓名、項目 */}
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', cursor: 'pointer' }} onClick={() => router.push(`/coaches/${coach.id}`)}>
-                  <div className="avatar">
-                    {coach.name?.slice(0, 1) || '教'}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 900, color: 'var(--text-main)' }}>{coach.name}</h2>
-                      {coach.has_video && (
-                        <span style={{ color: 'var(--cta)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
-                          <Video size={12}/> 看影片
-                        </span>
-                      )}
-                    </div>
-                    {/* 主教項目與地區 */}
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                      {(() => {
-                        const sports = (coach.service_areas || '').split(/[、，\s]+/).filter(Boolean);
-                        if (sports.length === 0) return '未填寫項目';
-                        return <span style={{ fontWeight: 800, color: 'var(--text-main)' }}>{getSportEmoji(sports[0])} {sports[0]}</span>;
-                      })()}
-                      <span style={{ margin: '0 6px', color: 'var(--text-light)' }}>|</span>
-                      <span>{coach.location || '未填寫地區'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 3. 時間與價格 */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: 800 }}>
-                    {coach.next_available_at ? formatNextAvailable(coach.next_available_at) : '預約請先聊聊'}
-                  </div>
-                  <div style={{ fontWeight: 900, color: 'var(--text-main)', fontSize: '14px' }}>
-                    NT${Number(coach.min_price || 1000).toLocaleString()}
-                  </div>
-                </div>
-
-                {/* 4. 熱度 & 風格標籤 */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {coach.booked_slot_count > 0 && (
-                    <span style={{ color: '#E11D48', fontSize: '11px', fontWeight: 800 }}>🔥 最近被預約 {coach.booked_slot_count} 次</span>
-                  )}
-                  <div style={{ fontSize: '12px', color: '#10B981', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {coach.experience ? `🎯 ${coach.experience.length > 25 ? coach.experience.slice(0, 25) + '...' : coach.experience}` : '🎯 適合初學者｜耐心陪練'}
-                  </div>
-                </div>
-
-                {/* 5. 按鈕 */}
-                <div className="card-actions" style={{ marginTop: '4px' }}>
-                  <button type="button" className="ghost-btn" onClick={() => {
-                    const params = new URLSearchParams(filters);
-                    router.push(`/coaches/${coach.id}?${params.toString()}`);
-                  }}>
-                    看教練
-                  </button>
-                  <button type="button" className="primary-btn" onClick={() => {
-                    const params = new URLSearchParams(filters);
-                    router.push(`/coaches/${coach.id}?${params.toString()}`);
-                  }}>
-                    預約體驗課
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
+      `}} />
+      <Suspense fallback={<div style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>載入中...</div>}>
+        <DiscoverFeed />
+      </Suspense>
     </div>
   );
 }

@@ -12,6 +12,14 @@ function formatCount(value) {
   return String(count);
 }
 
+function videoPersona(video) {
+  const text = `${video.title || ''} ${video.coach_name || ''}`;
+  if (/數學|math/i.test(text)) return '專門救放棄數學的人';
+  if (/英文|english|口說/i.test(text)) return '陪你從不敢開口到敢用英文聊天';
+  if (/籃球|basketball/i.test(text)) return '從校隊板凳一路打進先發';
+  return '零基礎友善，不用怕尷尬';
+}
+
 function isPotentiallyUnsupportedVideoUrl(url = '') {
   return /\.(mov|qt)(\?|#|$)/i.test(String(url)) || /quicktime/i.test(String(url));
 }
@@ -70,17 +78,18 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
   return (
     <div style={{
       position: 'relative',
+      minHeight: '100dvh',
       height: '100%',
       width: '100%',
       scrollSnapAlign: 'start',
-      backgroundColor: 'var(--color-bg)',
+      backgroundColor: '#050816',
       overflow: 'hidden'
     }}>
       {/* Back button */}
       <div style={{ position: 'absolute', top: 20, left: 16, zIndex: 20 }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'rgba(0,0,0,0.3)', border: 'none', borderRadius: '50%', width: 40, height: 40, color: 'var(--text-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)' }}
+          style={{ background: 'rgba(11,17,32,0.58)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '50%', width: 42, height: 42, color: 'rgba(255,255,255,0.86)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(18px)' }}
         >
           <ChevronLeft size={24} />
         </button>
@@ -267,10 +276,10 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
       <div style={{
         position: 'absolute',
         right: 16,
-        bottom: 160,
+        bottom: 178,
         display: 'flex',
         flexDirection: 'column',
-        gap: 24,
+        gap: 18,
         alignItems: 'center',
         zIndex: 20
       }}>
@@ -313,14 +322,14 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
               border: 'none',
               color: video.liked ? '#EF4444' : 'var(--text-light)',
               cursor: 'pointer',
-              padding: '12px',
+              padding: '9px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <Heart size={28} fill={video.liked ? '#EF4444' : 'rgba(0,0,0,0.5)'} strokeWidth={video.liked ? 0 : 2} />
+            <Heart size={22} fill={video.liked ? '#EF4444' : 'rgba(0,0,0,0.5)'} strokeWidth={video.liked ? 0 : 2} />
           </button>
           {video.like_count >= 5 && (
             <span style={{ color: 'var(--text-light)', fontSize: 13, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
@@ -350,14 +359,14 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
               border: 'none',
               color: video.is_favorite ? '#F59E0B' : 'var(--text-light)',
               cursor: 'pointer',
-              padding: '12px',
+              padding: '9px',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}
           >
-            <Bookmark size={28} fill={video.is_favorite ? '#F59E0B' : 'rgba(0,0,0,0.5)'} strokeWidth={video.is_favorite ? 0 : 2} />
+            <Bookmark size={22} fill={video.is_favorite ? '#F59E0B' : 'rgba(0,0,0,0.5)'} strokeWidth={video.is_favorite ? 0 : 2} />
           </button>
         </div>
       </div>
@@ -368,8 +377,8 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
         bottom: 0,
         left: 0,
         right: 0,
-        padding: '40px 16px 24px',
-        background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
+        padding: '52px 16px 108px',
+        background: 'linear-gradient(to top, rgba(5,8,22,0.94) 0%, rgba(5,8,22,0.52) 46%, transparent 100%)',
         zIndex: 10,
         display: 'flex',
         justifyContent: 'space-between',
@@ -382,21 +391,29 @@ function VideoItem({ video, isVisible, onLike, onFavorite, onView }) {
           >
             @{video.coach_name}
           </h2>
-          <p style={{ margin: '0 0 12px', color: 'var(--text-light)', fontSize: 14, lineHeight: 1.5, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
+          <p style={{ margin: '0 0 6px', color: 'var(--text-light)', fontSize: 14, lineHeight: 1.5, opacity: 0.9, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
             {video.title}
           </p>
-          <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)', padding: '4px 10px', borderRadius: 6, color: 'var(--text-light)', fontSize: 12, fontWeight: 700 }}>
-            {video.category === 'teaching' ? '🎓 教學精華' : video.category === 'highlight' ? '🔥 精彩剪輯' : '👋 自我介紹'}
+          <p style={{ margin: '0 0 10px', color: 'rgba(255,255,255,0.76)', fontSize: 13, lineHeight: 1.45, textShadow: '0 1px 2px rgba(0,0,0,0.75)' }}>
+            {videoPersona(video)}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)', padding: '4px 9px', borderRadius: 7, color: 'var(--text-light)', fontSize: 12, fontWeight: 760 }}>
+              {video.category === 'teaching' ? '🎓 教學精華' : video.category === 'highlight' ? '🔥 精彩剪輯' : '👋 自我介紹'}
+            </div>
+            <div style={{ display: 'inline-block', background: 'rgba(255,138,61,0.16)', border: '1px solid rgba(255,138,61,0.18)', padding: '4px 9px', borderRadius: 7, color: '#FFB27A', fontSize: 12, fontWeight: 800 }}>
+              本週可約・今晚可預約・5 人正在觀看
+            </div>
           </div>
         </div>
 
         <button
           onClick={() => router.push(`/coaches/${video.coach_id}`)}
           style={{
-            background: 'var(--color-primary)',
-            color: 'var(--text-light)', border: 'none', padding: '14px 20px', borderRadius: '100px',
-            fontWeight: 900, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-            boxShadow: '0 8px 24px rgba(245, 158, 11, 0.4)',
+            background: 'linear-gradient(135deg,#FF8A3D,#FF5E3A)',
+            color: '#050816', border: 'none', padding: '14px 18px', borderRadius: '100px',
+            fontWeight: 850, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+            boxShadow: 'none',
             zIndex: 10
           }}
         >
@@ -585,17 +602,19 @@ export default function VideoFeed() {
       ref={containerRef}
       onScroll={handleScroll}
       style={{
-        position: 'absolute',
-        top: 60, /* Header height */
-        left: 0,
-        right: 0,
-        bottom: 72, /* BottomNav height */
+        position: 'fixed',
+        left: '50%',
+        top: 0,
+        bottom: 0,
+        width: 'min(430px, 100vw)',
+        transform: 'translateX(-50%)',
         overflowY: 'scroll',
         scrollSnapType: 'y mandatory',
-        background: 'var(--color-bg)',
-        zIndex: 10, /* Below header/nav but above main content */
-        msOverflowStyle: 'none', /* IE and Edge */
-        scrollbarWidth: 'none', /* Firefox */
+        background: '#050816',
+        zIndex: 10,
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch',
       }}
     >
       <style dangerouslySetInnerHTML={{__html: `

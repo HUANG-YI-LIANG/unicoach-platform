@@ -1,11 +1,11 @@
-'use client';
-import { useState } from 'react';
+﻿'use client';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole, getSafeRedirectPath } from '@/lib/authRedirects';
 
-export default function Login() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
@@ -32,14 +32,7 @@ export default function Login() {
   };
 
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 60px)',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: 'var(--color-bg)',
-      color: 'var(--color-text)',
-      padding: '20px'
-    }}>
+    <>
       <h2 style={{ textAlign: 'center', marginBottom: '2rem', fontWeight: 900, color: 'var(--color-text)' }}>登入平台</h2>
 
       <div style={{
@@ -109,6 +102,23 @@ export default function Login() {
           </Link>
         </p>
       </div>
+    </>
+  );
+}
+
+export default function Login() {
+  return (
+    <div style={{
+      minHeight: 'calc(100vh - 60px)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      background: 'var(--color-bg)',
+      color: 'var(--color-text)',
+      padding: '20px'
+    }}>
+      <Suspense fallback={<div>載入中...</div>}>
+        <LoginForm />
+      </Suspense>
     </div>
   );
 }

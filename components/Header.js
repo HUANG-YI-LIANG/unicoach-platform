@@ -4,6 +4,7 @@ import { useAuth } from './AuthProvider';
 import { useTheme } from './ThemeProvider';
 import Link from 'next/link';
 import { Sun, Moon, X } from 'lucide-react';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
   const { user, loading } = useAuth();
@@ -85,24 +86,7 @@ export default function Header() {
 
         <div className="header-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {user && (
-            <Link 
-              href="/notifications" 
-              style={{ position: 'relative', color: 'var(--color-text)', display: 'flex', alignItems: 'center' }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"></path></svg>
-              {unreadCount > 0 && (
-                <span style={{
-                  position: 'absolute',
-                  top: -4,
-                  right: -6,
-                  background: '#EF4444',
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  border: '2px solid var(--color-surface)',
-                }} />
-              )}
-            </Link>
+            <NotificationBell />
           )}
           <button
             type="button"

@@ -1,299 +1,264 @@
 'use client';
-import { useState, use } from 'react';
+import { useState, use, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { Loader2, Target, Star, MessageSquare, ArrowRight } from 'lucide-react';
 
-const BLUE  = 'var(--color-primary)';
-const DARK  = 'var(--color-text)';
-const MUTED = 'var(--color-text-muted)';
-const BG    = 'var(--color-bg)';
-const WHITE = 'var(--color-surface)';
+const ORANGE = '#FF8A3D'; // or 'var(--color-accent)'
+const DARK  = '#FFFFFF';
+const MUTED = '#94A3B8';
+const BG    = '#050816';
+const CARD  = '#0F172A';
+const BORDER = 'rgba(255,255,255,0.06)';
 
-function ScoreButton({ value, selected, onClick }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onClick(value)}
-      style={{
-        width: 44, height: 44, borderRadius: '50%', border: 'none',
-        background: selected ? BLUE : 'var(--color-border)',
-        color: selected ? WHITE : DARK,
-        fontWeight: 800, fontSize: 15, cursor: 'pointer',
-        transition: 'all 0.15s',
-        transform: selected ? 'scale(1.1)' : 'scale(1)',
-      }}
-    >
-      {value}
-    </button>
-  );
-}
-
-function ScoreRow({ label, value, onChange }) {
-  return (
-    <div style={{ marginBottom: 20 }}>
-      <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: DARK }}>{label}</p>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {[1, 2, 3, 4, 5].map(v => (
-          <ScoreButton key={v} value={v} selected={value === v} onClick={onChange} />
-        ))}
-        <span style={{ marginLeft: 8, fontSize: 12, color: MUTED, alignSelf: 'center' }}>
-          {value ? `${value} 分` : '請選擇'}
-        </span>
-      </div>
-    </div>
-  );
-}
+const FOCUS_TAGS = ['控球', '投籃', '腳步', '觀念', '體能', '解題', '口說', '實戰', '發音', '文法'];
+const QUICK_TEMPLATES = [
+  '今天比上次更敢出手了',
+  '腳步節奏有進步',
+  '觀念開始建立起來',
+  '基本功越來越紮實',
+  '繼續保持這個狀態',
+  '下次上課挑戰進階動作'
+];
 
 export default function ReportPage({ params }) {
   const { bookingId } = use(params);
   const router = useRouter();
 
-  const PROGRESS_MAP = {
-    'obvious': '顯著進步',
-    'slight': '穩定進步',
-    'none': '持平',
-    'needs_improvement': '需加強'
-  };
-
   const [form, setForm] = useState({
-    completedItems: '',
-    focusScore: 0,
-    cooperationScore: 0,
-    completionScore: 0,
-    understandingScore: 0,
-    observation: '',
-    suggestions: '',
-    progressLevel: 'none',
+    focusAreas: [],
+    performanceRating: 5,
+    shortFeedback: '',
+    nextStep: '',
   });
   const [submitting, setSubmitting] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [aiDraft, setAiDraft] = useState(null);
-  const [aiDraftApplied, setAiDraftApplied] = useState(false);
   const [error, setError] = useState('');
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const storageKey = `lesson_log_draft_${bookingId}`;
 
-  const canSubmit = form.focusScore && form.cooperationScore &&
-    form.completionScore && form.understandingScore &&
-    form.completedItems.trim();
+  useEffect(() => {
+    try {
+      const draft = localStorage.getItem(storageKey);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        setForm({
+          focusAreas: Array.isArray(parsed.focusAreas) ? parsed.focusAreas.slice(0, 5) : [],
+          performanceRating: Number(parsed.performanceRating) || 5,
+          shortFeedback: typeof parsed.shortFeedback === 'string' ? parsed.shortFeedback.slice(0, 120) : '',
+          nextStep: typeof parsed.nextStep === 'string' ? parsed.nextStep.slice(0, 120) : '',
+        });
+      }
+    } catch (_) {
+      localStorage.removeItem(storageKey);
+    } finally {
+      setDraftLoaded(true);
+    }
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (draftLoaded) {
+      localStorage.setItem(storageKey, JSON.stringify(form));
+    }
+  }, [form, storageKey, draftLoaded]);
+
+  const canSubmit = form.performanceRating >= 1 && form.performanceRating <= 5 &&
+                    form.shortFeedback.trim().length > 0 && form.shortFeedback.trim().length <= 120 &&
+                    form.nextStep.trim().length <= 120;
+
+  const handleTagToggle = (tag) => {
+    setForm(prev => ({
+      ...prev,
+      focusAreas: prev.focusAreas.includes(tag)
+        ? prev.focusAreas.filter(t => t !== tag)
+        : [...prev.focusAreas, tag].slice(0, 5) // limit to 5
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSubmit) { setError('請填寫完整評分與本堂完成項目'); return; }
+    if (!canSubmit) { setError('請確實填寫必填欄位 (回饋字數須在 120 字內)'); return; }
     setSubmitting(true);
     setError('');
 
     try {
-      // 1. Submit learning report
-      // Map form data and ensure progressLevel is one of: 'obvious', 'slight', 'none', 'needs_improvement'
-      const reportRes = await fetch('/api/reports', {
+      const reportRes = await fetch('/api/lesson-logs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, ...form, applyAiDraft: aiDraftApplied }),
+        body: JSON.stringify({
+          booking_id: bookingId,
+          performance_rating: form.performanceRating,
+          focus_areas: form.focusAreas,
+          short_feedback: form.shortFeedback.trim(),
+          next_step: form.nextStep.trim() || undefined
+        }),
       });
       const reportData = await reportRes.json();
-      if (!reportRes.ok) throw new Error(reportData.error || '紀錄卡提交失敗');
+      if (!reportRes.ok && reportRes.status !== 409) { // ignore conflict if already created
+        throw new Error(reportData.error || '日誌提交失敗');
+      }
 
-      // 2. Mark booking as completed
-      const statusRes = await fetch(`/api/bookings/${bookingId}/status`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' }),
-      });
-      const statusData = await statusRes.json();
-      if (!statusRes.ok) throw new Error(statusData.error || '完課狀態更新失敗');
-
-      alert('✅ 學習紀錄卡已提交，課程已完成！');
+      localStorage.removeItem(storageKey);
       router.push('/bookings');
     } catch (err) {
       setError(err.message);
-    } finally {
       setSubmitting(false);
     }
   };
 
-  const handleGenerate = async () => {
-    if (!form.observation && !form.suggestions) {
-      alert('請至少先填寫幾個關鍵字喔！');
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/ai/generate-report', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, observation: form.observation, suggestions: form.suggestions })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'AI 擴寫失敗');
-
-      setAiDraft(data.draft || null);
-      setAiDraftApplied(false);
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleApplyAiDraft = () => {
-    if (!aiDraft) return;
-    setForm(f => ({
-      ...f,
-      observation: aiDraft.observation || f.observation,
-      suggestions: aiDraft.suggestions || f.suggestions,
-    }));
-    setAiDraftApplied(true);
-  };
-
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 100 }}>
-
+    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 100, color: DARK, fontFamily: 'sans-serif' }}>
       {/* Header */}
       <div style={{
-        background: `linear-gradient(135deg, ${BLUE}, #1E40AF)`,
-        padding: '16px 16px 24px',
-        color: 'var(--text-light)',
+        padding: '24px 20px',
+        borderBottom: `1px solid ${BORDER}`,
+        background: CARD,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8
       }}>
         <button
           onClick={() => router.back()}
-          style={{ background: 'none', border: 'none', color: 'var(--text-light)', fontSize: 20, cursor: 'pointer', marginBottom: 8 }}
+          style={{ background: 'none', border: 'none', color: ORANGE, fontSize: 14, fontWeight: 800, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 4, width: 'fit-content' }}
         >
-          ‹
+          ‹ 返回
         </button>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 900 }}>📋 學習紀錄卡</h1>
-        <p style={{ margin: '4px 0 0', fontSize: 13, opacity: 0.8 }}>
-          填寫完畢後系統將自動完成課程，抽成率也會依完課數調整 🎯
+        <h1 style={{ margin: '8px 0 0', fontSize: 24, fontWeight: 900, color: DARK }}>課後回饋卡</h1>
+        <p style={{ margin: 0, fontSize: 13, color: MUTED }}>
+          家長與學員非常期待看到教練的評語！
         </p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-        {/* Completed Items */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>📝 本堂完成項目</p>
-          <textarea
-            value={form.completedItems}
-            onChange={e => setForm(f => ({ ...f, completedItems: e.target.value }))}
-            placeholder="例：完成基礎發球練習 3 組、腳步移動訓練、反手側身練習..."
-            rows={3}
-            style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
-              borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
-              outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
-            }}
-            onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-          />
-        </div>
-
-        {/* Scores */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 800, color: DARK }}>⭐ 學員表現評分（1-5 分）</p>
-          <ScoreRow label="🎯 專注度" value={form.focusScore}
-            onChange={v => setForm(f => ({ ...f, focusScore: v }))} />
-          <ScoreRow label="🤝 配合度" value={form.cooperationScore}
-            onChange={v => setForm(f => ({ ...f, cooperationScore: v }))} />
-          <ScoreRow label="✅ 完成率" value={form.completionScore}
-            onChange={v => setForm(f => ({ ...f, completionScore: v }))} />
-          <ScoreRow label="💡 理解度" value={form.understandingScore}
-            onChange={v => setForm(f => ({ ...f, understandingScore: v }))} />
-        </div>
-
-        {/* Progress Level */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 800, color: DARK }}>📈 本堂進展評估</p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(PROGRESS_MAP).map(([key, label]) => (
+        
+        {/* 本堂重點 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}`, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <p style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Target size={18} color={ORANGE} /> 本堂重點 (可複選)
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {FOCUS_TAGS.map(tag => (
               <button
-                key={key} type="button"
-                onClick={() => setForm(f => ({ ...f, progressLevel: key }))}
+                key={tag}
+                type="button"
+                onClick={() => handleTagToggle(tag)}
                 style={{
-                  padding: '8px 16px', borderRadius: 100, border: 'none',
-                  background: form.progressLevel === key ? BLUE : 'var(--color-surface-soft)',
-                  color: form.progressLevel === key ? 'var(--text-light)' : 'var(--color-text)',
-                  fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                  transition: 'all 0.15s',
+                  padding: '8px 16px', borderRadius: 100,
+                  background: form.focusAreas.includes(tag) ? 'rgba(255, 138, 61, 0.15)' : 'rgba(255,255,255,0.03)',
+                  color: form.focusAreas.includes(tag) ? ORANGE : MUTED,
+                  fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  border: form.focusAreas.includes(tag) ? `1px solid ${ORANGE}` : `1px solid ${BORDER}`,
+                  transition: 'all 0.2s',
                 }}
               >
-                {label}
+                {tag}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Observation & Suggestions */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>🔍 教練觀察</p>
-          <textarea
-            value={form.observation}
-            onChange={e => setForm(f => ({ ...f, observation: e.target.value }))}
-            placeholder="學員動作習慣、需注意的地方（選填）"
-            rows={2}
-            style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
-              borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
-              outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
-            }}
-            onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-          />
-          <p style={{ margin: '14px 0 10px', fontSize: 13, fontWeight: 800, color: DARK }}>💪 下堂建議</p>
-          <textarea
-            value={form.suggestions}
-            onChange={e => setForm(f => ({ ...f, suggestions: e.target.value }))}
-            placeholder="下次上課可以加強的方向（選填）"
-            rows={2}
-            style={{
-              width: '100%', padding: '10px 14px', border: '1.5px solid var(--color-border)',
-              borderRadius: 12, fontSize: 13, lineHeight: 1.6, resize: 'none',
-              outline: 'none', fontFamily: 'inherit', color: DARK, boxSizing: 'border-box',
-            }}
-            onFocus={e => e.target.style.borderColor = BLUE}
-            onBlur={e => e.target.style.borderColor = 'var(--color-border)'}
-          />
-          
+        {/* 學生表現評分 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}`, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <p style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Star size={18} color={ORANGE} /> 學生表現 (1~5分)
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(0, 1fr))', gap: 8 }}>
+            {[1, 2, 3, 4, 5].map(v => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setForm(f => ({ ...f, performanceRating: v }))}
+                style={{
+                  width: '100%', maxWidth: 48, height: 48, borderRadius: '50%', justifySelf: 'center',
+                  background: form.performanceRating === v ? ORANGE : 'rgba(255,255,255,0.03)',
+                  color: form.performanceRating === v ? '#000' : MUTED,
+                  border: form.performanceRating === v ? 'none' : `1px solid ${BORDER}`,
+                  fontWeight: 900, fontSize: 18, cursor: 'pointer',
+                  transition: 'all 0.15s',
+                  transform: form.performanceRating === v ? 'scale(1.1)' : 'scale(1)',
+                  boxShadow: form.performanceRating === v ? '0 4px 15px rgba(255, 138, 61, 0.4)' : 'none',
+                }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          {aiDraft && (
-            <div style={{
-              marginTop: 16,
-              border: '1px solid #DDD6FE',
-              background: '#F5F3FF',
-              borderRadius: 16,
-              padding: 16,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 10 }}>
-                <div>
-                  <p style={{ margin: 0, color: '#5B21B6', fontSize: 13, fontWeight: 900 }}>AI 生成草稿</p>
-                  <p style={{ margin: '3px 0 0', color: '#7C3AED', fontSize: 11 }}>
-                    {aiDraft.model || 'AI'} · {aiDraft.generatedAt ? new Date(aiDraft.generatedAt).toLocaleString('zh-TW') : '剛剛生成'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleApplyAiDraft}
-                  style={{
-                    background: aiDraftApplied ? '#DDD6FE' : '#7C3AED',
-                    color: aiDraftApplied ? '#5B21B6' : WHITE,
-                    border: 'none',
-                    padding: '9px 13px',
-                    borderRadius: 12,
-                    fontWeight: 900,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {aiDraftApplied ? '已套用' : '套用草稿'}
-                </button>
-              </div>
-              <div style={{ color: '#312E81', fontSize: 13, lineHeight: 1.7 }}>
-                <strong>教練觀察：</strong>
-                <p style={{ margin: '4px 0 10px' }}>{aiDraft.observation || '無'}</p>
-                <strong>下堂建議：</strong>
-                <p style={{ margin: '4px 0 0' }}>{aiDraft.suggestions || '無'}</p>
-              </div>
-            </div>
-          )}
+        {/* 一句話回饋 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}`, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <MessageSquare size={18} color={ORANGE} /> 教練短評 <span style={{ color: '#EF4444' }}>*</span>
+            </p>
+            <span style={{ fontSize: 12, color: form.shortFeedback.length > 120 ? '#EF4444' : MUTED, fontWeight: 700 }}>
+              {form.shortFeedback.length} / 120
+            </span>
+          </div>
+          <textarea
+            value={form.shortFeedback}
+            onChange={e => setForm(f => ({ ...f, shortFeedback: e.target.value.slice(0, 120) }))}
+            placeholder="今天表現得如何？"
+            rows={3}
+            style={{
+              width: '100%', padding: '16px', border: `1px solid ${BORDER}`,
+              borderRadius: 16, fontSize: 15, lineHeight: 1.6, resize: 'none',
+              outline: 'none', background: 'rgba(255,255,255,0.02)', color: DARK, boxSizing: 'border-box',
+              transition: 'border 0.2s',
+            }}
+            onFocus={e => e.target.style.borderColor = ORANGE}
+            onBlur={e => e.target.style.borderColor = BORDER}
+          />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 16 }}>
+            {QUICK_TEMPLATES.map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setForm(f => {
+                  const next = `${f.shortFeedback ? `${f.shortFeedback}，` : ''}${t}`.slice(0, 120);
+                  return { ...f, shortFeedback: next };
+                })}
+                style={{
+                  padding: '8px 14px', borderRadius: 100, border: `1px solid ${BORDER}`,
+                  background: 'rgba(255,255,255,0.03)', color: MUTED,
+                  fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = ORANGE; e.currentTarget.style.color = ORANGE; }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = MUTED; }}
+              >
+                + {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 下次建議 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}`, boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <ArrowRight size={18} color={ORANGE} /> 課後建議 (選填)
+            </p>
+            <span style={{ fontSize: 12, color: form.nextStep.length > 120 ? '#EF4444' : MUTED, fontWeight: 700 }}>
+              {form.nextStep.length} / 120
+            </span>
+          </div>
+          <textarea
+            value={form.nextStep}
+            onChange={e => setForm(f => ({ ...f, nextStep: e.target.value.slice(0, 120) }))}
+            placeholder="下次可以進階練習的目標..."
+            rows={2}
+            style={{
+              width: '100%', padding: '16px', border: `1px solid ${BORDER}`,
+              borderRadius: 16, fontSize: 15, lineHeight: 1.6, resize: 'none',
+              outline: 'none', background: 'rgba(255,255,255,0.02)', color: DARK, boxSizing: 'border-box',
+              transition: 'border 0.2s',
+            }}
+            onFocus={e => e.target.style.borderColor = ORANGE}
+            onBlur={e => e.target.style.borderColor = BORDER}
+          />
         </div>
 
         {error && (
-          <div style={{ background: '#FEE2E2', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#DC2626', fontWeight: 600 }}>
+          <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #EF4444', borderRadius: 16, padding: '14px 20px', fontSize: 14, color: '#EF4444', fontWeight: 600 }}>
             ⚠️ {error}
           </div>
         )}
@@ -302,14 +267,14 @@ export default function ReportPage({ params }) {
           type="submit"
           disabled={!canSubmit || submitting}
           style={{
-            padding: '16px', borderRadius: 16, border: 'none',
-            background: canSubmit && !submitting ? BLUE : 'var(--color-surface-soft)',
-            color: 'var(--text-light)', fontWeight: 800, fontSize: 16, cursor: canSubmit ? 'pointer' : 'not-allowed',
-            boxShadow: canSubmit ? '0 8px 24px rgba(37,99,235,0.25)' : 'none',
-            transition: 'all 0.2s',
+            padding: '18px', borderRadius: 20, border: 'none', marginTop: 12,
+            background: canSubmit && !submitting ? ORANGE : 'rgba(255,255,255,0.05)',
+            color: canSubmit && !submitting ? '#000' : MUTED, fontWeight: 900, fontSize: 16, cursor: canSubmit ? 'pointer' : 'not-allowed',
+            boxShadow: canSubmit ? '0 8px 24px rgba(255, 138, 61, 0.25)' : 'none',
+            transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
           }}
         >
-          {submitting ? '提交中…' : '✅ 提交紀錄卡並完成課程'}
+          {submitting ? <Loader2 className="animate-spin" size={20} /> : '送出回饋卡'}
         </button>
 
       </form>

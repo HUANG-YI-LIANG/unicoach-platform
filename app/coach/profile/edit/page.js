@@ -5,20 +5,20 @@ import { useAuth } from '@/components/AuthProvider';
 import {
   User, Mail, BookOpen, FileDigit,
   MapPin, DollarSign, Save, ArrowLeft, Loader2, Tag,
-  ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles
+  ShieldCheck, UploadCloud, AlertCircle, CheckCircle, Clock, Sparkles,
 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
 
-const ORANGE = 'var(--cta, #F97316)';
-const BG     = 'var(--bg-page)';
-const CARD   = 'var(--bg-surface)';
+const ORANGE = 'var(--accent)';
+const BG     = 'var(--bg-primary)';
+const CARD   = 'var(--bg-card)';
 const MUTED  = 'var(--text-muted)';
-const TEXT_LIGHT = 'var(--text-main)';
+const TEXT_LIGHT = 'var(--text-primary)';
 const RADIUS = '20px';
-const SHADOW = 'var(--shadow-md, 0 8px 30px rgba(0,0,0,0.1))';
+const SHADOW = 'var(--shadow-card)';
 const INPUT_BG = 'var(--bg-input)';
-const BORDER = 'var(--border-main)';
+const BORDER = 'var(--border)';
 
 export default function CoachProfileEdit() {
   const { user, loading: authLoading } = useAuth();
@@ -44,6 +44,12 @@ export default function CoachProfileEdit() {
   const [vStatus, setVStatus] = useState('pending');
   const [vNotes, setVNotes] = useState('');
   const [priceError, setPriceError] = useState('');
+
+
+  // AI Modal states
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
 
   const [cropImageSrc, setCropImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -133,6 +139,55 @@ export default function CoachProfileEdit() {
     }
   };
 
+  const handleAIParsing = async () => {
+    if (!aiInput.trim()) {
+      alert('請先貼上貼文！');
+      return;
+    }
+    if (aiInput.length > 3000) {
+      alert('貼文太長囉，請刪減至 3000 字以內');
+      return;
+    }
+
+    setIsParsing(true);
+    try {
+      const res = await fetch('/api/ai/parse-fb-post', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: aiInput }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || '解析失敗');
+        return;
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        experience: data.experience || prev.experience,
+        philosophy: data.philosophy || prev.philosophy,
+        teaching_features: Array.isArray(data.teaching_features) && data.teaching_features.length > 0
+          ? data.teaching_features.join('\n')
+          : prev.teaching_features,
+        location: data.location || prev.location,
+        base_price: data.base_price !== null && !isNaN(Number(data.base_price)) ? Number(data.base_price) : prev.base_price,
+        service_areas: Array.isArray(data.service_areas) && data.service_areas.length > 0
+          ? data.service_areas.join(', ')
+          : prev.service_areas
+      }));
+
+      alert('解析成功！已將資訊帶入表單草稿，請確認無誤後再點擊儲存。');
+      setShowAiModal(false);
+      setAiInput('');
+    } catch (err) {
+      console.error(err);
+      alert('技術錯誤，請稍後再試。');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   const handleFileUpload = async (e, type = 'student_id') => {
     const file = e.target.files[0];
     if (!file) return;
@@ -181,7 +236,7 @@ export default function CoachProfileEdit() {
     setUploading(true);
     setUploadType('avatar');
     setIsCropping(false);
-    
+
     try {
       const croppedImageBlob = await getCroppedImg(cropImageSrc, croppedAreaPixels);
       const formDataPayload = new FormData();
@@ -219,14 +274,24 @@ export default function CoachProfileEdit() {
 
   const inputStyle = { width:'100%', padding:'12px 16px', borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 14, background: INPUT_BG, color: TEXT_LIGHT };
   const labelStyle = { display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 8 };
+  const profileChecklist = [
+    { label: '大頭貼', done: Boolean(formData.avatar_url) },
+    { label: '教學經驗', done: Boolean(formData.experience?.trim()) },
+    { label: '教學理念', done: Boolean(formData.philosophy?.trim()) },
+    { label: '課程特色', done: Boolean(formData.teaching_features?.trim()) },
+    { label: '上課地區', done: Boolean(formData.location?.trim()) },
+    { label: '適合學生', done: Boolean(formData.service_areas?.trim()) },
+    { label: '教學影片或照片', done: Boolean(formData.avatar_url) },
+    { label: '已完成身份驗證', done: vStatus === 'approved' },
+  ];
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
+    <div style={{ background: BG, minHeight: '100dvh', paddingBottom: 'calc(132px + env(safe-area-inset-bottom))', color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
       {/* Background Gradient */}
       <div style={{
         position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
         width: '600px', height: '600px',
-        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, rgba(9, 14, 23, 0) 60%)',
+        background: 'radial-gradient(circle, rgba(255, 138, 61, 0.07) 0%, rgba(9, 14, 23, 0) 60%)',
         zIndex: 0, pointerEvents: 'none'
       }} />
 
@@ -242,17 +307,64 @@ export default function CoachProfileEdit() {
           >
             <ArrowLeft size={20} color={TEXT_LIGHT} />
           </button>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>編輯教練資料</h1>
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>公開上架準備</h1>
         </div>
 
         <form onSubmit={handleSave} style={{ padding: '24px 16px', display:'flex', flexDirection:'column', gap: 24 }}>
+
+          {/* Public Profile Guidance */}
+          <section>
+            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, border: `1px solid ${BORDER}` }}>
+              <p style={{ margin: '0 0 6px', color: ORANGE, fontSize: 12, fontWeight: 900, letterSpacing: '0.08em' }}>公開教練資料</p>
+              <h2 style={{ margin: '0 0 8px', color: TEXT_LIGHT, fontSize: 20, fontWeight: 900 }}>這些內容會影響學生是否預約你</h2>
+              <p style={{ margin: '0 0 12px', color: MUTED, fontSize: 13, lineHeight: 1.7 }}>
+                你的資料會出現在學生看到的公開頁。建議填寫教學經驗、教學理念、適合學生、課程特色、地區、價格參考。補完這些欄位，學生更容易理解你適不適合他。
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                {profileChecklist.map((item) => (
+                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: INPUT_BG, border: `1px solid ${item.done ? 'rgba(16,185,129,0.35)' : BORDER}`, borderRadius: 12, padding: '9px 10px', color: item.done ? '#34D399' : MUTED, fontSize: 12, fontWeight: 800 }}>
+                    {item.done ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                    {item.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* AI Auto Fill Banner */}
+          <section>
+            <div
+              onClick={() => setShowAiModal(true)}
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,138,61,0.15) 0%, rgba(255,138,61,0.05) 100%)',
+                border: `1px solid rgba(255,138,61,0.3)`,
+                borderRadius: RADIUS,
+                padding: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                boxShadow: SHADOW
+              }}
+            >
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 800, color: ORANGE, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={18} /> AI 匯入公開教練資料草稿
+                </h3>
+                <p style={{ margin: 0, fontSize: 13, color: MUTED }}>貼上你原本在 FB 社團的自介文，AI 會幫你整理成公開教練資料草稿。</p>
+              </div>
+              <div style={{ background: ORANGE, color: '#FFF', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowLeft size={16} style={{ transform: 'rotate(180deg)' }} />
+              </div>
+            </div>
+          </section>
 
           {/* Avatar Section */}
           <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
               <div style={{
                 width: 100, height: 100, borderRadius: '50%', background: INPUT_BG,
-                overflow: 'hidden', border: `3px solid ${ORANGE}`, boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`,
+                overflow: 'hidden', border: `2px solid rgba(255,138,61,0.58)`, boxShadow: '0 10px 24px rgba(0,0,0,0.22)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center'
               }}>
                 {formData.avatar_url ? (
@@ -544,7 +656,7 @@ export default function CoachProfileEdit() {
                 width:'100%', height: 56, background: ORANGE, color: 'var(--text-light)',
                 border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
                 display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
-                boxShadow: `0 8px 25px rgba(249, 115, 22, 0.4)`,
+                boxShadow: '0 12px 28px rgba(0,0,0,0.24)',
                 opacity: saving ? 0.7 : 1,
                 cursor: saving ? 'not-allowed' : 'pointer',
                 transition: 'transform 0.2s'
@@ -558,7 +670,68 @@ export default function CoachProfileEdit() {
         </form>
       </div>
 
-      {/* Cropper Modal */}
+      {/* AI Modal */}
+      {showAiModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
+        }}>
+          <div style={{
+            width: '100%', maxWidth: 500, background: 'var(--color-surface)',
+            borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '24px 20px 40px',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.3)', border: `1px solid ${BORDER}`, borderBottom: 'none',
+            display: 'flex', flexDirection: 'column', gap: 16, animation: 'slideUp 0.3s ease-out forwards'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={20} color={ORANGE} /> 貼上你原本在 FB 社團的自介文
+              </h3>
+              <button onClick={() => !isParsing && setShowAiModal(false)} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>
+                <span style={{ fontSize: 24, lineHeight: 1 }}>&times;</span>
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: 14, color: MUTED }}>
+              AI 會幫你整理成公開教練資料草稿，帶入「經歷、理念、特色、地區、費用」等欄位。不會自動儲存，仍需你確認後按儲存。
+            </p>
+            <textarea
+              value={aiInput}
+              onChange={e => setAiInput(e.target.value)}
+              placeholder="例如：大家好！我是ＯＯＯ教練，曾經擔任過國手，目前在台北大安區教學，收費是 1200/堂..."
+              style={{
+                ...inputStyle, minHeight: 200, resize: 'vertical',
+                background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.1)'
+              }}
+              disabled={isParsing}
+            />
+            <button
+              onClick={handleAIParsing}
+              disabled={isParsing}
+              style={{
+                width: '100%', padding: '16px', background: isParsing ? 'rgba(255,138,61,0.5)' : ORANGE,
+                color: '#FFF', border: 'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
+                cursor: isParsing ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                transition: 'all 0.2s'
+              }}
+            >
+              {isParsing ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" /> 解析中...
+                </>
+              ) : (
+                '開始自動解析'
+              )}
+            </button>
+          </div>
+          <style dangerouslySetInnerHTML={{__html: `
+            @keyframes slideUp {
+              from { transform: translateY(100%); }
+              to { transform: translateY(0); }
+            }
+          `}} />
+        </div>
+      )}
+
+      {/* Image Cropper Modal */}
       {isCropping && cropImageSrc && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '90%', maxWidth: 400, background: 'var(--bg-surface)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>

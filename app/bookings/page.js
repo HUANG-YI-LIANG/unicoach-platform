@@ -16,24 +16,101 @@ const PAYMENT_SETTINGS_FALLBACK = {
   bank_account_number: '',
 };
 
+const COACH_STATUS_GROUPS = [
+  { label: '待付款', statuses: ['pending_payment'] },
+  { label: '待確認', statuses: ['payment_submitted', 'payment_review', 'pending_confirmation', 'awaiting_confirmation'] },
+  { label: '待上課', statuses: ['confirmed', 'scheduled'] },
+  { label: '進行中', statuses: ['in_progress'] },
+  { label: '待完課確認', statuses: ['pending_completion'] },
+  { label: '待填課後日誌', statuses: ['report_required', 'needs_report', 'pending_report', 'lesson_log_required'] },
+  { label: '已完成', statuses: ['completed'] },
+  { label: '爭議中', statuses: ['dispute', 'disputed'] },
+  { label: '已取消', statuses: ['cancelled', 'refunded', 'expired'] },
+];
+
 const STATUS_MAP = {
-  'pending_payment':    '待付款',
-  'scheduled':          '已排程',
-  'in_progress':        '進行中',
-  'pending_completion': '等候完課',
-  'completed':          '已完成',
-  'disputed':           '爭議中',
-  'cancelled':          '已取消',
-  'refunded':           '已退款',
+  pending_payment: '待學生付款',
+  payment_submitted: '待確認',
+  payment_review: '待確認',
+  pending_confirmation: '待確認',
+  awaiting_confirmation: '待確認',
+  confirmed: '待上課',
+  scheduled: '待上課',
+  in_progress: '進行中',
+  pending_completion: '待完課確認',
+  report_required: '待填課後日誌',
+  needs_report: '待填課後日誌',
+  pending_report: '待填課後日誌',
+  lesson_log_required: '待填課後日誌',
+  completed: '已完成',
+  dispute: '爭議中',
+  disputed: '爭議中',
+  cancelled: '已取消',
+  refunded: '已取消',
+  expired: '已取消',
+};
+
+const STUDENT_STATUS_MAP = {
+  pending_payment: '待付款',
+  payment_submitted: '付款確認中',
+  payment_review: '付款確認中',
+  pending_confirmation: '待確認',
+  awaiting_confirmation: '待確認',
+  confirmed: '預約成功',
+  scheduled: '預約成功',
+  in_progress: '進行中',
+  pending_completion: '等候完課',
+  report_required: '待教練填寫紀錄',
+  needs_report: '待教練填寫紀錄',
+  pending_report: '待教練填寫紀錄',
+  lesson_log_required: '待教練填寫紀錄',
+  completed: '已完成',
+  dispute: '爭議中',
+  disputed: '爭議中',
+  cancelled: '已取消',
+  refunded: '已退款',
+  expired: '已取消',
+};
+
+const COACH_NEXT_STEP_COPY = {
+  待付款: '等待學生完成全額付款，付款確認前不要視為正式排程。',
+  待確認: '等待平台或學生完成確認，先保留溝通紀錄並避免承諾額外時段。',
+  待上課: '準備上課，可前往聊天室確認地點。',
+  進行中: '課程進行中，課後請填寫課後日誌並送出完課確認。',
+  待完課確認: '請確認完課或填寫課後日誌。',
+  待填課後日誌: '請先填寫課後日誌，讓學生能看到課程紀錄。',
+  已完成: '已完成，可查看評價或紀錄。',
+  爭議中: '等待平台處理，暫停撥款。',
+  已取消: '訂單已取消，不需要再安排上課。',
 };
 
 const STATUS_STYLE = {
-  pending_payment: { bg: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' },
-  completed:   { bg: 'rgba(34, 197, 94, 0.15)', color: 'var(--color-success)' },
-  scheduled:   { bg: 'rgba(96, 165, 250, 0.15)', color: 'var(--color-primary)' },
-  in_progress: { bg: 'rgba(245, 158, 11, 0.15)', color: 'var(--color-warning)' },
-  default:     { bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)' },
+  pending_payment: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
+  payment_submitted: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
+  payment_review: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
+  pending_confirmation: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
+  awaiting_confirmation: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
+  completed: { bg: 'var(--status-paid-bg)', color: 'var(--status-paid)' },
+  scheduled: { bg: 'var(--status-confirmed-bg)', color: 'var(--status-confirmed)' },
+  confirmed: { bg: 'var(--status-confirmed-bg)', color: 'var(--status-confirmed)' },
+  in_progress: { bg: 'var(--status-confirmed-bg)', color: 'var(--status-confirmed)' },
+  pending_completion: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  report_required: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  needs_report: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  pending_report: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  lesson_log_required: { bg: 'var(--warning-bg)', color: 'var(--warning)' },
+  dispute: { bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)' },
+  disputed: { bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)' },
+  default: { bg: 'rgba(239, 68, 68, 0.15)', color: 'var(--color-danger)' },
 };
+
+function getCoachBookingGroup(status) {
+  return COACH_STATUS_GROUPS.find((group) => group.statuses.includes(status))?.label || '待確認';
+}
+
+function getStatusLabel(status, isCoach) {
+  return (isCoach ? STATUS_MAP : STUDENT_STATUS_MAP)[status] || status || '狀態未明';
+}
 
 function statusStyle(status) {
   return STATUS_STYLE[status] || STATUS_STYLE.default;
@@ -52,6 +129,8 @@ export default function BookingsPage() {
   const [paymentReceiptPreview, setPaymentReceiptPreview] = useState('');
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [reportingPayment, setReportingPayment] = useState(false);
+  const [selectedCoachGroup, setSelectedCoachGroup] = useState('全部');
+  const [expandedBookingId, setExpandedBookingId] = useState(null);
   const router = useRouter();
   const isCoach = user?.role === 'coach' || user?.role === 'admin';
 
@@ -277,6 +356,14 @@ export default function BookingsPage() {
     paymentSettings.bank_account_number
   );
 
+  const coachGroupCounts = COACH_STATUS_GROUPS.reduce((acc, group) => {
+    acc[group.label] = bookings.filter((booking) => getCoachBookingGroup(booking.status) === group.label).length;
+    return acc;
+  }, { 全部: bookings.length });
+  const visibleBookings = isCoach && selectedCoachGroup !== '全部'
+    ? bookings.filter((booking) => getCoachBookingGroup(booking.status) === selectedCoachGroup)
+    : bookings;
+
   return (
     <div style={{ padding: '20px 16px', background: BG, minHeight: '100vh', paddingBottom: 100 }}>
 
@@ -287,10 +374,41 @@ export default function BookingsPage() {
         </h1>
         {isCoach && (
           <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED }}>
-            課程進行中請填寫「學習紀錄卡」才可完課
+            用狀態分組快速判斷下一步：先處理待付款、待確認與待完課確認的訂單
           </p>
         )}
       </header>
+
+      {isCoach && bookings.length > 0 && (
+        <section style={{ marginBottom: 18 }}>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {['全部', ...COACH_STATUS_GROUPS.map((group) => group.label)].map((groupLabel) => {
+              const active = selectedCoachGroup === groupLabel;
+              const count = coachGroupCounts[groupLabel] || 0;
+              return (
+                <button
+                  key={groupLabel}
+                  onClick={() => setSelectedCoachGroup(groupLabel)}
+                  style={{
+                    flex: '0 0 auto',
+                    border: `1px solid ${active ? BLUE : 'var(--color-border)'}`,
+                    background: active ? BLUE : 'var(--color-surface)',
+                    color: active ? 'var(--text-light)' : DARK,
+                    borderRadius: 999,
+                    padding: '8px 12px',
+                    fontSize: 12,
+                    fontWeight: 900,
+                    cursor: 'pointer',
+                    boxShadow: active ? 'var(--shadow-card)' : 'none',
+                  }}
+                >
+                  {groupLabel} · {count}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {bookings.length === 0 ? (
         <div style={{
@@ -300,14 +418,14 @@ export default function BookingsPage() {
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
           <p style={{ fontSize: 16, fontWeight: 700, color: DARK, margin: '0 0 6px' }}>目前沒有訂單</p>
           <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
-            {isCoach ? '完善教練資料後學員就能找到你' : '去找一位教練開始預約吧！'}
+            {isCoach ? '目前還沒有預約。確認你的課程方案、可上課時段與公開教練頁已完成，學生就能開始預約你。' : '去找一位教練開始預約吧！'}
           </p>
           {isCoach ? (
             <button
               onClick={() => router.push('/dashboard/coach')}
               style={{ marginTop: 20, padding: '10px 28px', background: BLUE, color: 'var(--text-light)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
             >
-              完善個人資料 →
+              檢查接單狀態 →
             </button>
           ) : (
             <button
@@ -320,11 +438,22 @@ export default function BookingsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {bookings.map(b => {
+          {visibleBookings.length === 0 ? (
+            <div style={{
+              background: 'var(--color-surface)', borderRadius: 18, padding: 20,
+              border: '1px solid var(--color-border)', color: MUTED, fontSize: 13, fontWeight: 700, textAlign: 'center'
+            }}>
+              這個分組目前沒有訂單。
+            </div>
+          ) : visibleBookings.map(b => {
             const ss = statusStyle(b.status);
-            const canStartReport = isCoach && (b.status === 'scheduled' || b.status === 'in_progress');
+            const coachGroup = getCoachBookingGroup(b.status);
+            const nextStepCopy = COACH_NEXT_STEP_COPY[coachGroup];
+            const canStartReport = isCoach && ['scheduled', 'confirmed', 'in_progress', 'pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required'].includes(b.status);
+            const canConfirmCompletion = isCoach && ['pending_completion', 'in_progress'].includes(b.status);
             const isCompleted = b.status === 'completed';
             const isPendingPayment = b.status === 'pending_payment';
+            const isCancelled = ['cancelled', 'refunded', 'expired'].includes(b.status);
             const hasReceipt = Boolean(b.payment_reference);
             const paymentExpiresAt = b.payment_expires_at ? new Date(b.payment_expires_at) : null;
             return (
@@ -356,7 +485,7 @@ export default function BookingsPage() {
                     fontSize: 11, fontWeight: 700, padding: '5px 10px',
                     borderRadius: 100, background: ss.bg, color: ss.color,
                   }}>
-                    {STATUS_MAP[b.status] || b.status}
+                    {getStatusLabel(b.status, isCoach)}
                   </span>
                 </div>
 
@@ -367,7 +496,7 @@ export default function BookingsPage() {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: DARK, fontSize: 13, fontWeight: 700 }}>
                     <Calendar size={13} color={BLUE} />
-                    {b.expected_time ? new Date(b.expected_time).toLocaleString('zh-TW', { 
+                    {b.expected_time ? new Date(b.expected_time).toLocaleString('zh-TW', {
                       year: 'numeric', month: 'long', day: 'numeric',
                       hour: '2-digit', minute: '2-digit'
                     }) : '時間待定'}
@@ -375,16 +504,77 @@ export default function BookingsPage() {
                   <div style={{ textAlign: 'right' }}>
                     {(b.discount_amount > 0 || b.price_adjustment !== 0) && (
                       <div style={{ fontSize: 11, color: MUTED, marginBottom: 2 }}>
-                        ${b.base_price?.toLocaleString()} 
+                        ${b.base_price?.toLocaleString()}
                         {b.discount_amount > 0 && ` - 折扣 $${b.discount_amount}`}
                         {b.price_adjustment !== 0 && ` ${b.price_adjustment > 0 ? '+' : ''} 議價 $${b.price_adjustment}`}
                       </div>
                     )}
                     <div style={{ fontWeight: 900, color: DARK, fontSize: 15 }}>
-                      NT${b.final_price?.toLocaleString() ?? '--'}
+                      全額 NT${b.final_price?.toLocaleString() ?? '--'}
                     </div>
                   </div>
                 </div>
+
+                {isCoach && (
+                  <div style={{
+                    borderTop: '1px solid var(--color-border)',
+                    paddingTop: 12,
+                    marginTop: 12,
+                    marginBottom: 12,
+                    background: 'var(--color-surface-soft)',
+                    borderRadius: 14,
+                    padding: 12,
+                  }}>
+                    <div style={{ fontSize: 11, color: MUTED, fontWeight: 900, marginBottom: 4 }}>下一步</div>
+                    <div style={{ color: DARK, fontSize: 13, fontWeight: 800, lineHeight: 1.55 }}>
+                      {nextStepCopy}
+                    </div>
+                  </div>
+                )}
+
+                {isCoach && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 12 }}>
+                    {!isCompleted && !isCancelled && (
+                      <button
+                        onClick={() => router.push('/chat')}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: BLUE, color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        前往聊天
+                      </button>
+                    )}
+                    {canStartReport && !isCompleted && !isCancelled && (
+                      <button
+                        onClick={() => router.push(`/reports/${b.id}`)}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: `1px solid ${BLUE}`, background: 'var(--color-surface)', color: BLUE, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        <FileText size={14} /> 填寫課後日誌
+                      </button>
+                    )}
+                    {canConfirmCompletion && !isCompleted && !isCancelled && (
+                      <button
+                        onClick={() => handleStatusUpdate(b.id, 'completed')}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'var(--success)', color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        確認完課
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setExpandedBookingId(expandedBookingId === b.id ? null : b.id)}
+                      style={{ flex: '1 1 120px', padding: '10px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: DARK, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                    >
+                      查看訂單
+                    </button>
+                  </div>
+                )}
+
+                {expandedBookingId === b.id && (
+                  <div style={{ marginTop: 12, padding: 12, borderRadius: 14, background: 'var(--color-surface-soft)', color: MUTED, fontSize: 12, lineHeight: 1.7, fontWeight: 700 }}>
+                    <div>訂單編號：#{b.id}</div>
+                    <div>課程：{b.service_title || b.plan_title || '未命名課程'}</div>
+                    <div>目前狀態：{getStatusLabel(b.status, isCoach)}</div>
+                    <div>預計時間：{b.expected_time ? new Date(b.expected_time).toLocaleString('zh-TW') : '時間待定'}</div>
+                  </div>
+                )}
 
                 {isPendingPayment && (
                   <div style={{
@@ -396,7 +586,7 @@ export default function BookingsPage() {
                       ? '此訂單尚未付款確認，請勿視為正式排程。'
                       : hasReceipt
                         ? '已收到您的付款資訊，正在確認中（約1-10分鐘）。'
-                        : '為確保預約成功，請依照系統金額轉帳。轉帳後上傳截圖即可完成預約。'}
+                        : '為確保預約成功，請依照全額付款金額轉帳。轉帳後上傳截圖即可進入人工確認。'}
                     {paymentExpiresAt && (
                       <div style={{ fontWeight: 600, marginTop: 4 }}>
                         保留至：{paymentExpiresAt.toLocaleString('zh-TW', { hour: '2-digit', minute: '2-digit', month: 'numeric', day: 'numeric' })}
@@ -443,28 +633,28 @@ export default function BookingsPage() {
                 )}
 
                 {/* Price Adjust Actions (Coach Only) */}
-                {isCoach && !isCompleted && !isPendingPayment && b.status !== 'cancelled' && (
+                {isCoach && !isCompleted && !isPendingPayment && !isCancelled && (
                   <div style={{ borderTop: '1px solid var(--color-border)', marginTop: 12, paddingTop: 12 }}>
                     {adjustingId === b.id ? (
                       <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
                          <div style={{ flex: 1, position:'relative' }}>
                             <span style={{ position:'absolute', left: 10, top:'50%', transform:'translateY(-50%)', fontSize:12, color:MUTED }}>±</span>
-                            <input 
-                              type="number" 
+                            <input
+                              type="number"
                               value={adjustmentValue}
                               onChange={e => setAdjustmentValue(e.target.value)}
                               placeholder="金額 (限制 ±200)"
                               style={{ width:'100%', padding:'8px 8px 8px 24px', borderRadius:8, border:`1px solid var(--color-border)`, background: 'var(--color-surface-soft)', color: DARK, fontSize:13 }}
                             />
                          </div>
-                         <button 
+                         <button
                            onClick={() => handleAdjustPrice(b.id)}
                            disabled={adjusting}
                            style={{ padding:'8px 16px', borderRadius:8, background:BLUE, color:'var(--text-light)', fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
                          >
                            {adjusting ? '...' : '確認'}
                          </button>
-                         <button 
+                         <button
                            onClick={() => setAdjustingId(null)}
                            style={{ padding:'8px 12px', borderRadius:8, background:'var(--color-surface-soft)', color:MUTED, fontSize:12, fontWeight:700, border:'none', cursor:'pointer' }}
                          >
@@ -472,52 +662,11 @@ export default function BookingsPage() {
                          </button>
                       </div>
                     ) : (
-                      <button 
+                      <button
                         onClick={() => { setAdjustingId(b.id); setAdjustmentValue(b.price_adjustment || 0); }}
                         style={{ background:'none', border:`1px solid var(--color-border)`, padding:'6px 12px', borderRadius:8, fontSize:12, fontWeight:700, color:DARK, cursor:'pointer' }}
                       >
                         📝 議價 / 調整金額
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Coach action buttons */}
-                {isCoach && !isCompleted && (
-                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-                    {user?.role === 'admin' && isPendingPayment && (
-                      <button
-                        onClick={() => handleConfirmPayment(b.id)}
-                        style={{
-                          flex: 1, padding: '10px', borderRadius: 12, border: 'none',
-                          background: 'var(--success)', color: 'var(--text-light)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                        }}
-                      >
-                        確認付款
-                      </button>
-                    )}
-                    {b.status === 'scheduled' && (
-                      <button
-                        onClick={() => handleStatusUpdate(b.id, 'in_progress')}
-                        style={{
-                          flex: 1, padding: '10px', borderRadius: 12, border: 'none',
-                          background: 'var(--warning-bg)', color: 'var(--warning)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                        }}
-                      >
-                        ▶ 開始上課
-                      </button>
-                    )}
-                    {canStartReport && (
-                      <button
-                        onClick={() => router.push(`/reports/${b.id}`)}
-                        style={{
-                          flex: 2, padding: '10px', borderRadius: 12, border: 'none',
-                          background: BLUE, color: 'var(--text-light)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                          boxShadow: `var(--shadow-card)`,
-                        }}
-                      >
-                        <FileText size={14} /> 填寫學習紀錄卡
                       </button>
                     )}
                   </div>
@@ -576,7 +725,7 @@ export default function BookingsPage() {
           zIndex: 100, padding: 20,
         }}>
           <div style={{
-            background: 'var(--color-surface)', borderRadius: 24, width: '100%', maxWidth: 400, padding: 24,
+            background: 'var(--color-surface)', borderRadius: 16, width: '100%', maxWidth: 400, padding: 24,
             boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
           }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 900, color: DARK }}>撰寫評價</h2>
@@ -641,7 +790,7 @@ export default function BookingsPage() {
           zIndex: 120, padding: 16,
         }}>
           <div style={{
-            width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: 24, padding: 24,
+            width: '100%', maxWidth: 480, background: 'var(--color-surface)', borderRadius: 16, padding: 24,
             boxShadow: 'var(--shadow-card)', border: '1px solid var(--color-border)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
@@ -651,7 +800,7 @@ export default function BookingsPage() {
                   回報匯款截圖
                 </h2>
                 <p style={{ margin: '8px 0 0', color: MUTED, fontSize: 13, lineHeight: 1.6 }}>
-                  請依照下列收款資訊完成轉帳，再上傳截圖。送出後管理員會進行人工對帳。
+                  請依照下列平台收款資訊完成全額轉帳，再上傳截圖。送出後管理員會進行人工對帳。
                 </p>
               </div>
               <button
@@ -663,6 +812,14 @@ export default function BookingsPage() {
             </div>
 
             <div style={{ background: 'var(--color-surface-soft)', borderRadius: 18, padding: 16, marginBottom: 16, display: 'grid', gap: 10 }}>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>付款流程</div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['待付款', '確認中', '已付款'].map((step, index) => (
+                  <span key={step} style={{ fontSize: 11, fontWeight: 700, padding: '4px 8px', borderRadius: 999, background: index === 0 ? 'var(--status-pending-bg)' : index === 1 ? 'rgba(148,163,184,0.10)' : 'var(--status-paid-bg)', color: index === 0 ? 'var(--status-pending)' : index === 1 ? MUTED : 'var(--status-paid)' }}>
+                    {step}
+                  </span>
+                ))}
+              </div>
               <div style={{ fontSize: 12, color: MUTED, fontWeight: 700 }}>平台收款帳號</div>
               <div style={{ display: 'grid', gap: 8, color: DARK, fontSize: 14, fontWeight: 700 }}>
                 <div>銀行代碼：{paymentSettings.bank_code || '尚未設定'}</div>
@@ -675,9 +832,20 @@ export default function BookingsPage() {
               )}
             </div>
 
+            <div style={{ background: 'rgba(16, 185, 129, 0.08)', border: '1px solid rgba(16, 185, 129, 0.22)', borderRadius: 18, padding: 16, marginBottom: 16 }}>
+              <div style={{ color: DARK, fontSize: 14, fontWeight: 900, marginBottom: 8 }}>平台保障提醒</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: MUTED, fontSize: 12, lineHeight: 1.65, fontWeight: 700 }}>
+                <li>全額付款由平台保管，教練還沒確認前不會直接撥款。</li>
+                <li>教練如果臨時沒有出現，請先保留聊天紀錄與付款資訊，平台會協助確認。</li>
+                <li>有爭議時由平台協助處理，必要時可先暫停撥款。</li>
+                <li>退款會依實際狀況人工處理；若課程未成立或雙方確認取消，平台會協助退款或改期。</li>
+                <li>請勿私下轉帳，避免失去平台保障。</li>
+              </ul>
+            </div>
+
             <div style={{ marginBottom: 16 }}>
               <div style={{ color: DARK, fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
-                訂單金額：NT${paymentModalBooking.final_price?.toLocaleString() ?? '--'}
+                全額付款金額：NT${paymentModalBooking.final_price?.toLocaleString() ?? '--'}
               </div>
               <label style={{
                 display: 'block', border: '1px dashed var(--color-primary)', borderRadius: 18, padding: 18,
@@ -726,7 +894,7 @@ export default function BookingsPage() {
                 }}
               >
                 {(uploadingReceipt || reportingPayment) ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                {uploadingReceipt ? '上傳中...' : reportingPayment ? '送出中...' : '送出付款資訊'}
+                {uploadingReceipt ? '上傳中...' : reportingPayment ? '送出中...' : '送出全額付款資訊'}
               </button>
             </div>
           </div>

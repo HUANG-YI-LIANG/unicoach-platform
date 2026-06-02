@@ -120,6 +120,7 @@ export async function POST(request) {
 
     // 5. 處理推廣碼 (Referral Logic)
     let referredById = null;
+    let isReferredByAmbassador = false;
     if (referralCode) {
       const { data: referrer } = await adminSupabase
         .from('users')
@@ -128,6 +129,17 @@ export async function POST(request) {
         .maybeSingle();
       if (referrer) {
         referredById = referrer.id;
+        
+        const { data: ambassadorData } = await adminSupabase
+          .from('ambassadors')
+          .select('user_id')
+          .eq('user_id', referrer.id)
+          .eq('status', 'active')
+          .maybeSingle();
+        
+        if (ambassadorData) {
+          isReferredByAmbassador = true;
+        }
       }
     }
 
@@ -171,6 +183,19 @@ export async function POST(request) {
       console.error('[PROFILE CREATE ERROR]', profileError);
       await adminSupabase.auth.admin.deleteUser(authData.user.id);
       throw profileError;
+    }
+
+    if (isReferredByAmbassador && referredById) {
+      const { error: bindingError } = await adminSupabase.from('referral_bindings').insert([{
+        referee_id: authData.user.id,
+        ambassador_id: referredById,
+        ip_address: ip || request.headers.get('x-forwarded-for') || '127.0.0.1',
+        user_agent: request.headers.get('user-agent') || 'unknown',
+        device_id: 'browser' // Can be enhanced later via client fingerprinting
+      }]);
+      if (bindingError) {
+        console.warn('[REFERRAL BINDING ERROR]', bindingError);
+      }
     }
 
     // 6. 核心記錄：法律同意存檔 (terms_consents)

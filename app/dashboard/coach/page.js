@@ -1,470 +1,410 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  Menu,
-  CheckCircle2,
-  Copy,
-  QrCode,
-  ShoppingCart,
-  User,
-  Shield,
-  Bell,
-  Globe,
-  ArrowUpRight,
-  CreditCard,
-  LogOut,
-  ChevronRight,
-  Wallet,
-  Clock,
-  MessageCircle,
-  FileText,
-  Check
+  ArrowUpRight, Bell, Calendar, Check, ChevronRight, Circle, Clock,
+  FileText, MessageCircle, ShieldCheck, UserCheck, Wallet
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import VideoUpload from '@/components/VideoUpload';
-import CoachOnboardingTasks from '@/components/CoachOnboardingTasks';
 
-const BG = 'var(--color-bg)';
-const CARD = 'var(--color-surface)';
-const ORANGE = 'var(--color-accent)';
-const MUTED = 'var(--color-text-muted)';
-const DARK_ORANGE = 'var(--color-warning)';
-const TEXT_LIGHT = 'var(--color-text)';
-const RADIUS = '20px';
-const SHADOW = 'var(--shadow-card)';
-const BORDER = 'var(--color-border)';
+const BG = 'var(--bg-primary)';
+const CARD = 'var(--bg-card)';
+const ORANGE = 'var(--accent)';
+const MUTED = 'var(--text-muted)';
+const TEXT_LIGHT = 'var(--text-primary)';
+const BORDER = 'var(--border)';
+
+function SectionLabel({ children, style = {} }) {
+  return (
+    <p style={{
+      fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
+      color: MUTED, textTransform: 'uppercase', marginBottom: 16, paddingLeft: 4,
+      ...style,
+    }}>
+      {children}
+    </p>
+  );
+}
+
+function isSameLocalDay(dateValue, referenceDate = new Date()) {
+  if (!dateValue) return false;
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return false;
+  return date.toDateString() === referenceDate.toDateString();
+}
+
+function safeStatus(booking) {
+  return String(booking?.status || '').toLowerCase();
+}
+
+function getStudentKey(booking) {
+  return booking?.student_id || booking?.user_id || booking?.student?.id || booking?.user?.id || booking?.user_name || null;
+}
+
+function TodoRow({ icon: Icon, label, detail, count, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="btn-press"
+      style={{
+        width: '100%', border: `1px solid ${active ? 'rgba(255, 138, 61, 0.35)' : BORDER}`,
+        background: active ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.025)',
+        borderRadius: 18, padding: '14px 16px', cursor: 'pointer', color: TEXT_LIGHT,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left',
+      }}
+    >
+      <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+        <span style={{
+          width: 36, height: 36, borderRadius: 12, flex: '0 0 auto',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: active ? 'rgba(255, 138, 61, 0.14)' : 'rgba(255,255,255,0.045)', color: active ? ORANGE : MUTED,
+        }}>
+          <Icon size={18} />
+        </span>
+        <span style={{ minWidth: 0 }}>
+          <span style={{ display: 'block', fontSize: 14, fontWeight: 800, marginBottom: 3 }}>{label}</span>
+          <span style={{ display: 'block', fontSize: 12, color: MUTED, lineHeight: 1.45 }}>{detail}</span>
+        </span>
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 12 }}>
+        {active && (
+          <span style={{
+            minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
+            background: ORANGE, color: '#120B06', fontSize: 12, fontWeight: 900,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {count}
+          </span>
+        )}
+        <ChevronRight size={16} color={MUTED} />
+      </span>
+    </button>
+  );
+}
+
+function ChecklistItem({ done, label, hint }) {
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderTop: `1px solid ${BORDER}` }}>
+      <span style={{
+        width: 22, height: 22, borderRadius: 999, flex: '0 0 auto', marginTop: 1,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: done ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${done ? 'rgba(16, 185, 129, 0.45)' : BORDER}`,
+        color: done ? '#10B981' : MUTED,
+      }}>
+        {done ? <Check size={14} /> : <Circle size={10} />}
+      </span>
+      <span>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 750, color: TEXT_LIGHT }}>{label}</span>
+        <span style={{ display: 'block', fontSize: 12, color: MUTED, lineHeight: 1.45, marginTop: 2 }}>{hint}</span>
+      </span>
+    </div>
+  );
+}
 
 export default function CoachDashboard() {
   const [profile, setProfile] = useState(null);
   const [coachDetail, setCoachDetail] = useState(null);
   const [bookings, setBookings] = useState([]);
-  const [chatRooms, setChatRooms] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [plans, setPlans] = useState([]);
+  const [usingDefaultPlans, setUsingDefaultPlans] = useState(false);
+  const [availabilityRules, setAvailabilityRules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState(false);
   const router = useRouter();
-  const { logout } = useAuth();
 
   useEffect(() => {
-    let isMounted = true;
-
-    Promise.all([
-      fetch('/api/auth/profile'),
-      fetch('/api/bookings'),
-      fetch('/api/chat/rooms')
-    ])
-      .then(async ([profileRes, bookingsRes, roomsRes]) => {
-        if (!profileRes.ok) {
-          router.push('/login');
-          return;
-        }
-
-        const [profileData, bookingsData, roomsData] = await Promise.all([
-          profileRes.json(),
-          bookingsRes.ok ? bookingsRes.json() : Promise.resolve({ bookings: [] }),
-          roomsRes.ok ? roomsRes.json() : Promise.resolve({ rooms: [] })
+    (async () => {
+      try {
+        const [profileRes, bookingsRes, unreadRes, plansRes, availabilityRes] = await Promise.all([
+          fetch('/api/auth/profile'),
+          fetch('/api/bookings'),
+          fetch('/api/user/unread-counts'),
+          fetch('/api/coach/plans'),
+          fetch('/api/coach/availability'),
         ]);
 
-        if (!isMounted) return;
+        if (!profileRes.ok) return router.push('/login');
+        const profilePayload = await profileRes.json();
+        const profileData = profilePayload.profile;
+        if (!profileData) return router.replace('/login');
+        if (profileData.role !== 'coach') return router.replace(getDashboardPathForRole(profileData.role));
 
-        if (!profileData.profile) {
-          router.replace('/login');
-          return;
+        setProfile(profileData);
+        setCoachDetail(profilePayload.coach || null);
+
+        if (bookingsRes.ok) {
+          const { bookings: bookingData } = await bookingsRes.json();
+          setBookings(Array.isArray(bookingData) ? bookingData : []);
         }
-
-        if (profileData.profile.role !== 'coach') {
-          router.replace(getDashboardPathForRole(profileData.profile.role));
-          return;
+        if (unreadRes.ok) {
+          const data = await unreadRes.json();
+          setUnreadCount(Number(data.unreadChatCount) || 0);
         }
-
-        setProfile(profileData.profile);
-        setCoachDetail(profileData.coach || null);
-        setBookings(Array.isArray(bookingsData.bookings) ? bookingsData.bookings : []);
-        setChatRooms(Array.isArray(roomsData.rooms) ? roomsData.rooms : []);
-      })
-      .catch((error) => {
-        console.error('[COACH DASHBOARD LOAD ERROR]', error);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+        if (plansRes.ok) {
+          const data = await plansRes.json();
+          setPlans(Array.isArray(data.plans) ? data.plans : []);
+          setUsingDefaultPlans(Boolean(data.using_defaults));
+        }
+        if (availabilityRes.ok) {
+          const data = await availabilityRes.json();
+          setAvailabilityRules(Array.isArray(data.rules) ? data.rules : []);
+        }
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [router]);
+
+  const dashboardData = useMemo(() => {
+    const activeBookings = bookings.filter((booking) => !['cancelled', 'refunded'].includes(safeStatus(booking)));
+    const todayBookings = activeBookings.filter((booking) => isSameLocalDay(booking.booking_date));
+    const pendingOrders = activeBookings.filter((booking) => ['pending', 'pending_confirmation', 'requested'].includes(safeStatus(booking)));
+    const pendingPayments = activeBookings.filter((booking) => safeStatus(booking) === 'pending_payment');
+    const pendingReports = activeBookings.filter((booking) => (
+      ['pending_completion', 'completed'].includes(safeStatus(booking)) &&
+      !(booking.learning_report_id || booking.report_id || booking.report)
+    ));
+    const completedBookings = bookings.filter((booking) => safeStatus(booking) === 'completed');
+    const uniqueStudentIds = new Set(activeBookings.map(getStudentKey).filter(Boolean));
+    const activePlans = plans.filter((plan) => plan?.is_active !== false);
+    const hasRealPlans = activePlans.length > 0 && !usingDefaultPlans;
+    const hasAvailability = availabilityRules.some((rule) => rule?.is_active !== false);
+    const hasIntro = Boolean(
+      coachDetail?.intro_video_url || coachDetail?.video_url || coachDetail?.teaching_video_url ||
+      coachDetail?.philosophy || coachDetail?.teaching_features || coachDetail?.experience || profile?.bio
+    );
+    const isApproved = coachDetail?.approval_status === 'approved' || profile?.approval_status === 'approved';
+    const canReceiveOrders = Boolean(isApproved && hasRealPlans && hasAvailability);
+
+    return {
+      todayBookings,
+      pendingOrders,
+      pendingPayments,
+      pendingReports,
+      completedBookings,
+      uniqueStudentIds,
+      activePlans,
+      hasRealPlans,
+      hasAvailability,
+      hasIntro,
+      isApproved,
+      canReceiveOrders,
+      hasTodo: todayBookings.length > 0 || unreadCount > 0 || pendingOrders.length > 0 || pendingPayments.length > 0 || pendingReports.length > 0,
+    };
+  }, [availabilityRules, bookings, coachDetail, plans, profile, unreadCount, usingDefaultPlans]);
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: BG }}>
-        <p style={{ color: ORANGE, fontSize: 15, fontWeight: 800 }}>Loading Dashboard...</p>
+      <div className="mobile-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <p style={{ color: MUTED }}>載入中...</p>
       </div>
     );
   }
 
-  const pendingMessages = chatRooms.reduce((sum, room) => sum + (room.unread_count || 0), 0);
-  const netEarnings = bookings.reduce(
-    (sum, booking) => (booking.status === 'completed' ? sum + (booking.coach_payout || 0) : sum),
-    0
-  );
-  
-  const referralCode = typeof coachDetail?.referral_code === 'string' ? coachDetail.referral_code.trim() : '';
-
-  const handleCopyCode = async () => {
-    if (!referralCode) return;
-    try {
-      await navigator.clipboard.writeText(referralCode);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-    } catch (error) {
-      console.error('[COPY ERROR]', error);
-    }
-  };
-
-  const promotionUrl = typeof window !== 'undefined' && referralCode ? `${window.location.origin}/register?ref=${referralCode}` : '';
+  const checklist = [
+    {
+      label: '身分 / 學生證審核通過',
+      done: dashboardData.isApproved,
+      hint: dashboardData.isApproved ? '平台已通過你的教練身分審核。' : '尚未看到審核通過狀態，請確認教練資料。',
+    },
+    {
+      label: '已建立課程方案',
+      done: dashboardData.hasRealPlans,
+      hint: dashboardData.hasRealPlans ? '已有可接單方案。' : '尚未建立可接單服務',
+    },
+    {
+      label: '已設定可上課時段',
+      done: dashboardData.hasAvailability,
+      hint: dashboardData.hasAvailability ? '學生可以依你的開放時段預約。' : '尚未看到固定可預約時段。',
+    },
+    {
+      label: '已上傳教學影片或自介',
+      done: dashboardData.hasIntro,
+      hint: dashboardData.hasIntro ? '已有自介/教學內容可協助學生判斷。' : '建議補上自介、教學特色或影片，提高轉換率。',
+    },
+    {
+      label: '已開啟可接單狀態',
+      done: dashboardData.canReceiveOrders,
+      hint: dashboardData.canReceiveOrders ? '基本接單條件已就緒。' : '完成審核、方案與時段後再開放接單較安全。',
+    },
+  ];
 
   return (
-    <div style={{
-      background: BG,
-      minHeight: '100vh',
-      paddingBottom: 100,
-      color: TEXT_LIGHT,
-      position: 'relative',
-      overflowX: 'hidden'
-    }}>
-      {/* Background Gradient Effect */}
-      <div style={{
-        position: 'absolute',
-        top: -100,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: '600px',
-        height: '600px',
-        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, rgba(9, 14, 23, 0) 60%)',
-        zIndex: 0,
-        pointerEvents: 'none'
-      }} />
-
-      <div style={{ position: 'relative', zIndex: 1, padding: '24px 20px 0' }}>
-        {/* Header */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button style={{ background: 'none', border: 'none', color: ORANGE, cursor: 'pointer', padding: 0 }}>
-              <Menu size={24} />
-            </button>
-            <h1 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: ORANGE, fontStyle: 'italic', letterSpacing: '0.05em' }}>
-              PRO COACH
-            </h1>
-          </div>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', border: `2px solid ${MUTED}`
-          }}>
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: '100%', height: '100%', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: MUTED, fontWeight: 800 }}>
-                {profile?.name?.charAt(0) ?? 'C'}
-              </div>
+    <div className="mobile-container fade-in" style={{ backgroundColor: BG, minHeight: '100vh' }}>
+      <header style={{
+        padding: 'var(--padding-page)', paddingTop: '40px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      }}>
+        <div>
+          <p style={{ fontSize: 13, color: MUTED, marginBottom: 2 }}>教練中心</p>
+          <h1 style={{ fontSize: 20, fontWeight: 800, color: TEXT_LIGHT, letterSpacing: '-0.02em', margin: 0 }}>
+            {profile?.name || '教練'} 的工作台
+          </h1>
+        </div>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div onClick={() => router.push('/chat')} className="btn-press" style={{ position: 'relative', cursor: 'pointer', background: CARD, border: `1px solid ${BORDER}`, width: 44, height: 44, borderRadius: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', color: TEXT_LIGHT }}>
+            <MessageCircle size={20} />
+            {unreadCount > 0 && (
+              <span style={{ position: 'absolute', top: -2, right: -2, background: '#EF4444', width: 12, height: 12, borderRadius: 6, border: `2px solid ${BG}` }} />
             )}
           </div>
-        </header>
+          <div style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: CARD, border: `1px solid ${BORDER}`, overflow: 'hidden' }}>
+            {profile?.avatar_url && <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+          </div>
+        </div>
+      </header>
 
-        {/* Profile Avatar & Info */}
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 32 }}>
-          <div style={{ position: 'relative', marginBottom: 16 }}>
-            <div style={{
-              width: 100, height: 100, borderRadius: '50%', border: `3px solid ${ORANGE}`,
-              overflow: 'hidden', background: 'var(--color-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`
+      <main style={{ padding: '0 var(--padding-page) 100px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-section)' }}>
+        <section style={{
+          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20,
+          boxShadow: 'var(--shadow-sm)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
+            <div>
+              <SectionLabel style={{ marginBottom: 8, paddingLeft: 0 }}>今日待辦</SectionLabel>
+              <h2 style={{ fontSize: 24, fontWeight: 900, color: TEXT_LIGHT, margin: 0, lineHeight: 1.25 }}>
+                今天要做什麼
+              </h2>
+            </div>
+            <span style={{
+              border: `1px solid ${BORDER}`, borderRadius: 999, padding: '7px 10px',
+              color: dashboardData.hasTodo ? ORANGE : MUTED, fontSize: 12, fontWeight: 800,
+              background: dashboardData.hasTodo ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.025)',
             }}>
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <span style={{ fontSize: 32, fontWeight: 900, color: MUTED }}>{profile?.name?.charAt(0) ?? 'C'}</span>
-              )}
-            </div>
-            {coachDetail?.approval_status === 'approved' && (
-              <div style={{
-                position: 'absolute', bottom: 0, right: 0, background: ORANGE, borderRadius: '50%', padding: 4,
-                border: `2px solid ${BG}`
-              }}>
-                <CheckCircle2 size={16} color={TEXT_LIGHT} />
-              </div>
-            )}
-          </div>
-          <h2 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '0.02em' }}>
-            {profile?.name?.toUpperCase() || 'COACH'}
-          </h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>{profile?.email}</p>
-        </div>
-
-        {/* Onboarding Tasks */}
-        <CoachOnboardingTasks profile={profile} coachDetail={coachDetail} />
-
-        {/* Stats Row & Dynamic Performance Panel */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              CURRENT LEVEL
-            </p>
-            <p style={{ margin: '8px 0 4px', fontSize: 24, fontWeight: 900, color: ORANGE, letterSpacing: '0.05em' }}>
-              Lv.{coachDetail?.level || 1}
-            </p>
-            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>每月動態績效評估</p>
-          </div>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <p style={{ margin: 0, fontSize: 10, fontWeight: 800, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              PLATFORM COMMISSION
-            </p>
-            <p style={{ margin: '8px 0 4px', fontSize: 24, fontWeight: 900 }}>
-              {coachDetail?.commission_rate ?? 45}%
-            </p>
-            <p style={{ margin: 0, fontSize: 12, color: MUTED, fontWeight: 600 }}>平台抽成比例</p>
-          </div>
-        </div>
-
-        {/* 30-Day Performance Details */}
-        {coachDetail?.performance_metrics && (
-          <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '24px 20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: TEXT_LIGHT }}>近 30 天績效目標</h3>
-              <span style={{ background: 'rgba(249, 115, 22, 0.1)', color: ORANGE, padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 800 }}>
-                次月等級預測：Lv.{coachDetail.level}
-              </span>
-            </div>
-            <p style={{ fontSize: 13, color: MUTED, marginBottom: 20, lineHeight: 1.5 }}>
-              💡 教練等級為「每月動態績效制」。系統會自動根據您過去 30 天的表現，決定您當下的等級與平台抽成率，請維持優質服務！
-            </p>
-
-            {/* Metrics List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(() => {
-                const metrics = coachDetail.performance_metrics;
-                const targetLv = Math.min((coachDetail.level || 1) + 1, 4);
-                const thresholds = coachDetail.performance_thresholds || {};
-
-                const targetLessons = targetLv === 4 ? (thresholds.lv4_lessons||6) : targetLv === 3 ? (thresholds.lv3_lessons||4) : (thresholds.lv2_lessons||2);
-                const targetRating = targetLv === 4 ? 4.8 : targetLv === 3 ? 4.7 : 4.5;
-                const targetResponse = targetLv === 4 ? '< 15分' : targetLv === 3 ? '< 60分' : '> 80%';
-
-                const renderMetric = (label, value, targetStr, isPass) => (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ width: 24, height: 24, borderRadius: '50%', background: isPass ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {isPass ? <Check size={14} color="#10B981" /> : <div style={{ width: 8, height: 2, background: '#EF4444', borderRadius: 2 }} />}
-                      </div>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: TEXT_LIGHT }}>{label}</span>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: isPass ? '#10B981' : '#EF4444' }}>{value}</div>
-                      <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>門檻: {targetStr}</div>
-                    </div>
-                  </div>
-                );
-
-                return (
-                  <>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: ORANGE, marginBottom: 4 }}>目標：達到或維持 Lv.{targetLv}</div>
-                    {renderMetric('近30天完課數', `${metrics.monthly_lessons} 堂`, `${targetLessons} 堂`, metrics.monthly_lessons >= targetLessons)}
-                    {renderMetric('平均評分', `${metrics.average_rating} 顆星`, `≥ ${targetRating}`, Number(metrics.average_rating) >= targetRating)}
-                    {renderMetric('回覆速度/率', targetLv < 3 ? `${metrics.response_rate}%` : `${metrics.average_response_time} 分鐘`, targetResponse, targetLv < 3 ? metrics.response_rate >= 80 : metrics.average_response_time <= (targetLv===4?15:60))}
-                    {renderMetric('惡意取消紀錄', `${metrics.malicious_cancels} 次`, '0 次 (含逾期未接)', metrics.malicious_cancels === 0)}
-                  </>
-                );
-              })()}
-            </div>
-          </div>
-        )}
-
-        {/* Wallet Balance Card */}
-        <div style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '20px', border: '1px solid rgba(255,255,255,0.05)', marginBottom: 20 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Wallet size={16} color={ORANGE} />
-              <span style={{ fontSize: 11, fontWeight: 800, color: MUTED, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                WALLET BALANCE
-              </span>
-            </div>
-            <span style={{ fontSize: 22, fontWeight: 900 }}>
-              ${netEarnings.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {dashboardData.hasTodo ? '需要處理' : '暫無待辦'}
             </span>
           </div>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <button style={{
-              flex: 1, padding: '12px', background: ORANGE, color: TEXT_LIGHT, borderRadius: 12,
-              fontWeight: 800, fontSize: 14, border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}>
-              Top Up
-            </button>
-            <button onClick={() => router.push('/dashboard/coach/earnings')} style={{
-              flex: 1, padding: '12px', background: 'transparent', color: TEXT_LIGHT, borderRadius: 12,
-              fontWeight: 800, fontSize: 14, border: `1px solid ${MUTED}`, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}>
-              <Clock size={16} /> Details
-            </button>
-          </div>
-        </div>
 
-        {/* Refer a Fellow Coach */}
-        <div style={{ padding: '0 0 32px 0' }}>
-          <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, padding: 24, boxShadow: SHADOW, display: 'flex', flexDirection: 'column', gap: 24, border: `1px solid ${BORDER}` }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--color-surface-soft)', border: '1px solid var(--color-border)', padding: '16px 20px', borderRadius: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 40, height: 40, background: 'rgba(255,255,255,0.1)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wallet size={20} color={ORANGE} />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, color: MUTED, fontWeight: 700, letterSpacing: '0.05em' }}>推廣獎勵 (待發放)</div>
-                  <div style={{ fontSize: 24, fontWeight: 900, color: TEXT_LIGHT }}>NT$ 0</div>
-                  <div style={{ fontSize: 11, color: MUTED, marginTop: 2 }}>每邀請一位教練可獲得 $500</div>
-                </div>
-              </div>
+          {!dashboardData.hasTodo && (
+            <div style={{
+              border: `1px dashed ${BORDER}`, borderRadius: 18, padding: 18,
+              color: MUTED, fontSize: 14, lineHeight: 1.6, marginBottom: 14,
+              background: 'rgba(255,255,255,0.02)',
+            }}>
+              今天還沒有待辦，先確認你的服務與時段是否已開放。
             </div>
+          )}
 
-            <div>
-              <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 8, display: 'block' }}>我的推廣碼</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input
-                  type="text"
-                  readOnly
-                  value={referralCode || '尚未產生'}
-                  style={{ flex: 1, padding: '12px 16px', background: 'var(--color-surface-soft)', border: `1px solid ${BORDER}`, borderRadius: 12, fontSize: 18, fontWeight: 900, color: referralCode ? TEXT_LIGHT : MUTED, letterSpacing: '0.1em', textAlign: 'center' }}
-                />
-                <button
-                  onClick={handleCopyCode}
-                  disabled={!referralCode}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px', background: copiedCode ? 'var(--color-success)' : 'var(--color-surface-soft)', color: copiedCode ? 'var(--text-light)' : ORANGE, border: 'none', borderRadius: 12, cursor: referralCode ? 'pointer' : 'not-allowed', opacity: referralCode ? 1 : 0.5, transition: '0.2s', fontWeight: 800 }}
-                >
-                  {copiedCode ? <Check size={18} /> : <Copy size={18} />}
-                </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <TodoRow
+              icon={Calendar}
+              label="今日預約"
+              detail={dashboardData.todayBookings.length ? `${dashboardData.todayBookings.length} 堂課需要準備或上課` : '今天沒有已排程課程'}
+              count={dashboardData.todayBookings.length}
+              active={dashboardData.todayBookings.length > 0}
+              onClick={() => router.push('/bookings')}
+            />
+            <TodoRow
+              icon={MessageCircle}
+              label="未讀訊息"
+              detail={unreadCount ? '有學生訊息尚未回覆' : '沒有未讀聊天訊息'}
+              count={unreadCount}
+              active={unreadCount > 0}
+              onClick={() => router.push('/chat')}
+            />
+            <TodoRow
+              icon={Bell}
+              label="待確認訂單"
+              detail={dashboardData.pendingOrders.length ? '有新預約需要確認下一步' : '沒有待確認的新訂單'}
+              count={dashboardData.pendingOrders.length}
+              active={dashboardData.pendingOrders.length > 0}
+              onClick={() => router.push('/bookings')}
+            />
+            <TodoRow
+              icon={Wallet}
+              label="待付款提醒"
+              detail={dashboardData.pendingPayments.length ? '有訂單仍在等待付款或付款確認' : '沒有待付款提醒'}
+              count={dashboardData.pendingPayments.length}
+              active={dashboardData.pendingPayments.length > 0}
+              onClick={() => router.push('/bookings')}
+            />
+            <TodoRow
+              icon={FileText}
+              label="待填課後日誌"
+              detail={dashboardData.pendingReports.length ? '完成課程後請補上學習紀錄' : '沒有待補課後日誌'}
+              count={dashboardData.pendingReports.length}
+              active={dashboardData.pendingReports.length > 0}
+              onClick={() => router.push('/bookings')}
+            />
+          </div>
+        </section>
+
+        <section>
+          <SectionLabel>接單狀態 Checklist</SectionLabel>
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '6px 18px 8px' }}>
+            {checklist.map((item) => (
+              <ChecklistItem key={item.label} done={item.done} label={item.label} hint={item.hint} />
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <SectionLabel>營運摘要</SectionLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <Check size={16} color={MUTED} />
+                <span style={{ fontSize: 13, color: MUTED }}>完成課程</span>
               </div>
-              <p style={{ fontSize: 12, color: MUTED, marginTop: 8, lineHeight: 1.5 }}>
-                分享這個代碼或下方 QR Code 給其他教練。他們註冊並完成驗證後，系統會自動發放推廣獎勵！
+              <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
+                {dashboardData.completedBookings.length > 0 ? `${dashboardData.completedBookings.length} 堂` : '尚無完成課程'}
               </p>
             </div>
-
-            {promotionUrl && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'var(--color-surface-soft)', borderRadius: 16, border: `1px dashed ${BORDER}` }}>
-                <label style={{ fontSize: 12, fontWeight: 800, color: MUTED, marginBottom: 16 }}>推廣 QR Code</label>
-                <div style={{ background: 'var(--color-surface)', padding: 12, borderRadius: 16, boxShadow: `0 0 20px rgba(249, 115, 22, 0.2)` }}>
-                  <QRCodeSVG
-                    value={promotionUrl}
-                    size={160}
-                    level="H"
-                    imageSettings={{
-                      src: '/apple-touch-icon.png',
-                      x: undefined, y: undefined, height: 32, width: 32, excavate: true,
-                    }}
-                  />
-                </div>
-                <div style={{ fontSize: 12, color: MUTED, marginTop: 12, fontWeight: 700 }}>
-                  可直接讓對方掃碼註冊成為教練
-                </div>
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <UserCheck size={16} color={MUTED} />
+                <span style={{ fontSize: 13, color: MUTED }}>學生資料</span>
               </div>
-            )}
+              <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
+                {dashboardData.uniqueStudentIds.size > 0 ? `${dashboardData.uniqueStudentIds.size} 位學生` : '尚無學生資料'}
+              </p>
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Video Upload Section */}
-        <div style={{ marginBottom: 32 }}>
-          <VideoUpload />
-        </div>
-
-        {/* ACCOUNT SETTINGS */}
-        <div style={{ marginBottom: 32 }}>
-          <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 800, color: MUTED, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-            ACCOUNT SETTINGS
-          </p>
-          <div style={{ background: 'var(--color-surface)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.05)' }}>
-            {[
-              { icon: User, label: 'Personal Information', onClick: () => router.push('/coach/profile/edit') },
-              { icon: Shield, label: 'Security & Password', onClick: () => router.push('/coach/profile/edit') },
-              { icon: Clock, label: 'Schedule Settings', onClick: () => router.push('/coach/schedule') },
-              { icon: MessageCircle, label: `Notifications (${pendingMessages} Unread)`, onClick: () => router.push('/chat') },
-              { icon: FileText, label: 'Manage Plans', onClick: () => router.push('/coach/plans') },
-              { icon: Globe, label: 'Language Preference', right: 'English' }
-            ].map((item, idx) => (
-              <div key={item.label} onClick={item.onClick} style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px',
-                borderBottom: idx === 5 ? 'none' : '1px solid rgba(255,255,255,0.05)', cursor: item.onClick ? 'pointer' : 'default'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <item.icon size={18} color={MUTED} />
-                  <span style={{ fontSize: 14, fontWeight: 700 }}>{item.label}</span>
-                </div>
-                {item.right ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, color: MUTED, fontWeight: 600 }}>{item.right}</span>
-                    <ChevronRight size={16} color={MUTED} />
-                  </div>
-                ) : (
-                  <ChevronRight size={16} color={MUTED} />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* RECENT ACTIVITY */}
-        <div style={{ marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: MUTED, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              RECENT ACTIVITY
-            </p>
-            <button onClick={() => router.push('/bookings')} style={{ background: 'none', border: 'none', color: ORANGE, fontSize: 11, fontWeight: 800, cursor: 'pointer' }}>
-              SEE ALL
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {bookings.slice(0, 2).map((booking, idx) => (
-              <div key={booking.id} onClick={() => router.push('/bookings')} style={{
-                background: 'var(--color-surface)', borderRadius: 16, padding: '16px 20px', border: '1px solid rgba(255,255,255,0.05)',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <div style={{
-                    width: 40, height: 40, borderRadius: 10, background: idx === 0 ? 'rgba(249, 115, 22, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: idx === 0 ? ORANGE : '#3B82F6'
-                  }}>
-                    {idx === 0 ? <ArrowUpRight size={20} /> : <CreditCard size={20} />}
-                  </div>
-                  <div>
-                    <p style={{ margin: 0, fontSize: 14, fontWeight: 700 }}>{booking.user_name || 'Student'} Session</p>
-                    <p style={{ margin: '4px 0 0', fontSize: 12, color: MUTED, fontStyle: 'italic' }}>
-                      {booking.expected_time ? new Date(booking.expected_time).toLocaleDateString() : 'Pending'} • {booking.status === 'completed' ? 'Completed' : 'Pending'}
-                    </p>
-                  </div>
-                </div>
-                <span style={{ fontSize: 15, fontWeight: 800, color: booking.status === 'completed' ? '#10B981' : MUTED }}>
-                  {booking.status === 'completed' ? '+' : ''}${booking.coach_payout || booking.final_price || booking.base_price || 0}
-                </span>
-              </div>
-            ))}
-            {bookings.length === 0 && (
-              <div style={{ padding: 20, textAlign: 'center', background: 'var(--color-surface)', borderRadius: 16 }}>
-                <p style={{ margin: 0, color: MUTED, fontSize: 13 }}>No recent activity.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* SIGN OUT */}
-        <div style={{ paddingBottom: 40 }}>
-          <button onClick={logout} style={{
-            width: '100%', padding: '16px', background: 'var(--color-surface-soft)', color: 'var(--color-danger)', border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: 16, fontSize: 14, fontWeight: 800, cursor: 'pointer', transition: '0.2s',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+        <section>
+          <SectionLabel>我的服務</SectionLabel>
+          <div className="btn-press" onClick={() => router.push('/coach/plans')} style={{
+            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)',
           }}>
-            SIGN OUT
-          </button>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ArrowUpRight size={20} color={TEXT_LIGHT} />
+              </div>
+              <div>
+                <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>管理服務項目</h4>
+                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
+                  {dashboardData.hasRealPlans ? '檢查方案內容、價格與可接單狀態' : '尚未建立可接單服務'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight size={16} color={MUTED} />
+          </div>
+        </section>
 
-      </div>
+        <section style={{
+          border: `1px solid ${BORDER}`, borderRadius: 20, padding: 18,
+          background: 'rgba(255,255,255,0.018)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <ShieldCheck size={18} color={ORANGE} />
+            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: MUTED }}>成長提醒</span>
+          </div>
+          <h3 style={{ fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, margin: '0 0 8px' }}>
+            還在 FB 社團重複貼文找學生嗎？
+          </h3>
+          <p style={{ fontSize: 14, color: MUTED, margin: 0, lineHeight: 1.65 }}>
+            把你的教學影片、可預約時段與課程方案一次整理好，讓學生先了解你，再主動預約你。
+          </p>
+        </section>
+      </main>
     </div>
   );
 }

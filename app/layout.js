@@ -11,10 +11,17 @@ export const metadata = {
   description: '手機優先的教練與老師預約平台',
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: 'cover',
+};
+
 export default function RootLayout({ children }) {
   const session = null;
 
-  const headerEl = <Header />;
+  const headerEl = null;
 
   const navigationEl = <Navigation />;
 

@@ -1,71 +1,14 @@
-﻿'use client';
+'use client';
 
-import { use, useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, ChevronLeft, ChevronRight, Clock3, GraduationCap, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, Mail, DollarSign, FileDigit, Shield, ChevronDown, ChevronUp } from 'lucide-react';
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, DollarSign, Zap, FileDigit, Calendar, User } from 'lucide-react';
 import VideoGallery from '@/components/VideoGallery';
-import { addDays as addDaysAvailability, buildBookedSlotSet, generateSlotsForCoach, getTodayDateString } from '@/lib/coachAvailability';
-import { startOfMonth, endOfMonth, eachDayOfInterval, addMonths, subMonths, format, isSameMonth, isSameDay, isBefore, startOfDay, getDay, parseISO, addDays, getWeeksInMonth, startOfWeek, endOfWeek } from 'date-fns';
-
-const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六'];
-const SLOT_MINUTES = 30;
-
-function toDateTimeKey(value) {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Taipei',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(value)).replace(' ', 'T');
-}
-
-function normalizeBookingTime(value) {
-  if (!value) {
-    return '';
-  }
-
-  if (value.includes('T') && value.includes('+')) {
-    return value;
-  }
-
-  return `${value}:00+08:00`;
-}
-
-function buildMonthAvailability(coach, bookings, monthStart) {
-  const startDateStr = format(monthStart, 'yyyy-MM-dd');
-  // Fetch a 45 day window to easily cover the current month
-  const bookedSlotSet = buildBookedSlotSet(bookings);
-  const slots = generateSlotsForCoach(coach, bookedSlotSet, {
-    startDate: startDateStr,
-    lookaheadDays: 45,
-  });
-
-  const dateMap = new Map();
-  for (const slot of slots) {
-    if (!slot.booked) {
-      dateMap.set(slot.date, true);
-    }
-  }
-
-  return {
-    slots,
-    dateMap
-  };
-}
 
 function formatNextAvailable(value) {
-  if (!value) {
-    return '尚未設定固定時段';
-  }
-
+  if (!value) return '尚未設定固定時段';
   const date = new Date(value);
-  if (isNaN(date.getTime())) {
-    return '尚未設定固定時段';
-  }
-
+  if (isNaN(date.getTime())) return '尚未設定固定時段';
   const parts = new Intl.DateTimeFormat('zh-TW', {
     timeZone: 'Asia/Taipei',
     month: 'numeric',
@@ -74,158 +17,39 @@ function formatNextAvailable(value) {
     minute: '2-digit',
     hour12: false,
   }).formatToParts(date);
-
-  const month = parts.find((part) => part.type === 'month')?.value || '--';
-  const day = parts.find((part) => part.type === 'day')?.value || '--';
-  const hour = parts.find((part) => part.type === 'hour')?.value || '--';
-  const minute = parts.find((part) => part.type === 'minute')?.value || '--';
-  return `${month}/${day} ${hour}:${minute}`;
+  const m = parts.find(p => p.type === 'month')?.value || '--';
+  const d = parts.find(p => p.type === 'day')?.value || '--';
+  return `${m}/${d} 最快可約`;
 }
 
 export default function CoachDetailPage({ params }) {
   const { id } = use(params);
   const router = useRouter();
-  const searchParams = useSearchParams();
   
-  const initDate = searchParams.get('date') || '';
-  const initTime = searchParams.get('time') || '';
-  const initRegion = searchParams.get('region') || '';
-
   const [coach, setCoach] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [videos, setVideos] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSlot, setSelectedSlot] = useState(() => {
-    if (initDate && initTime) {
-      return {
-        date: initDate,
-        time: initTime,
-        iso: `${initDate}T${initTime}:00+08:00`
-      };
-    }
-    return null;
-  });
-  const [selectedPlanId, setSelectedPlanId] = useState('');
-  
-  const [currentMonth, setCurrentMonth] = useState(() => {
-    if (initDate) {
-      return startOfMonth(parseISO(initDate));
-    }
-    return startOfMonth(new Date());
-  });
-  
-  const [selectedDate, setSelectedDate] = useState(() => {
-    if (initDate) {
-      return initDate;
-    }
-    return null;
-  });
-  const [bookingForm, setBookingForm] = useState({
-    age: '',
-    gender: '',
-    attendeesCount: 1,
-    learningStatus: '初學',
-    expectedTime: '',
-    address: initRegion,
-    couponId: null,
-    couponDiscount: 0,
-    isRecurring: false,
-    recurringWeeks: 4,
-  });
-  const [submitting, setSubmitting] = useState(false);
   const [chatting, setChatting] = useState(false);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([
-      fetch(`/api/coaches/${id}`).then((response) => response.json()),
-      fetch('/api/auth/profile').then(async (response) => (response.ok ? response.json() : null)),
-    ])
-      .then(([coachPayload, profilePayload]) => {
-        if (coachPayload?.coach) {
-          setCoach(coachPayload.coach);
-          setReviews(coachPayload.reviews || []);
-          setVideos(coachPayload.videos || []);
-          setBookings(coachPayload.bookings || []);
-          setSelectedPlanId(coachPayload.coach.plan_options?.[0]?.id || '');
-        }
-
-        if (profilePayload?.profile) {
-          setUserProfile(profilePayload.profile);
-          setBookingForm((current) => ({
-            ...current,
-            address: current.address || profilePayload.profile.address || '',
-            couponId: profilePayload.profile.active_coupon?.id || null,
-            couponDiscount: profilePayload.profile.active_coupon?.discount || 0,
-          }));
+    fetch(`/api/coaches/${id}`)
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.coach) {
+          setCoach(payload.coach);
+          setReviews(payload.reviews || []);
+          setVideos(payload.videos || []);
+          setBookings(payload.bookings || []);
         }
       })
       .finally(() => setLoading(false));
   }, [id]);
 
-  const planOptions = coach?.plan_options || [];
-  const selectedPlan = useMemo(
-    () => planOptions.find((plan) => plan.id === selectedPlanId) || planOptions[0] || null,
-    [planOptions, selectedPlanId]
-  );
-
-  const availablePlansForSlot = useMemo(() => {
-    if (!selectedSlot) {
-      return [];
-    }
-
-    const bookedSet = new Set((bookings || []).map((booking) => toDateTimeKey(booking.expected_time)));
-
-    return planOptions.map((plan) => {
-      const neededSlots = Math.max(1, Math.ceil((plan.duration_minutes || 60) / SLOT_MINUTES));
-      let available = true;
-
-      for (let step = 0; step < neededSlots; step += 1) {
-        const slotIso = new Date(new Date(selectedSlot.iso).getTime() + (step * SLOT_MINUTES * 60 * 1000)).toISOString();
-        const key = toDateTimeKey(slotIso);
-        if (bookedSet.has(key)) {
-          available = false;
-          break;
-        }
-      }
-
-      return {
-        ...plan,
-        available,
-      };
-    });
-  }, [bookings, planOptions, selectedSlot]);
-
-  useEffect(() => {
-    if (!selectedSlot) {
-      return;
-    }
-
-    const firstAvailablePlan = availablePlansForSlot.find((plan) => plan.available) || availablePlansForSlot[0];
-    if (firstAvailablePlan) {
-      setSelectedPlanId(firstAvailablePlan.id);
-    }
-
-    setBookingForm((current) => ({
-      ...current,
-      expectedTime: normalizeBookingTime(selectedSlot.iso),
-    }));
-  }, [availablePlansForSlot, selectedSlot]);
-
-  const monthAvailability = useMemo(() => {
-    if (!coach) {
-      return null;
-    }
-    return buildMonthAvailability(coach, bookings, currentMonth);
-  }, [bookings, coach, currentMonth]);
-
   async function handleChat() {
-    if (!coach) {
-      return;
-    }
-
+    if (!coach) return;
     setChatting(true);
     try {
       const response = await fetch('/api/chat/rooms', {
@@ -238,826 +62,434 @@ export default function CoachDetailPage({ params }) {
         router.push(`/chat/${payload.roomId}`);
         return;
       }
-
       alert(payload.error || '建立聊天室失敗');
     } finally {
       setChatting(false);
     }
   }
 
-  async function handleBooking() {
-    if (!coach || !selectedPlan) {
-      alert('請先選擇時段與方案');
-      return;
-    }
-
-    if (!bookingForm.age || !bookingForm.gender || !bookingForm.address || !bookingForm.expectedTime) {
-      alert('請先補齊預約資料');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          coachId: coach.user_id || coach.id,
-          expectedTime: bookingForm.expectedTime,
-          age: bookingForm.age,
-          gender: bookingForm.gender,
-          attendeesCount: bookingForm.attendeesCount,
-          learningStatus: bookingForm.learningStatus,
-          couponId: bookingForm.couponId,
-          couponDiscount: bookingForm.couponDiscount,
-          address: bookingForm.address,
-          planId: selectedPlan.id,
-          isRecurring: bookingForm.isRecurring,
-          recurringWeeks: bookingForm.recurringWeeks,
-        }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        alert(payload.error || '建立預約失敗');
-        return;
-      }
-
-      alert(`已為您保留時段！請盡速完成付款 (總金額 NT$${payload.finalPrice})`);
-      router.push('/bookings');
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
   if (loading) {
-    return <div className="p-10 text-center text-slate-500">載入教練資料中...</div>;
+    return <div style={{ height: '100dvh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>載入中...</div>;
   }
 
-  if (!coach || !monthAvailability) {
-    return <div className="p-10 text-center text-slate-500">找不到教練資料</div>;
+  if (!coach) {
+    return <div style={{ height: '100dvh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>找不到教練</div>;
   }
+
+  const planOptions = coach.plan_options || [];
+  const incompleteProfileText = '這位教練正在補充公開資料';
+  const publicHeadline = [coach.service_areas, coach.location].filter(Boolean).join(' · ') || incompleteProfileText;
+  const hasVerifiedIdentity = coach.approval_status === 'approved';
+  const profileRows = [
+    { label: '教練重點', value: publicHeadline },
+    { label: '教學經驗', value: coach.experience },
+    { label: '教學理念', value: coach.philosophy || coach.intro },
+    { label: '適合學生', value: coach.service_areas },
+    { label: '上課地區', value: coach.location },
+    { label: '價格參考', value: coach.min_price ? `單堂起價 NT$${Number(coach.min_price).toLocaleString()}` : (coach.base_price ? `參考底價 NT$${Number(coach.base_price).toLocaleString()}` : '') },
+    { label: '驗證狀態', value: hasVerifiedIdentity ? '身份驗證已通過' : '身份驗證尚未完成' },
+  ];
 
   return (
-    <div className="coach-detail-page">
+    <div className="premium-detail fade-in">
       <style dangerouslySetInnerHTML={{ __html: `
-        .coach-detail-page {
-          min-height: 100vh;
-          background: var(--color-bg);
-          padding-bottom: 120px;
+        .premium-detail {
+          background: #000;
+          color: #FFF;
+          min-height: 100dvh;
+          position: relative;
+          padding-bottom: calc(100px + env(safe-area-inset-bottom, 20px));
+          overflow-x: hidden;
+          -webkit-overflow-scrolling: touch;
         }
-        .coach-detail-shell {
-          width: min(1120px, calc(100vw - 24px));
-          margin: 0 auto;
-          padding: 20px 0 40px;
+
+        /* -------------------------------- */
+        /* HIERARCHY 1: HERO SECTION        */
+        /* -------------------------------- */
+        .hero-section {
+          position: relative;
+          width: 100%;
+          height: 60vh;
+          min-height: 400px;
+          max-height: 600px;
+          background: #111;
         }
-        .hero {
-          background: linear-gradient(135deg, var(--color-text), #2563eb);
-          color: var(--text-light);
-          border-radius: 32px;
-          padding: 22px;
-          box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+        .hero-bg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0.8;
         }
-        .hero-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 16px;
-        }
-        .back-btn {
-          border: none;
-          background: rgba(255,255,255,0.16);
-          color: var(--text-light);
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          cursor: pointer;
-        }
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.16);
-          font-weight: 800;
-          font-size: 12px;
-        }
-        .hero-main {
-          display: flex;
-          gap: 18px;
-          align-items: center;
-          margin-top: 20px;
-        }
-        .avatar {
-          width: 88px;
-          height: 88px;
-          border-radius: 28px;
-          background: rgba(255,255,255,0.14);
+        .hero-fallback {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 32px;
-          font-weight: 900;
+          background: radial-gradient(circle at top, rgba(249,115,22,0.24), #111 58%);
+          color: rgba(255,255,255,0.25);
+        }
+        .hero-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, #000 0%, rgba(0,0,0,0.5) 40%, rgba(0,0,0,0) 100%);
+        }
+        .hero-top-nav {
+          position: absolute;
+          top: max(20px, env(safe-area-inset-top));
+          left: 20px;
+          z-index: 10;
+        }
+        .btn-back {
+          width: 44px;
+          height: 44px;
+          border-radius: 22px;
+          background: rgba(0,0,0,0.4);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #FFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+        }
+        
+        .hero-content {
+          position: absolute;
+          bottom: 20px;
+          left: 0;
+          right: 0;
+          padding: 0 20px;
+          display: flex;
+          align-items: flex-end;
+          gap: 16px;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+        .hero-avatar {
+          width: 84px;
+          height: 84px;
+          border-radius: 24px;
+          border: 2px solid rgba(255,255,255,0.8);
+          background: #222;
           overflow: hidden;
           flex-shrink: 0;
+          box-shadow: 0 8px 24px rgba(0,0,0,0.4);
         }
-        .hero-main h1 {
+        .hero-avatar img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+        .hero-info {
+          flex: 1;
+        }
+        .hero-title {
+          font-size: 32px;
+          font-weight: 900;
+          margin: 0 0 4px;
+          line-height: 1.1;
+        }
+        .hero-subtitle {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--accent);
           margin: 0;
-          font-size: clamp(28px, 5vw, 40px);
-          line-height: 1.05;
-          font-weight: 900;
         }
-        .hero-meta {
-          margin-top: 8px;
-          color: rgba(255,255,255,0.82);
+
+        /* -------------------------------- */
+        /* HIERARCHY 2: TRUST & INFO        */
+        /* -------------------------------- */
+        .main-container {
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 24px 20px;
+        }
+
+        .trust-row {
           display: flex;
-          flex-wrap: wrap;
           gap: 12px;
-          font-size: 14px;
+          margin-bottom: 32px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          padding-bottom: 4px;
         }
-        .hero-stats {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
-          margin-top: 20px;
-        }
-        .hero-stat {
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.12);
-          border-radius: 22px;
-          padding: 14px;
-        }
-        .hero-stat-label {
-          font-size: 12px;
-          color: rgba(255,255,255,0.72);
-          margin-bottom: 8px;
-        }
-        .hero-stat-value {
-          font-size: 18px;
-          font-weight: 900;
-        }
-        .content-grid {
-          display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 18px;
-          margin-top: 18px;
-          align-items: start;
-        }
-        .panel {
-          background: var(--color-surface);
-          border: 1px solid var(--color-border);
-          border-radius: 28px;
-          box-shadow: var(--shadow-card);
-          padding: 20px;
-          min-width: 0;
-        }
-        .panel h2 {
-          margin: 0 0 8px;
-          font-size: 20px;
-          font-weight: 900;
-        }
-        .panel p.lead {
-          margin: 0 0 18px;
-          color: var(--color-text-muted);
-          font-size: 14px;
-        }
-        .calendar-nav {
+        .trust-row::-webkit-scrollbar { display: none; }
+        .trust-badge {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          margin-bottom: 20px;
-        }
-        .calendar-nav-btn {
-          border: none;
-          background: transparent;
-          color: var(--color-text-muted);
-          cursor: pointer;
-          padding: 8px;
-        }
-        .calendar-month-title {
-          font-size: 16px;
-          font-weight: 900;
-          color: var(--color-text);
-        }
-        .calendar-grid {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 8px;
-          text-align: center;
-        }
-        .cal-weekday {
+          gap: 6px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.15);
+          padding: 8px 14px;
+          border-radius: 12px;
           font-size: 13px;
           font-weight: 800;
-          color: var(--color-text-muted);
-          margin-bottom: 8px;
+          color: #FFF;
+          white-space: nowrap;
         }
-        .cal-day-btn {
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: 8px;
-          padding: 10px 0;
+        .trust-badge.primary {
+          background: rgba(249, 115, 22, 0.15);
+          border-color: rgba(249, 115, 22, 0.4);
+          color: var(--accent);
+        }
+
+        .section-block {
+          margin-bottom: 40px;
+        }
+        .section-title {
+          font-size: 20px;
+          font-weight: 800;
+          margin: 0 0 16px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .section-text {
           font-size: 15px;
-          color: var(--color-border);
-          font-weight: 700;
-          cursor: default;
+          line-height: 1.7;
+          color: rgba(255,255,255,0.85);
+          white-space: pre-wrap;
+          margin: 0;
         }
-        .cal-day-btn.outside {
-          visibility: hidden;
-        }
-        .cal-day-btn.bookable {
-          color: var(--color-text);
-          cursor: pointer;
-          border: 1px solid var(--color-border);
-        }
-        .cal-day-btn.selected {
-          background: var(--color-accent);
-          color: var(--text-light);
-          border-color: var(--color-accent);
-          font-weight: 900;
-        }
-        .time-slots-container {
-          margin-top: 24px;
-          padding-top: 24px;
-          border-top: 1px solid var(--color-border);
-        }
-        .slot-group {
-          margin-bottom: 24px;
-        }
-        .slot-group-title {
-          font-size: 14px;
-          font-weight: 900;
-          color: var(--color-text-muted);
-          margin-bottom: 12px;
-        }
-        .slot-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-          gap: 10px;
-        }
-        .slot-btn {
-          background: var(--color-surface-soft);
-          border: 1px solid var(--color-border);
-          border-radius: 8px;
-          padding: 12px 0;
-          font-size: 15px;
-          font-weight: 700;
-          color: var(--color-text);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .slot-btn:not(.booked):hover {
-          border-color: var(--color-accent);
-          background: var(--color-surface);
-        }
-        .slot-btn.selected {
-          background: var(--color-accent);
-          color: var(--text-light);
-          border-color: var(--color-accent);
-        }
-        .slot-btn.booked {
-          opacity: 0.5;
-          cursor: not-allowed;
-          background: var(--color-surface-soft);
-        }
-        .plan-list {
+
+        .plans-grid {
           display: grid;
           gap: 12px;
         }
         .plan-card {
-          border: 1px solid var(--color-border);
+          background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1);
           border-radius: 20px;
-          background: var(--color-surface-soft);
-          padding: 16px;
-          cursor: pointer;
-        }
-        .plan-card.disabled {
-          background: var(--color-surface-soft);
-          border-color: var(--color-border);
-          color: var(--color-text-muted);
-          cursor: not-allowed;
-        }
-        .plan-card.active {
-          background: var(--color-surface);
-          border-color: var(--color-primary);
-          box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
-        }
-        .plan-top {
+          padding: 20px;
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          gap: 10px;
+          align-items: center;
         }
         .plan-title {
           font-size: 16px;
-          font-weight: 900;
+          font-weight: 800;
+          margin: 0 0 6px;
         }
         .plan-meta {
-          margin-top: 6px;
-          color: var(--color-text-muted);
           font-size: 13px;
+          color: rgba(255,255,255,0.5);
+          margin: 0;
         }
-        .field-label {
-          display: block;
-          font-size: 12px;
+        .plan-price {
+          font-size: 20px;
           font-weight: 900;
-          color: var(--color-text-muted);
-          margin-bottom: 8px;
+          color: var(--accent);
         }
-        .field, .select {
-          width: 100%;
-          padding: 12px 14px;
-          border-radius: 14px;
-          border: 1px solid var(--color-border);
-          background: var(--color-surface-soft);
-          color: var(--color-text);
+
+        /* -------------------------------- */
+        /* HIERARCHY 3: METADATA            */
+        /* -------------------------------- */
+        .metadata-box {
+          background: rgba(255,255,255,0.03);
+          border-radius: 16px;
+          padding: 16px;
+          margin-bottom: 24px;
+        }
+        .metadata-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
           font-size: 14px;
-          outline: none;
-          font-family: inherit;
+          color: rgba(255,255,255,0.6);
+          margin-bottom: 12px;
+        }
+        .metadata-row:last-child {
           margin-bottom: 0;
         }
-        .form-grid {
-          display: grid;
-          grid-template-columns: 1fr;
+
+        /* -------------------------------- */
+        /* STICKY BOTTOM CTA                */
+        /* -------------------------------- */
+        .sticky-bottom-bar {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: rgba(10, 10, 10, 0.85);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border-top: 1px solid rgba(255,255,255,0.1);
+          padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 20px));
+          z-index: 100;
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+        }
+        .sticky-content {
+          width: 100%;
+          max-width: 600px;
+          display: flex;
           gap: 12px;
         }
-        .form-stack {
-          display: grid;
-          gap: 14px;
-        }
-        .action-row {
-          display: flex;
-          gap: 10px;
-          margin-top: 18px;
-        }
-        .ghost-btn, .primary-btn {
-          flex: 1;
-          border: none;
+        .btn-chat {
+          flex: 0 0 auto;
+          min-width: 104px;
+          height: 56px;
           border-radius: 16px;
-          padding: 14px;
+          background: rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.2);
+          color: #FFF;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
           font-size: 14px;
-          font-weight: 900;
+          font-weight: 800;
           cursor: pointer;
         }
-        .ghost-btn {
-          background: var(--color-surface-soft);
-          color: var(--color-text);
-          border: 1px solid var(--color-border);
+        .btn-book-primary {
+          flex: 1;
+          height: 56px;
+          background: var(--accent);
+          border: none;
+          border-radius: 16px;
+          color: #FFF;
+          font-size: 16px;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
+          cursor: pointer;
         }
-        .primary-btn {
-          background: var(--color-accent);
-          color: var(--text-light);
-          box-shadow: 0 16px 30px rgba(245, 158, 11, 0.3);
-        }
-        .side-panel {
-          display: grid;
-          gap: 18px;
-          min-width: 0;
-        }
-        .review-list {
-          display: grid;
-          gap: 14px;
-        }
-        .review-card {
-          border-top: 1px solid var(--color-border);
-          padding-top: 14px;
-        }
-        @media (max-width: 980px) {
-          .content-grid {
-            grid-template-columns: 1fr;
-          }
-          .hero-stats {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
-        @media (max-width: 640px) {
-          .coach-detail-shell {
-            width: calc(100vw - 16px);
-          }
-          .hero-main {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .hero-stats {
-            grid-template-columns: 1fr;
-          }
-          .form-grid {
-            grid-template-columns: 1fr;
-          }
-          .action-row {
-            flex-direction: column;
-          }
-        }
-      ` }} />
+      `}} />
 
-      <div className="coach-detail-shell">
-        <section className="hero">
-          <div className="hero-top">
-            <button type="button" className="back-btn" onClick={() => router.back()}>
-              <ChevronLeft size={18} />
-            </button>
-            <div className="hero-badge">
-              <GraduationCap size={14} />
-              {coach.coach_level_label}
-            </div>
+      {/* HERO */}
+      <div className="hero-section">
+        {coach.avatar_url ? (
+          <img src={coach.avatar_url} alt={`${coach.name} 大頭貼`} className="hero-bg" />
+        ) : (
+          <div className="hero-fallback" aria-label="教練尚未上傳公開照片">
+            <User size={72} />
           </div>
-
-          <div className="hero-main">
-            <div className="avatar">
-              {coach.avatar_url ? (
-                <img src={coach.avatar_url} alt={coach.name} className="h-full w-full object-cover" />
-              ) : (
-                coach.name?.slice(0, 1) || '教'
-              )}
-            </div>
-            <div>
-              <h1>{coach.name}</h1>
-              <div className="hero-meta">
-                <span>{coach.university || '未填學校'}</span>
-                <span>•</span>
-                <span>{coach.location || '未填地區'}</span>
-                <span>•</span>
-                <span>{coach.has_fixed_schedule ? '可直接依時段預約' : '尚未設定固定時段'}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="hero-stats">
-            <div className="hero-stat">
-              <div className="hero-stat-label">單堂起價</div>
-              <div className="hero-stat-value">NT${Number(coach.base_price || 0).toLocaleString()}</div>
-            </div>
-            <div className="hero-stat">
-              <div className="hero-stat-label">最快可約</div>
-              <div className="hero-stat-value">{formatNextAvailable(coach.next_available_at)}</div>
-            </div>
-            <div className="hero-stat">
-              <div className="hero-stat-label">評價</div>
-              <div className="hero-stat-value">{coach.rating_avg || 0} / 5</div>
-            </div>
-            <div className="hero-stat">
-              <div className="hero-stat-label">方案數</div>
-              <div className="hero-stat-value">{planOptions.length} 種</div>
-            </div>
-          </div>
-        </section>
-
-        {/* 1. 最上方：先聊聊 */}
-        <div style={{ marginTop: 20 }}>
-          <div style={{ fontSize: 13, color: 'var(--color-text)', fontWeight: 800, marginBottom: 8, textAlign: 'center' }}>👉 不確定？先聊聊</div>
-          <button type="button" className="ghost-btn" disabled={chatting} onClick={handleChat} style={{ width: '100%', padding: '16px', borderRadius: 20, background: 'var(--color-surface)', border: '1px solid var(--color-border)', fontSize: 16, color: 'var(--color-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: chatting ? 0.7 : 1 }}>
-            {chatting ? <div className="animate-spin"><Clock3 size={18} /></div> : <MessageCircle size={18} />}
-            {chatting ? '建立聊天室中...' : '有任何問題？先與教練聊聊'}
+        )}
+        <div className="hero-overlay" />
+        
+        <div className="hero-top-nav">
+          <button className="btn-back btn-press" onClick={() => router.back()}>
+            <ChevronLeft size={24} />
           </button>
         </div>
 
-        <section className="content-grid" style={{ gridTemplateColumns: '1fr', gap: 20 }}>
-          
-          {/* 2. 上方區塊：教練資訊與家長須知 */}
-          <div className="panel">
-            <h2>教學資訊與家長須知</h2>
-            {coach.trust_badges && coach.trust_badges.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
-                {coach.trust_badges.includes('coach_license') && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#F0FDF4', color: '#166534', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                    <ShieldCheck size={16} /> 特定球類教練認證
-                  </div>
-                )}
-                {coach.trust_badges.includes('cpr_aed') && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#FEF2F2', color: '#991B1B', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                    <Shield size={16} /> CPR/AED 急救認證
-                  </div>
-                )}
-                {coach.trust_badges.includes('police_check') && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#EFF6FF', color: '#1E40AF', padding: '6px 12px', borderRadius: 20, fontSize: 13, fontWeight: 800 }}>
-                    <ShieldCheck size={16} /> 良民證 (無犯罪紀錄)
-                  </div>
-                )}
-              </div>
-            )}
-            <div style={{ display: 'grid', gap: 10, color: 'var(--color-text)', fontSize: 14, marginBottom: 32, paddingBottom: 24, borderBottom: '1px solid var(--color-border)' }}>
-              <div><MapPin size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.location || '未填地區'}</div>
-              <div><Clock3 size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.has_fixed_schedule ? '已有固定可約時段' : '尚未設定固定時段'}</div>
-              <div><Star size={15} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> {coach.rating_avg || 0} / 5，共 {coach.review_count || 0} 則評價</div>
-            </div>
-
-            <div style={{ marginBottom: 32 }}>
-              <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><FileDigit size={18} color="#2563EB" /> 核心教學理念</h3>
-              <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.philosophy || '教練尚未填寫教學理念。'}</p>
-            </div>
-            {coach.teaching_features && (
-              <div style={{ marginBottom: 32 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><BookOpen size={18} color="#2563EB" /> 課程特色與預期成長</h3>
-                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.teaching_features}</p>
-              </div>
-            )}
-            {coach.communication_style && (
-              <div style={{ marginBottom: 32 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><Mail size={18} color="#2563EB" /> 家長溝通機制</h3>
-                <p className="lead" style={{ whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.communication_style}</p>
-              </div>
-            )}
-            {coach.policy_rules && (
-              <div style={{ marginBottom: 16 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 16, color: 'var(--color-text)', marginBottom: 12 }}><DollarSign size={18} color="#2563EB" /> 費用、請假與場地規則</h3>
-                <div style={{ background: 'var(--color-surface-soft)', padding: 16, borderRadius: 12, border: '1px solid var(--color-border)' }}>
-                  <p style={{ color: 'var(--color-text-muted)', fontSize: 14, whiteSpace: 'pre-wrap', lineHeight: 1.7, margin: 0 }}>{coach.policy_rules}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="panel">
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              影片 <span style={{ fontSize: 13, color: 'var(--cta)', background: 'rgba(245, 158, 11, 0.1)', padding: '4px 8px', borderRadius: 8, fontWeight: 800 }}>👉 建議先看影片再決定</span>
-            </h2>
-            <p className="lead">教學與自我介紹影片會顯示在這裡。</p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, color: 'var(--color-text-muted)', fontSize: 13 }}>
-              <Video size={15} /> 目前共 {videos.length} 支
-            </div>
-            <VideoGallery videos={videos} />
-          </div>
-
-          <div className="panel">
-            <h2>評價</h2>
-            <p className="lead">先看時段，也要快速確認過往上課回饋。</p>
-            {reviews.length === 0 ? (
-              <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>目前還沒有評價。</div>
+        <div className="hero-content">
+          <div className="hero-avatar">
+            {coach.avatar_url ? (
+              <img src={coach.avatar_url} alt={`${coach.name} 大頭貼`} />
             ) : (
-              <div className="review-list">
-                {reviews.map((review) => (
-                  <div key={review.id} className="review-card">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
-                      <div style={{ fontWeight: 900, color: 'var(--color-text)' }}>{review.reviewer_name || '匿名學生'}</div>
-                      <div style={{ color: 'var(--color-accent)', fontWeight: 900 }}>{review.rating} / 5</div>
-                    </div>
-                    <div style={{ color: 'var(--color-text)', fontSize: 14, lineHeight: 1.7 }}>{review.comment || '這則評價沒有文字內容。'}</div>
-                  </div>
-                ))}
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)', fontSize: 28, fontWeight: 900 }}>
+                {coach.name?.charAt(0) || '教'}
               </div>
             )}
           </div>
-
-          {/* 3. 中間區塊：方案與預約 */}
-          <div className="panel">
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              預約日期與時段 <span style={{ fontSize: 13, color: 'var(--primary)', background: 'var(--primary-bg)', padding: '4px 8px', borderRadius: 8, fontWeight: 800 }}>👉 選一個你方便的時間</span>
-            </h2>
-            <p className="lead">請先點選日期，再選擇下方的可用時段。</p>
-            
-            <div className="calendar-nav">
-              <button type="button" className="calendar-nav-btn" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}><ChevronLeft size={20} /></button>
-              <div className="calendar-month-title">{format(currentMonth, 'yyyy年M月')}</div>
-              <button type="button" className="calendar-nav-btn" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}><ChevronRight size={20} /></button>
-            </div>
-            
-            {(() => {
-              const monthStart = startOfMonth(currentMonth);
-              const monthEnd = endOfMonth(monthStart);
-              const startDate = startOfWeek(monthStart);
-              const endDate = endOfWeek(monthEnd);
-              
-              const dayNodes = [];
-              let day = startDate;
-              while (day <= endDate) {
-                const cloneDay = day;
-                const dateStr = format(day, 'yyyy-MM-dd');
-                const hasSlots = monthAvailability.dateMap.get(dateStr);
-                const isCurrentMonth = isSameMonth(day, monthStart);
-                const isSelected = selectedDate === dateStr;
-                const isPast = isBefore(startOfDay(day), startOfDay(new Date()));
-                const clickable = hasSlots && !isPast;
-                
-                dayNodes.push(
-                  <button
-                    key={dateStr}
-                    type="button"
-                    disabled={!clickable}
-                    className={`cal-day-btn ${!isCurrentMonth ? 'outside' : ''} ${clickable ? 'bookable' : ''} ${isSelected ? 'selected' : ''}`}
-                    onClick={() => {
-                      if (clickable) {
-                        setSelectedDate(dateStr);
-                        setSelectedSlot(null); // Reset selected slot
-                      }
-                    }}
-                  >
-                    {format(day, 'd')}
-                  </button>
-                );
-                day = addDays(day, 1);
-              }
-              
-              return (
-                <div className="calendar-grid">
-                  {WEEKDAY_LABELS.map(wd => <div key={wd} className="cal-weekday">{wd}</div>)}
-                  {dayNodes}
-                </div>
-              );
-            })()}
-
-            {/* 時段列表 */}
-            {selectedDate ? (() => {
-              const dateSlots = monthAvailability.slots.filter(s => s.date === selectedDate);
-              
-              const morningSlots = dateSlots.filter(s => parseInt(s.time.split(':')[0], 10) < 13);
-              const afternoonSlots = dateSlots.filter(s => {
-                const h = parseInt(s.time.split(':')[0], 10);
-                return h >= 13 && h < 18;
-              });
-              const eveningSlots = dateSlots.filter(s => parseInt(s.time.split(':')[0], 10) >= 18);
-              
-              const renderSlotGroup = (title, slots) => {
-                if (slots.length === 0) return null;
-                return (
-                  <div className="slot-group">
-                    <div className="slot-group-title">{title}</div>
-                    <div className="slot-grid">
-                      {slots.map(slot => {
-                        const isSelected = selectedSlot?.iso === slot.iso;
-                        return (
-                          <button
-                            key={slot.iso}
-                            type="button"
-                            disabled={slot.booked}
-                            className={`slot-btn ${slot.booked ? 'booked' : ''} ${isSelected ? 'selected' : ''}`}
-                            onClick={() => setSelectedSlot(slot)}
-                          >
-                            {slot.time}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              };
-
-              return (
-                <div className="time-slots-container">
-                  {dateSlots.length === 0 ? (
-                    <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>這天沒有可預約的時段</div>
-                  ) : (
-                    <>
-                      {renderSlotGroup('中午', morningSlots)}
-                      {renderSlotGroup('下午', afternoonSlots)}
-                      {renderSlotGroup('晚上', eveningSlots)}
-                    </>
-                  )}
-                </div>
-              );
-            })() : (
-              <div className="time-slots-container" style={{ borderTop: 'none', paddingTop: 0 }}>
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>請先在上方點選有空檔的日期</div>
-              </div>
-            )}
-          </div>
-
-          {/* 4. 下方區塊：購買課程 */}
-          <div className="panel">
-            <h2>選擇方案與填寫資料</h2>
-            <div className="plan-list" style={{ marginBottom: 24 }}>
-              {availablePlansForSlot.length ? availablePlansForSlot.map((plan) => (
-                <button
-                  key={plan.id}
-                  type="button"
-                  className={`plan-card ${plan.available ? '' : 'disabled'} ${selectedPlanId === plan.id ? 'active' : ''}`}
-                  disabled={!plan.available}
-                  onClick={() => setSelectedPlanId(plan.id)}
-                >
-                  <div className="plan-top">
-                    <div>
-                      <div className="plan-title">{plan.title}</div>
-                      <div className="plan-meta">{plan.duration_minutes} 分鐘</div>
-                    </div>
-                    <div className="plan-title">NT${Number(plan.price || 0).toLocaleString()}</div>
-                  </div>
-                  {!plan.available && <div className="plan-meta" style={{ color: 'var(--color-text-muted)', marginTop: 10 }}>這個時段容納不了此方案長度</div>}
-                </button>
-              )) : (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>先在上方時段表點選一個可約時段。</div>
-              )}
-            </div>
-
-            <div className="form-stack">
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div>
-                  <label className="field-label">年級 / 年齡</label>
-                  <input className="field" value={bookingForm.age} onChange={(event) => setBookingForm((current) => ({ ...current, age: event.target.value }))} placeholder="例如：大一 / 國三" />
-                </div>
-                <div>
-                  <label className="field-label">性別</label>
-                  <select className="select" value={bookingForm.gender} onChange={(event) => setBookingForm((current) => ({ ...current, gender: event.target.value }))}>
-                    <option value="">請選擇</option>
-                    <option value="男">男</option>
-                    <option value="女">女</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div>
-                  <label className="field-label">上課人數</label>
-                  <select className="select" value={bookingForm.attendeesCount} onChange={(event) => setBookingForm((current) => ({ ...current, attendeesCount: Number(event.target.value) }))}>
-                    {[1, 2, 3, 4, 5].map((count) => <option key={count} value={count}>{count} 人</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="field-label">學習狀態</label>
-                  <select className="select" value={bookingForm.learningStatus} onChange={(event) => setBookingForm((current) => ({ ...current, learningStatus: event.target.value }))}>
-                    <option value="初學">初學</option>
-                    <option value="進階">進階</option>
-                    <option value="穩定訓練">穩定訓練</option>
-                    <option value="比賽準備">比賽準備</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                <div>
-                  <label className="field-label">預約模式</label>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: false}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: bookingForm.isRecurring ? '1px solid var(--border-input)' : '2px solid #2563eb', background: bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>單次</button>
-                    <button type="button" onClick={() => setBookingForm(c => ({...c, isRecurring: true}))} style={{ flex: 1, padding: '10px', borderRadius: 12, border: !bookingForm.isRecurring ? '1px solid var(--border-input)' : '2px solid #2563eb', background: !bookingForm.isRecurring ? 'var(--color-surface-soft)' : '#eff6ff', color: !bookingForm.isRecurring ? 'var(--color-text-muted)' : '#1d4ed8', fontWeight: 700, cursor: 'pointer' }}>長期固定</button>
-                  </div>
-                </div>
-                {bookingForm.isRecurring ? (
-                  <div>
-                    <label className="field-label">總堂數 (每週一堂)</label>
-                    <select className="select" value={bookingForm.recurringWeeks} onChange={(e) => setBookingForm(c => ({...c, recurringWeeks: Number(e.target.value)}))}>
-                      <option value={4}>連續 4 週</option>
-                      <option value={8}>連續 8 週</option>
-                      <option value={12}>連續 12 週</option>
-                    </select>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="field-label">已選時段</label>
-                    <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選上方時段'} readOnly />
-                  </div>
-                )}
-              </div>
-
-              {bookingForm.isRecurring && (
-                <div>
-                  <label className="field-label">首堂課時段 (後續將以每週自動順延)</label>
-                  <input className="field" value={selectedSlot ? `${selectedSlot.date} ${selectedSlot.time}` : '請先點選上方時段'} readOnly />
-                </div>
-              )}
-
-              <div>
-                <label className="field-label">上課地址</label>
-                <input
-                  className="field"
-                  value={bookingForm.address}
-                  onChange={(event) => setBookingForm((current) => ({ ...current, address: event.target.value }))}
-                  placeholder={userProfile?.address || '請輸入上課地址'}
-                />
-              </div>
-            </div>
-          </div>
-
-        </section>
-
-        {/* 5. 最底端：送出預約 */}
-        <div style={{ position: 'sticky', bottom: 20, zIndex: 50, marginTop: 24, padding: '0 12px' }}>
-          <div style={{ background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(12px)', padding: 16, borderRadius: 24, boxShadow: '0 12px 40px rgba(15,23,42,0.15)', border: '1px solid rgba(226,232,240,0.8)' }}>
-            
-            {(() => {
-              const baseDiscountPercent = userProfile?.base_discount || 0;
-              const couponDiscountPercent = bookingForm.couponDiscount || 0;
-              const totalDiscountPercent = baseDiscountPercent + parseInt(couponDiscountPercent);
-
-              const basePrice = (selectedPlan?.price || coach?.base_price || 0);
-              const weeks = bookingForm.isRecurring ? bookingForm.recurringWeeks : 1;
-              const rawTotal = basePrice * weeks;
-
-              const perSessionDiscount = Math.min(Math.round(basePrice * (totalDiscountPercent / 100)), 300);
-              const totalDiscountAmount = perSessionDiscount * weeks;
-              const finalTotal = rawTotal - totalDiscountAmount;
-
-              return (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, padding: '0 8px' }}>
-                     <div style={{ fontSize: 13, color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                       自動套用折扣：等級 {baseDiscountPercent}% 
-                       {bookingForm.couponId ? ` + 優惠券 ${couponDiscountPercent}%` : ''}
-                     </div>
-                     <div style={{ fontSize: 14, color: '#10b981', fontWeight: 800 }}>
-                       {totalDiscountAmount > 0 ? `- NT$ ${totalDiscountAmount.toLocaleString()}` : ''}
-                     </div>
-                  </div>
-
-                  <button type="button" className="primary-btn" disabled={submitting} onClick={handleBooking} style={{ width: '100%', padding: '18px', fontSize: 16, borderRadius: 16, background: 'var(--color-accent)', boxShadow: '0 8px 24px rgba(245, 158, 11, 0.3)', color: 'var(--text-light)', border: 'none', fontWeight: 900, cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    {submitting ? <div className="animate-spin"><Clock3 size={18} /></div> : <CalendarDays size={18} />}
-                    {submitting ? '建立預約中...' : `送出預約 (實付 NT$${finalTotal.toLocaleString()})`}
-                  </button>
-                </>
-              );
-            })()}
-            
+          <div className="hero-info">
+            <h1 className="hero-title">{coach.name}</h1>
+            <p className="hero-subtitle">{publicHeadline}</p>
           </div>
         </div>
       </div>
+
+      <div className="main-container">
+        
+        {/* TRUST ROW */}
+        <div className="trust-row">
+          <div className="trust-badge primary">
+            <Star size={14} fill="currentColor" /> {coach.review_count ? `${coach.rating_avg} (${coach.review_count})` : '尚無評價'}
+          </div>
+          <div className="trust-badge">
+            <MapPin size={14} /> {coach.location || incompleteProfileText}
+          </div>
+          <div className="trust-badge" style={{ background: hasVerifiedIdentity ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255,255,255,0.06)', borderColor: hasVerifiedIdentity ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.12)', color: hasVerifiedIdentity ? '#34D399' : 'rgba(255,255,255,0.65)' }}>
+            <ShieldCheck size={14} /> {hasVerifiedIdentity ? '已完成身份驗證' : '尚未完成身份驗證'}
+          </div>
+        </div>
+
+        {/* PUBLIC PROFILE SNAPSHOT */}
+        <div style={{ display: 'grid', gap: 12, marginBottom: 32 }}>
+          {profileRows.map((row) => (
+            <div key={row.label} style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', margin: '0 0 6px', fontWeight: 700 }}>{row.label}</p>
+              <p style={{ fontSize: 15, color: '#FFF', margin: 0, fontWeight: 800, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{row.value || incompleteProfileText}</p>
+            </div>
+          ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 8px', marginTop: 2, flexWrap: 'wrap', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+              <Calendar size={16} /> <span>{formatNextAvailable(coach.next_available_at)}</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'rgba(255,255,255,0.6)', fontSize: 14 }}>
+              <DollarSign size={16} /> <span>{coach.min_price || coach.base_price ? `價格參考 NT$${Number(coach.min_price || coach.base_price).toLocaleString()}` : incompleteProfileText}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* VIDEOS */}
+        {videos.length > 0 && (
+          <div className="section-block">
+            <h2 className="section-title"><Video size={20} color="var(--accent)" /> 教學影片預覽</h2>
+            <div style={{ margin: '0 -20px' }}>
+              <VideoGallery videos={videos} />
+            </div>
+          </div>
+        )}
+
+        {/* PHILOSOPHY & FEATURES */}
+        <div className="section-block">
+          <h2 className="section-title"><FileDigit size={20} color="var(--accent)" /> 關於教練</h2>
+          <p className="section-text">{coach.philosophy || coach.intro || incompleteProfileText}</p>
+        </div>
+
+        {coach.teaching_features && (
+          <div className="section-block">
+            <h2 className="section-title"><BookOpen size={20} color="var(--accent)" /> 課程特色</h2>
+            <p className="section-text">{coach.teaching_features}</p>
+          </div>
+        )}
+
+        {/* PLANS */}
+        <div className="section-block">
+          <h2 className="section-title"><Zap size={20} color="var(--accent)" /> 課程方案</h2>
+          {planOptions.length === 0 ? (
+            <p className="section-text">尚無方案</p>
+          ) : (
+            <div className="plans-grid">
+              {planOptions.map(plan => (
+                <div key={plan.id} className="plan-card">
+                  <div>
+                    <h3 className="plan-title">{plan.title}</h3>
+                    <p className="plan-meta">{plan.duration_minutes} 分鐘</p>
+                  </div>
+                  <div className="plan-price">${plan.price}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* STICKY BOTTOM CTA */}
+      <div className="sticky-bottom-bar">
+        <div className="sticky-content">
+          <button className="btn-chat btn-press" onClick={handleChat} disabled={chatting}>
+            <MessageCircle size={20} />
+            <span>先聊聊</span>
+          </button>
+          <button className="btn-book-primary btn-press" onClick={() => router.push(`/coaches/${id}/booking`)}>
+            立即預約時段
+          </button>
+        </div>
+      </div>
+      
     </div>
   );
 }

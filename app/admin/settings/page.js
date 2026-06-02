@@ -16,6 +16,7 @@ export default function AdminSettings() {
   const [settings, setSettings] = useState({
     no_show_threshold: '15',
     commission_rate: '20',
+    referral_commission_rate: '3',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,6 +36,7 @@ export default function AdminSettings() {
           setSettings({
             no_show_threshold: data.settings.no_show_threshold || '15',
             commission_rate: data.settings.commission_rate || '20',
+            referral_commission_rate: data.settings.referral_commission_rate || '3',
           });
         }
       } else if (res.status === 403) {
@@ -197,6 +199,49 @@ export default function AdminSettings() {
               <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
                 學員付款後，系統在計算教練撥款時會自動扣除此比例的平台服務費。
                 預設為 <strong style={{ color: DARK }}>20%</strong>。
+              </p>
+            </div>
+          </div>
+
+          {/* Setting: Referral Commission Rate */}
+          <div style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.03)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+              <div style={{ padding: 10, background: 'rgba(249, 115, 22, 0.1)', borderRadius: 12, color: 'var(--color-accent)' }}>
+                <Percent size={20} />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>推廣抽成管理</h3>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: MUTED }}>設定推廣人可以從被推廣者（教練或學員）的訂單中抽取的比例（%）</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
+                <input 
+                  type="number"
+                  value={settings.referral_commission_rate}
+                  onChange={(e) => setSettings({ ...settings, referral_commission_rate: e.target.value })}
+                  style={{ width: '100%', background: BG, border: '1px solid var(--border-input)', borderRadius: 12, padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, boxSizing: 'border-box' }}
+                />
+                <span style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', fontSize: 14, fontWeight: 800, color: MUTED }}>
+                  %
+                </span>
+              </div>
+              <button 
+                onClick={() => handleSave('referral_commission_rate', settings.referral_commission_rate, '推廣抽成比例')}
+                disabled={saving}
+                style={{ background: 'var(--color-accent)', color: 'var(--text-light)', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1 }}
+              >
+                {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                儲存比例
+              </button>
+            </div>
+
+            <div style={{ marginTop: 20, padding: 16, background: 'var(--color-bg)', borderRadius: 16, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <Info size={16} color={'var(--color-accent)'} style={{ flexShrink: 0, marginTop: 2 }} />
+              <p style={{ margin: 0, fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                只要教練有開單，或是學員有花錢，推薦人就能從平台的服務費中抽取此比例。
+                預設為 <strong style={{ color: DARK }}>3%</strong>。
               </p>
             </div>
           </div>

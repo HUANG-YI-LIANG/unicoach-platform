@@ -29,6 +29,11 @@ export default function Home() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isQRUser, setIsQRUser] = useState(false);
 
+  const getCoachDiscoveryHref = (sport = null) => {
+    // Phase 2 validation: let first-time students browse real coaches before asking them to register.
+    return sport ? `/coaches?sport=${encodeURIComponent(sport)}` : '/coaches';
+  };
+
   useEffect(() => {
     // Check if user came from a QR code (e.g. ?ref=XYZ or ?qrcode=1)
     if (typeof window !== 'undefined') {
@@ -81,11 +86,7 @@ export default function Home() {
   const handleOnboardingSelect = (sport) => {
     localStorage.setItem('has_seen_onboarding', 'true');
     setShowOnboarding(false);
-    if (sport === '幫我選') {
-      router.push('/coaches');
-    } else {
-      router.push(`/coaches?sport=${encodeURIComponent(sport)}`);
-    }
+    router.push(sport === '幫我選' ? getCoachDiscoveryHref() : getCoachDiscoveryHref(sport));
   };
 
   if (loading) {
@@ -147,18 +148,20 @@ export default function Home() {
         <div className="premium-hero-bg"></div>
         <div className="premium-hero-content">
           <div className="premium-brand">UniCoach</div>
-          <h1 className="premium-title">找附近最適合你的<br />大學生教練</h1>
-          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練</p>
+          <p style={{ margin: '0 0 10px', color: 'var(--color-accent)', fontSize: 13, fontWeight: 900, letterSpacing: '0.04em' }}>第一次找教練也不用緊張</p>
+          <h1 className="premium-title">找附近最適合你的<br />真人大學生教練</h1>
+          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練；不確定也可以先問，不用一次買很多堂。</p>
           
           <div className="premium-cta-group">
-            <button onClick={() => router.push('/coaches')} style={{
+            <button onClick={() => router.push(getCoachDiscoveryHref())} style={{
               width: '100%', height: '64px', background: 'var(--color-accent)', color: 'var(--text-light)',
               borderRadius: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
               border: 'none', cursor: 'pointer', gap: 8
             }}>
-              👉 我要找教練
+              👉 先看看教練
             </button>
+            <p style={{ margin: '10px 0 0', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 700 }}>先聊聊再預約，第一堂前可以確認程度、地點與付款方式。</p>
           </div>
         </div>
       </section>
@@ -173,7 +176,7 @@ export default function Home() {
             { icon: <MessageCircle size={24} color="var(--color-accent)" />, title: '3. 先問教練', desc: '不確定先問清楚' },
             { icon: <User size={24} color="var(--color-accent)" />, title: '4. 預約課程', desc: '選時間直接上課' },
           ].map((step, idx) => (
-            <div key={idx} onClick={() => router.push('/coaches')} style={{
+            <div key={idx} onClick={() => router.push(getCoachDiscoveryHref())} style={{
               minWidth: 160, background: 'var(--bg-surface)', padding: 20, borderRadius: 20,
               boxShadow: 'var(--shadow-md)', border: '1px solid var(--border-main)', cursor: 'pointer'
             }}>
@@ -202,7 +205,7 @@ export default function Home() {
         ) : sports.length > 0 ? (
           <div className="premium-sports-grid">
             {sports.map(sport => (
-              <Link href={`/coaches?sport=${encodeURIComponent(sport)}`} key={sport} className="sport-card">
+              <Link href={getCoachDiscoveryHref(sport)} key={sport} className="sport-card">
                 <img 
                   src={SPORT_IMAGES[sport] || DEFAULT_SPORT_IMAGE} 
                   alt={sport} 
@@ -223,6 +226,25 @@ export default function Home() {
             <Link href="/coaches" style={{ color: 'var(--color-accent)', fontWeight: 800 }}>去找教練</Link>
           </div>
         )}
+      </section>
+
+      <section className="premium-sports-section">
+        <div className="sports-header">
+          <h2 className="sports-title">真人教學情境</h2>
+          <span className="sports-subtitle">不是網紅平台</span>
+        </div>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {[
+            { title: '先聊聊，再決定要不要預約', desc: '可以先問程度、地點、器材與上課方式；不確定也可以先問。' },
+            { title: '看教練人格與教學風格', desc: '每位教練都會說明自己適合誰，不只看價格或頭銜。' },
+            { title: '付款前看清楚保障', desc: '平台收款、人工對帳、完成後才撥款；請勿私下轉帳。' },
+          ].map((item) => (
+            <div key={item.title} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-main)', borderRadius: 20, padding: 18, boxShadow: 'var(--shadow-md)' }}>
+              <h3 style={{ margin: '0 0 6px', color: 'var(--text-main)', fontSize: 16, fontWeight: 900 }}>{item.title}</h3>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, fontWeight: 650 }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* 4. Footer */}

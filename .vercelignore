@@ -1,0 +1,11 @@
+﻿_hermes_backups
+_hermes_patches
+_hermes_smoke
+__pycache__
+scratch
+*.log
+*.7z
+tests
+scripts
+ai-prompts
+docs

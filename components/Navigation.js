@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Search, MessageCircle, User, LogIn, PieChart, ShoppingBag, PlaySquare } from 'lucide-react';
+import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -44,23 +44,24 @@ export default function Navigation() {
     navItems = [
       { name: '首頁', path: '/', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '找教練', path: '/coaches', icon: Search },
-      { name: '我的', path: '/login', icon: User }
+      { name: '收藏', path: '/favorites', icon: Heart },
+      { name: '訊息', path: '/chat', icon: MessageCircle },
+      { name: '我的', path: '/login', icon: LogIn }
     ];
   } else if (role === 'user') {
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '找教練', path: '/coaches', icon: Search },
-      { name: '聊天', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
+      { name: '收藏', path: '/favorites', icon: Heart },
+      { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/dashboard/user/edit', icon: User }
     ];
   } else if (role === 'coach') {
     navItems = [
-      { name: '後台', path: '/dashboard/coach', icon: PieChart },
-      { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '訂單', path: '/bookings', icon: ShoppingBag },
-      { name: '聊天', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
+      { name: '首頁', path: '/dashboard/coach', icon: Home },
+      { name: '方案', path: '/coach/plans', icon: Layers },
+      { name: '排程', path: '/coach/schedule', icon: Calendar },
+      { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/coach/profile/edit', icon: User }
     ];
   } else if (role === 'admin') {
@@ -80,8 +81,8 @@ export default function Navigation() {
 
         return (
           <Link key={item.path} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>
-            <div style={{ position: 'relative' }}>
-              <Icon size={24} strokeWidth={isActive ? 2.5 : 2} className="nav-icon" />
+            <div style={{ position: 'relative', marginBottom: 4 }}>
+              <Icon size={22} strokeWidth={isActive ? 2.25 : 1.9} className="nav-icon" style={{ opacity: isActive ? 0.88 : 0.42 }} />
               {item.badge > 0 && (
                 <span style={{
                   position: 'absolute',
@@ -93,7 +94,7 @@ export default function Navigation() {
                   fontWeight: 900,
                   padding: '2px 6px',
                   borderRadius: 10,
-                  border: '2px solid var(--color-surface)',
+                  border: '2px solid #0F172A',
                   minWidth: 18,
                   textAlign: 'center'
                 }}>
@@ -101,7 +102,7 @@ export default function Navigation() {
                 </span>
               )}
             </div>
-            <span className="nav-text">{item.name}</span>
+            <span className="nav-text" style={{ opacity: isActive ? 0.86 : 0.42 }}>{item.name}</span>
           </Link>
         );
       })}

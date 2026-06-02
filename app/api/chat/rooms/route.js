@@ -37,6 +37,63 @@ async function getRoomStats(adminSupabase, roomId, viewerId) {
   };
 }
 
+async function resolveCoachUserId(adminSupabase, rawId) {
+  if (!rawId || typeof rawId !== 'string') {
+    return { ok: false, status: 400, error: '缺少教練 ID' };
+  }
+
+  const candidateId = rawId.trim();
+  if (!candidateId) return { ok: false, status: 400, error: '缺少教練 ID' };
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidateId)) {
+    return { ok: false, status: 400, error: '教練 ID 格式不合法' };
+  }
+
+  // P0-4：前台可能傳 coach_profiles.id，也可能傳 users.id。
+  // 先以 V2 coach_profiles 解析，避免 /chat?with=[profile_id] 建出不可用聊天室。
+  const { data: profile, error: profileError } = await adminSupabase
+    .from('coach_profiles')
+    .select('id, user_id, verification_status')
+    .or(`id.eq.${candidateId},user_id.eq.${candidateId}`)
+    .maybeSingle();
+
+  if (profileError && profileError.code !== 'PGRST116') throw profileError;
+
+  if (profile) {
+    if (profile.verification_status !== 'approved') {
+      return { ok: false, status: 403, error: '該教練尚未開放聊天' };
+    }
+    return { ok: true, coachId: profile.user_id, resolvedFrom: profile.id === candidateId ? 'coach_profiles.id' : 'coach_profiles.user_id' };
+  }
+
+  // Legacy fallback：舊資料仍可能只有 users/coaches。
+  const { data: coachUser, error: userError } = await adminSupabase
+    .from('users')
+    .select('id, role')
+    .eq('id', candidateId)
+    .maybeSingle();
+
+  if (userError && userError.code !== 'PGRST116') throw userError;
+  if (coachUser?.role === 'coach') {
+    return { ok: true, coachId: coachUser.id, resolvedFrom: 'users.id' };
+  }
+
+  const { data: legacyCoach, error: coachError } = await adminSupabase
+    .from('coaches')
+    .select('user_id, approval_status')
+    .eq('user_id', candidateId)
+    .maybeSingle();
+
+  if (coachError && coachError.code !== 'PGRST116') throw coachError;
+  if (legacyCoach) {
+    if (legacyCoach.approval_status !== 'approved') {
+      return { ok: false, status: 403, error: '該教練尚未開放聊天' };
+    }
+    return { ok: true, coachId: legacyCoach.user_id, resolvedFrom: 'coaches.user_id' };
+  }
+
+  return { ok: false, status: 404, error: '找不到該教練' };
+}
+
 export async function GET() {
   try {
     const auth = await requireAuth();
@@ -52,7 +109,7 @@ export async function GET() {
         coach_id,
         created_at,
         users!chat_rooms_user_id_fkey(name),
-        coaches:users!chat_rooms_coach_id_fkey(name, coaches(philosophy))
+        coaches:users!chat_rooms_coach_id_fkey(name, avatar_url, coaches(philosophy), coach_profiles(school))
       `)
       .or(`user_id.eq.${auth.user.id},coach_id.eq.${auth.user.id}`)
       .order('created_at', { ascending: false });
@@ -67,6 +124,7 @@ export async function GET() {
           id: room.id,
           booking_id: room.booking_id,
           other_party_name: auth.user.role === 'coach' ? room.users?.name : room.coaches?.name,
+          other_party_avatar: auth.user.role === 'coach' ? null : room.coaches?.avatar_url || null,
           coach_philosophy: room.coaches?.coaches?.[0]?.philosophy || null,
           last_message: stats.lastMessage,
           unread_count: stats.unreadCount,
@@ -92,8 +150,18 @@ export async function POST(request) {
 
     const body = await request.json();
     const adminSupabase = getAdminSupabase();
+    const rawCoachId = body.coachId || body.with || body.profileId || body.coachProfileId;
 
-    const participants = getChatParticipantsForCreate({ actor: auth.user, body });
+    let normalizedBody = { ...body };
+    if (auth.user.role !== 'coach') {
+      const resolvedCoach = await resolveCoachUserId(adminSupabase, rawCoachId);
+      if (!resolvedCoach.ok) {
+        return NextResponse.json({ error: resolvedCoach.error }, { status: resolvedCoach.status });
+      }
+      normalizedBody.coachId = resolvedCoach.coachId;
+    }
+
+    const participants = getChatParticipantsForCreate({ actor: auth.user, body: normalizedBody });
     if (!participants.ok) {
       return NextResponse.json({ error: participants.error }, { status: participants.status });
     }
@@ -115,18 +183,18 @@ export async function POST(request) {
       }
     }
 
+    const chatRoomInsert = buildChatRoomInsert({ studentId, coachId: coachIdFinal });
     const { data: existing, error: existingError } = await adminSupabase
       .from('chat_rooms')
       .select('id')
-      .eq('pair_key', buildChatRoomInsert({ studentId, coachId: coachIdFinal }).pair_key)
+      .eq('pair_key', chatRoomInsert.pair_key)
       .maybeSingle();
 
     if (existingError) throw existingError;
     if (existing) {
-      return NextResponse.json({ success: true, roomId: existing.id });
+      return NextResponse.json({ success: true, roomId: existing.id, coachId: coachIdFinal });
     }
 
-    const chatRoomInsert = buildChatRoomInsert({ studentId, coachId: coachIdFinal });
     const { data: newRoom, error: upsertError } = await adminSupabase
       .from('chat_rooms')
       .upsert(chatRoomInsert, buildChatRoomUpsertOptions())
@@ -142,12 +210,12 @@ export async function POST(request) {
           .single();
 
         if (fallbackError) throw fallbackError;
-        return NextResponse.json({ success: true, roomId: fallbackRoom.id });
+        return NextResponse.json({ success: true, roomId: fallbackRoom.id, coachId: coachIdFinal });
       }
       throw upsertError;
     }
 
-    return NextResponse.json({ success: true, roomId: newRoom.id });
+    return NextResponse.json({ success: true, roomId: newRoom.id, coachId: coachIdFinal });
   } catch (error) {
     console.error('[CHAT ROOMS POST ERROR]', error);
     return NextResponse.json({ error: '建立聊天室失敗' }, { status: 500 });

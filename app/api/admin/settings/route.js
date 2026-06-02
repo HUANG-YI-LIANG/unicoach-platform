@@ -7,6 +7,7 @@ import { getAdminSupabase } from '@/lib/supabase';
 
 const PERCENTAGE_SETTING_KEYS = new Set([
   'commission_rate',
+  'referral_commission_rate',
   'commission_discount',
   'discount_percent',
   'first_booking_discount',

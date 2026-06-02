@@ -17,13 +17,36 @@ import {
   clampPercent,
   roundMoney,
 } from '@/lib/bookingSecurity';
+import {
+  buildChatRoomInsert,
+  buildChatRoomUpsertOptions,
+  isDuplicateChatRoomError,
+} from '@/lib/chatRules';
 
 const ACTIVE_BOOKING_STATUSES = ['pending_payment', 'scheduled', 'in_progress', 'pending_completion', 'completed'];
 const BOOKING_PLAN_SELECT = 'id, coach_id, title, description, duration_minutes, price, is_active, is_default';
+const SERVICE_SELECT = `
+  id,
+  coach_profile_id,
+  title,
+  intro,
+  price,
+  trial_price,
+  is_active,
+  coach_profiles!inner(
+    id,
+    user_id,
+    verification_status,
+    users!inner(id)
+  )
+`;
 const GET_BOOKING_FIELDS = [
   'id',
   'user_id',
   'coach_id',
+  'coach_service_id',
+  'service_title',
+  'service_price_type',
   'expected_time',
   'status',
   'created_at',
@@ -54,6 +77,8 @@ const GET_BOOKING_FIELDS = [
   'completed_at',
   'platform_fee',
   'coach_payout',
+  'rebook_from_booking_id',
+  'rebook_context',
 ];
 
 function isExpiredPendingPayment(booking) {
@@ -70,15 +95,59 @@ function getBookingCreationErrorResponse(error) {
     return { status: 409, error: '優惠券已使用，請重新選擇其他優惠券' };
   }
 
-  if (/23P01|booking_time_conflict|時段衝突|conflict/i.test(text)) {
+  if (/23P01|booking_time_conflict|時段衝突|conflict|bookings_no_active_time_overlap/i.test(text)) {
     return { status: 409, error: '時段衝突：該時段已被預約，請重新選擇其他時間' };
   }
 
-  if (/booking_user_mismatch|coupon_id_mismatch|invalid_booking_time_or_duration|missing_booking_rows/i.test(text)) {
+  if (/booking_user_mismatch|coupon_id_mismatch|invalid_booking_time_or_duration|missing_booking_rows|service_id_mismatch|rebook_source_not_found|rebook_source_coach_mismatch|rebook_source_service_mismatch|rebook_source_not_completed/i.test(text)) {
     return { status: 400, error: '預約資料不合法，請重新送出' };
   }
 
+  if (/rebook_source_user_mismatch|42501/i.test(text)) {
+    return { status: 403, error: '續課來源不屬於目前使用者' };
+  }
+
   return null;
+}
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value) {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
+function normalizeOptionalText(value) {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return text ? text : undefined;
+}
+
+async function loadRebookSource(adminSupabase, { rebookFromBookingId, userId }) {
+  if (!rebookFromBookingId) return { ok: true, source: null };
+
+  if (!isUuid(rebookFromBookingId)) {
+    return { ok: false, status: 400, error: '續課來源預約 ID 格式錯誤' };
+  }
+
+  const { data: source, error } = await adminSupabase
+    .from('bookings')
+    .select('id, user_id, coach_id, coach_service_id, service_price_type, grade, gender, attendees_count, learning_status, duration_minutes, plan_id, status, expected_time')
+    .eq('id', rebookFromBookingId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!source) return { ok: false, status: 404, error: '找不到續課來源預約' };
+  if (String(source.user_id) !== String(userId)) {
+    return { ok: false, status: 403, error: '續課來源不屬於目前使用者' };
+  }
+  if (!['completed', 'pending_completion'].includes(source.status)) {
+    return { ok: false, status: 400, error: '只有已完成課程可以作為續課來源' };
+  }
+  if (!source.coach_service_id) {
+    return { ok: false, status: 400, error: '續課來源缺少服務 ID，請改從服務詳情頁重新預約' };
+  }
+
+  return { ok: true, source };
 }
 
 const REQUIRED_BOOKING_SAFETY_FIELDS = [
@@ -91,7 +160,7 @@ const REQUIRED_BOOKING_SAFETY_FIELDS = [
   'platform_fee',
   'coach_payout',
   'attendees_count',
-  'plan_id',
+  'coach_service_id',
 ];
 
 function validateRequiredBookingSafetyFields(bookingsToInsert) {
@@ -134,11 +203,109 @@ async function createBookingsSafely(adminSupabase, { bookingsToInsert, userId, c
   return { ok: true, bookings: normalizedBookings, bookingIds };
 }
 
+function normalizeServicePriceType(body) {
+  if (body?.servicePriceType === 'trial' || body?.priceType === 'trial' || body?.isTrialBooking === true) {
+    return 'trial';
+  }
+  return 'regular';
+}
+
+function snapshotService(service, servicePriceType, durationMinutes) {
+  return JSON.stringify({
+    id: service.id,
+    title: service.title,
+    price: service.price,
+    trial_price: service.trial_price,
+    service_price_type: servicePriceType,
+    duration_minutes: durationMinutes,
+    coach_profile_id: service.coach_profile_id,
+    coach_user_id: service.coach_profiles?.user_id,
+  });
+}
+
+async function loadServiceForBooking(adminSupabase, { serviceId, coachId }) {
+  if (!serviceId) {
+    return { ok: false, status: 400, error: '缺少服務 ID，請從服務詳情頁重新預約' };
+  }
+
+  const { data: service, error } = await adminSupabase
+    .from('coach_services')
+    .select(SERVICE_SELECT)
+    .eq('id', serviceId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!service) return { ok: false, status: 404, error: '找不到該服務' };
+
+  const serviceCoachUserId = service.coach_profiles?.user_id || service.coach_profiles?.users?.id;
+  if (!serviceCoachUserId) {
+    return { ok: false, status: 400, error: '服務尚未綁定可預約的教練帳號' };
+  }
+
+  if (coachId && String(coachId) !== String(serviceCoachUserId)) {
+    return { ok: false, status: 400, error: '預約教練與服務所屬教練不一致，請重新整理後再試' };
+  }
+
+  if (!service.is_active || service.coach_profiles?.verification_status !== 'approved') {
+    return { ok: false, status: 403, error: '該服務目前未開放預約' };
+  }
+
+  return { ok: true, service, coachId: serviceCoachUserId };
+}
+
+function getServiceBasePrice(service, servicePriceType) {
+  const regularPrice = Number(service?.price);
+  const trialPrice = Number(service?.trial_price);
+  if (servicePriceType === 'trial' && Number.isFinite(trialPrice) && trialPrice > 0) {
+    return roundMoney(trialPrice);
+  }
+  return roundMoney(regularPrice);
+}
+
+async function syncBookingChatRoom(adminSupabase, { userId, coachId, bookingId }) {
+  try {
+    const chatRoomInsert = buildChatRoomInsert({ studentId: userId, coachId });
+
+    const { data: room, error } = await adminSupabase
+      .from('chat_rooms')
+      .upsert(
+        { ...chatRoomInsert, booking_id: bookingId },
+        buildChatRoomUpsertOptions()
+      )
+      .select('id')
+      .single();
+
+    if (error) {
+      if (isDuplicateChatRoomError(error)) {
+        const { data: existingRoom, error: existingError } = await adminSupabase
+          .from('chat_rooms')
+          .select('id')
+          .eq('pair_key', chatRoomInsert.pair_key)
+          .single();
+        if (existingError) throw existingError;
+        await adminSupabase
+          .from('chat_rooms')
+          .update({ booking_id: bookingId })
+          .eq('id', existingRoom.id);
+        return;
+      }
+      throw error;
+    }
+
+    console.info(`[AUTO-CHAT] Synced room ${maskIdentifier(room.id)} for booking ${maskIdentifier(bookingId)}`);
+  } catch (chatErr) {
+    console.error('[AUTO-CHAT ERROR] Failed to sync chat room:', safeErrorDetails(chatErr));
+  }
+}
+
 function baseBookingDto(b) {
   return {
     id: b.id,
     user_id: b.user_id,
     coach_id: b.coach_id,
+    coach_service_id: b.coach_service_id,
+    service_title: b.service_title,
+    service_price_type: b.service_price_type,
     expected_time: b.expected_time,
     status: b.status,
     created_at: b.created_at,
@@ -205,31 +372,63 @@ export async function POST(request) {
   try {
     const auth = await requireAuth(['user', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
-    
+
     const adminSupabase = getAdminSupabase();
     const userId = auth.user.id;
-    const { 
-      coachId, 
-      expectedTime, 
-      grade, 
-      age, // 新增：支援前端傳入的 age
-      gender, 
-      attendeesCount, 
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.warn('[BOOKING JSON WARNING]', safeErrorDetails(parseError));
+      return NextResponse.json({ error: '請求格式錯誤' }, { status: 400 });
+    }
+    const {
+      coachId: requestedCoachId,
+      serviceId,
+      coachServiceId,
+      expectedTime,
+      grade,
+      age,
+      gender,
+      attendeesCount,
       learningStatus,
       couponId = null,
       isRecurring = false,
       recurringWeeks = 1,
-      planId
-    } = await request.json();
+      planId,
+      durationMinutes: requestedDurationMinutes,
+      rebookFromBookingId: camelRebookFromBookingId,
+      rebook_from_booking_id: snakeRebookFromBookingId,
+    } = body;
 
-    const finalGrade = age || grade; // 映射
+    const rebookFromBookingId = camelRebookFromBookingId || snakeRebookFromBookingId || null;
+    const rebookSourceLoad = await loadRebookSource(adminSupabase, {
+      rebookFromBookingId,
+      userId,
+    });
+    if (!rebookSourceLoad.ok) {
+      return NextResponse.json({ error: rebookSourceLoad.error }, { status: rebookSourceLoad.status });
+    }
 
-    // 1. 獲取教練當前價格、抽成比例與審核狀態
-    const { data: coach, error: coachErr } = await adminSupabase
-      .from('coaches')
-      .select('base_price, commission_rate, approval_status, available_times')
-      .eq('user_id', coachId)
-      .single();
+    const rebookSource = rebookSourceLoad.source;
+    const effectiveServiceId = serviceId || coachServiceId || rebookSource?.coach_service_id;
+    const effectiveCoachId = requestedCoachId || rebookSource?.coach_id;
+    const finalGrade = normalizeOptionalText(age || grade) || rebookSource?.grade || null;
+    const finalGender = normalizeOptionalText(gender) || rebookSource?.gender || null;
+    const finalLearningStatus = normalizeOptionalText(learningStatus) || rebookSource?.learning_status || null;
+    const finalAttendeesCount = attendeesCount ?? rebookSource?.attendees_count;
+    const finalRequestedDurationMinutes = requestedDurationMinutes ?? rebookSource?.duration_minutes;
+    const finalPlanId = planId || rebookSource?.plan_id || null;
+    const servicePriceType = normalizeServicePriceType({ ...body, servicePriceType: body?.servicePriceType || rebookSource?.service_price_type });
+    const serviceLoad = await loadServiceForBooking(adminSupabase, {
+      serviceId: effectiveServiceId,
+      coachId: effectiveCoachId,
+    });
+    if (!serviceLoad.ok) {
+      return NextResponse.json({ error: serviceLoad.error }, { status: serviceLoad.status });
+    }
+
+    const { service, coachId } = serviceLoad;
 
     const normalizedExpectedTime = new Date(expectedTime);
     if (Number.isNaN(normalizedExpectedTime.getTime())) {
@@ -241,13 +440,17 @@ export async function POST(request) {
       return NextResponse.json({ error: futureTimeCheck.error }, { status: futureTimeCheck.status });
     }
 
-    if (coachErr || !coach) return NextResponse.json({ error: '找不到該教練資料' }, { status: 404 });
+    const { data: coach, error: coachErr } = await adminSupabase
+      .from('coaches')
+      .select('base_price, commission_rate, approval_status, available_times')
+      .eq('user_id', coachId)
+      .single();
 
-    // ✅ 安全門檻：只有 'approved' 狀態的教練才能接受預約
+    if (coachErr || !coach) return NextResponse.json({ error: '找不到該教練資料' }, { status: 404 });
     if (coach.approval_status !== 'approved') {
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: '該教練目前不接受預約（尚未審核通過或已被暫停）',
-        status: coach.approval_status 
+        status: coach.approval_status,
       }, { status: 403 });
     }
 
@@ -259,15 +462,21 @@ export async function POST(request) {
 
     if (coachPlansError) throw coachPlansError;
 
-    const planPick = pickFormalPlanForBooking({
-      requestedPlanId: planId,
-      plans: coachPlans || [],
-    });
-    if (!planPick.ok) {
-      return NextResponse.json({ error: planPick.error }, { status: planPick.status });
+    let selectedPlan = null;
+    if (finalPlanId || !finalRequestedDurationMinutes) {
+      const planPick = pickFormalPlanForBooking({
+        requestedPlanId: finalPlanId,
+        plans: coachPlans || [],
+      });
+      if (planPick.ok) selectedPlan = planPick.plan;
+      else if (!finalRequestedDurationMinutes) {
+        return NextResponse.json({ error: planPick.error }, { status: planPick.status });
+      }
     }
 
-    const selectedPlan = planPick.plan;
+    const durationMinutes = Number.isFinite(Number(finalRequestedDurationMinutes)) && Number(finalRequestedDurationMinutes) > 0
+      ? Math.round(Number(finalRequestedDurationMinutes))
+      : selectedPlan?.duration_minutes || 60;
 
     const [{ data: availabilityRules, error: availabilityRulesError }, { data: availabilityExceptions, error: availabilityExceptionsError }] = await Promise.all([
       adminSupabase
@@ -290,15 +499,12 @@ export async function POST(request) {
     });
     if (!saleability.canSell) {
       return NextResponse.json({
-        error: '該教練尚未完成正式課程方案或固定可預約時段設定，暫不開放預約',
+        error: '該教練尚未完成固定可預約時段設定，暫不開放預約',
         reasons: saleability.reasons,
       }, { status: 400 });
     }
 
-    const durationMinutes = selectedPlan.duration_minutes;
-    const planPrice = selectedPlan.price;
-
-    const totalSessions = isRecurring ? parseInt(recurringWeeks) : 1;
+    const totalSessions = isRecurring ? Math.max(1, Math.min(12, parseInt(recurringWeeks, 10) || 1)) : 1;
     const seriesId = isRecurring ? uuidv4() : null;
     const recurrencePattern = isRecurring ? 'weekly' : null;
 
@@ -316,15 +522,17 @@ export async function POST(request) {
       }
     }
 
-    const basePrice = planPrice;
+    const basePrice = getServiceBasePrice(service, servicePriceType);
+    if (!Number.isFinite(basePrice) || basePrice <= 0) {
+      return NextResponse.json({ error: '服務價格不合法，請聯絡客服或重新選擇服務' }, { status: 400 });
+    }
 
-    // 2. 計算基礎折扣率 (基於用戶等級與預約歷史)
     const { count: userBookingsCount } = await adminSupabase
       .from('bookings')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .in('status', ACTIVE_BOOKING_STATUSES);
-    
+
     const { data: userData, error: userDataErr } = await adminSupabase
       .from('users')
       .select('level')
@@ -349,31 +557,27 @@ export async function POST(request) {
     } catch (couponError) {
       return NextResponse.json({ error: couponError.message || '優惠券驗證失敗' }, { status: 400 });
     }
-    
+
     const isFirst = (userBookingsCount || 0) === 0;
     const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
 
-    // Fetch global commission setting from platform key/value store
     const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
       .from('platform_settings')
       .select('value')
       .eq('key', 'commission_rate')
       .maybeSingle();
 
-    if (commissionSettingError) {
-      throw commissionSettingError;
-    }
+    if (commissionSettingError) throw commissionSettingError;
 
     const parsedGlobalCommission = Number(commissionSetting?.value);
     const globalCommission = Number.isFinite(parsedGlobalCommission)
       ? clampPercent(parsedGlobalCommission, 20)
       : 20;
 
-    const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined 
-      ? coach.commission_rate 
+    const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined
+      ? coach.commission_rate
       : globalCommission;
 
-    // 3. 累加折扣 (基礎 + server 驗證後的優惠券)
     const couponDiscountPercent = couponResult.percent;
     const pricing = calculateBookingPrice({
       basePrice,
@@ -381,34 +585,32 @@ export async function POST(request) {
       couponDiscountPercent,
       coachCommission,
     });
-    const discountAmount = pricing.discountAmount;
 
-    // 4. 計算金額拆分
-    const finalPrice = pricing.finalPrice;
-    const depositPaid = pricing.depositPaid;
-    const platformFee = pricing.platformFee;
-    const coachPayout = pricing.coachPayout;
-
-    // 5. 建立預約紀錄
     const bookingsToInsert = [];
     const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const serviceSnapshot = snapshotService(service, servicePriceType, durationMinutes);
+
     for (let i = 0; i < totalSessions; i++) {
       const sessionTime = isRecurring ? addWeeks(normalizedExpectedTime, i) : normalizedExpectedTime;
       bookingsToInsert.push({
         id: uuidv4(),
         user_id: userId,
         coach_id: coachId,
+        coach_service_id: service.id,
+        service_title: service.title,
+        service_price_type: servicePriceType,
+        service_snapshot: serviceSnapshot,
         expected_time: sessionTime.toISOString(),
         base_price: basePrice,
-        discount_amount: discountAmount,
-        final_price: finalPrice,
-        deposit_paid: depositPaid,
-        platform_fee: platformFee,
-        coach_payout: coachPayout,
+        discount_amount: pricing.discountAmount,
+        final_price: pricing.finalPrice,
+        deposit_paid: pricing.depositPaid,
+        platform_fee: pricing.platformFee,
+        coach_payout: pricing.coachPayout,
         grade: finalGrade,
-        gender: gender,
-        attendees_count: Math.max(1, Math.round(Number(attendeesCount) || 1)),
-        learning_status: learningStatus,
+        gender: finalGender,
+        attendees_count: Math.max(1, Math.round(Number(finalAttendeesCount) || 1)),
+        learning_status: finalLearningStatus,
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
         status: 'pending_payment',
@@ -417,16 +619,23 @@ export async function POST(request) {
         session_number: i + 1,
         duration_minutes: durationMinutes,
         payment_expires_at: paymentExpiresAt,
-        plan_id: selectedPlan.id,
-        plan_title: selectedPlan.title,
+        plan_id: selectedPlan?.id || finalPlanId || null,
+        plan_title: selectedPlan?.title || service.title,
         plan_snapshot: JSON.stringify({
-          id: selectedPlan.id,
-          title: selectedPlan.title,
-          description: selectedPlan.description || '',
-          duration_minutes: selectedPlan.duration_minutes,
-          price: selectedPlan.price,
-          is_default: selectedPlan.is_default,
-        })
+          id: selectedPlan?.id || finalPlanId || null,
+          title: selectedPlan?.title || service.title,
+          description: selectedPlan?.description || service.intro || '',
+          duration_minutes: durationMinutes,
+          price: basePrice,
+          is_default: selectedPlan?.is_default || false,
+          source: selectedPlan ? 'coach_plans' : 'coach_services',
+        }),
+        rebook_from_booking_id: rebookSource?.id || null,
+        rebook_context: rebookSource ? {
+          source_booking_id: rebookSource.id,
+          source_expected_time: rebookSource.expected_time,
+          carried_fields: ['coach_id', 'coach_service_id', 'grade', 'gender', 'attendees_count', 'learning_status', 'duration_minutes', 'plan_id'],
+        } : null,
       });
     }
 
@@ -446,56 +655,23 @@ export async function POST(request) {
     }
 
     const bookingId = bookings[0].id;
+    await syncBookingChatRoom(adminSupabase, { userId, coachId, bookingId });
 
-    // 5. 自動建立或連結聊天室 (Auto-Chat Feature)
-    try {
-      // 檢查是否已有現存聊天室
-      const { data: existingRoom } = await adminSupabase
-        .from('chat_rooms')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('coach_id', coachId)
-        .maybeSingle();
-
-      if (existingRoom) {
-        // 已有聊天室，更新關聯的 booking_id
-        await adminSupabase
-          .from('chat_rooms')
-          .update({ booking_id: bookingId })
-          .eq('id', existingRoom.id);
-        console.log(`[AUTO-CHAT] Linked booking ${maskIdentifier(bookingId)} to existing room ${maskIdentifier(existingRoom.id)}`);
-      } else {
-        // 建立新聊天室
-        const { data: newRoom, error: roomErr } = await adminSupabase
-          .from('chat_rooms')
-          .insert([{ 
-            user_id: userId, 
-            coach_id: coachId,
-            booking_id: bookingId 
-          }])
-          .select('id')
-          .single();
-        
-        if (!roomErr) {
-          console.log(`[AUTO-CHAT] Created new room ${maskIdentifier(newRoom.id)} for booking ${maskIdentifier(bookingId)}`);
-        }
-      }
-    } catch (chatErr) {
-      console.error('[AUTO-CHAT ERROR] Failed to sync chat room:', safeErrorDetails(chatErr));
-      // 不要因為聊天室建立失敗而導致預約失敗，僅記錄錯誤
-    }
-
-    return NextResponse.json({ 
-      success: true, 
-      bookingId: bookings[0].id,
-      seriesId: seriesId,
-      perSessionFinalPrice: finalPrice,
-      totalFinalPrice: roundMoney(finalPrice * totalSessions),
-      finalPrice: roundMoney(finalPrice * totalSessions),
-      perSessionDepositPaid: depositPaid,
-      totalDepositPaid: roundMoney(depositPaid * totalSessions),
-      depositPaid: roundMoney(depositPaid * totalSessions),
-      totalSessions
+    return NextResponse.json({
+      success: true,
+      bookingId,
+      seriesId,
+      coachServiceId: service.id,
+      serviceTitle: service.title,
+      servicePriceType,
+      rebookFromBookingId: rebookSource?.id || null,
+      perSessionFinalPrice: pricing.finalPrice,
+      totalFinalPrice: roundMoney(pricing.finalPrice * totalSessions),
+      finalPrice: roundMoney(pricing.finalPrice * totalSessions),
+      perSessionDepositPaid: pricing.depositPaid,
+      totalDepositPaid: roundMoney(pricing.depositPaid * totalSessions),
+      depositPaid: roundMoney(pricing.depositPaid * totalSessions),
+      totalSessions,
     });
   } catch (error) {
     console.error('Booking creation error:', safeErrorDetails(error));
@@ -530,7 +706,6 @@ export async function GET(request) {
     const { data: bookings, error } = await query;
     if (error) throw error;
 
-    // 5. 格式化回傳資料（確保安全取值），並過濾掉已過期的待付款訂單
     const formatted = (bookings || [])
       .filter((b) => !isExpiredPendingPayment(b))
       .map((b) => formatBookingForRole(b, auth.user.role));

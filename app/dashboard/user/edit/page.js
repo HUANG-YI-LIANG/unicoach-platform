@@ -2,51 +2,45 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   User, Mail, Phone, MapPin, Target,
-  Languages, Save, ArrowLeft, Loader2, UploadCloud
+  Languages, Save, ArrowLeft, Loader2, UploadCloud,
+  Wallet, Ticket, QrCode, Copy, Check
 } from 'lucide-react';
 
-const ORANGE = 'var(--color-accent)';
-const BG     = 'var(--color-bg)';
-const CARD   = 'var(--color-surface)';
-const MUTED  = 'var(--color-text-muted)';
-const TEXT_LIGHT = 'var(--color-text)';
+const ORANGE = 'var(--accent)';
+const BG     = 'var(--bg-primary)';
+const CARD   = 'var(--bg-card)';
+const MUTED  = 'var(--text-muted)';
+const TEXT_LIGHT = 'var(--text-primary)';
 const RADIUS = '20px';
 const SHADOW = 'var(--shadow-card)';
-const INPUT_BG = 'var(--color-surface-soft)';
-const BORDER = 'var(--color-border)';
+const INPUT_BG = 'var(--bg-input)';
+const BORDER = 'var(--border)';
 
 export default function UserProfileEdit() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    language: '中文',
-    grade: '',
-    gender: '',
-    learning_goals: '',
-    avatar_url: '',
-    frequent_addresses: []
+    name: '', email: '', phone: '', address: '', language: '中文', grade: '', gender: '', learning_goals: '', avatar_url: '', frequent_addresses: []
   });
+  const [extraData, setExtraData] = useState({ coupons: [], wallet_balance: 0, promotion_code: '', level: 1, base_discount: 12 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // New Address UI State
   const [newLabel, setNewLabel] = useState('');
   const [newAddr, setNewAddr] = useState('');
 
+  const [promoCodeInput, setPromoCodeInput] = useState('');
+  const [applyingCode, setApplyingCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
-        router.push('/login');
-      } else {
-        fetchProfile();
-      }
+      if (!user) router.push('/login');
+      else fetchProfile();
     }
   }, [user, authLoading, router]);
 
@@ -56,353 +50,217 @@ export default function UserProfileEdit() {
       if (res.ok) {
         const data = await res.json();
         let freq = [];
-        try {
-          freq = data.profile?.frequent_addresses ? JSON.parse(data.profile.frequent_addresses) : [];
-        } catch(e) { console.error(e); }
-
+        try { freq = data.profile?.frequent_addresses ? JSON.parse(data.profile.frequent_addresses) : []; } catch(e) {}
         setFormData({
-          name: data.profile?.name || '',
-          email: data.profile?.email || '',
-          phone: data.profile?.phone || '',
-          address: data.profile?.address || '',
-          language: data.profile?.language || '中文',
-          grade: data.profile?.grade || '',
-          gender: data.profile?.gender || '',
-          learning_goals: data.profile?.learning_goals || '',
-          avatar_url: data.profile?.avatar_url || '',
+          name: data.profile?.name || '', email: data.profile?.email || '', phone: data.profile?.phone || '',
+          address: data.profile?.address || '', language: data.profile?.language || '中文', grade: data.profile?.grade || '',
+          gender: data.profile?.gender || '', learning_goals: data.profile?.learning_goals || '', avatar_url: data.profile?.avatar_url || '',
           frequent_addresses: Array.isArray(freq) ? freq : []
         });
+        setExtraData({
+          coupons: Array.isArray(data.profile?.coupons) ? data.profile.coupons : [],
+          wallet_balance: data.profile?.wallet_balance || 0,
+          promotion_code: data.profile?.promotion_code || '',
+          level: data.profile?.level || 1,
+          base_discount: data.profile?.base_discount || 12
+        });
       }
-    } catch (err) {
-      console.error('Failed to load profile:', err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   const handleSave = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      const res = await fetch('/api/auth/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        alert('資料已成功更新！');
-        router.push('/dashboard/user');
-        router.refresh();
-      } else {
-        alert('更新失敗：' + (data.error || '未定義錯誤'));
-      }
-    } catch (err) {
-      console.error('Save error:', err);
-      alert('發生錯誤，請稍後再試。');
-    } finally {
-      setSaving(false);
-    }
+      const res = await fetch('/api/auth/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
+      if (res.ok) { alert('資料已成功更新！'); router.push('/dashboard/user'); router.refresh(); } 
+      else { alert('更新失敗'); }
+    } catch (err) { alert('發生錯誤'); } finally { setSaving(false); }
   };
 
   const addFrequent = () => {
     if (!newLabel || !newAddr) return;
-    setFormData(prev => ({
-      ...prev,
-      frequent_addresses: [...prev.frequent_addresses, { label: newLabel, address: newAddr }]
-    }));
-    setNewLabel('');
-    setNewAddr('');
+    setFormData(prev => ({ ...prev, frequent_addresses: [...prev.frequent_addresses, { label: newLabel, address: newAddr }] }));
+    setNewLabel(''); setNewAddr('');
   };
 
   const removeFrequent = (idx) => {
-    setFormData(prev => ({
-      ...prev,
-      frequent_addresses: prev.frequent_addresses.filter((_, i) => i !== idx)
-    }));
+    setFormData(prev => ({ ...prev, frequent_addresses: prev.frequent_addresses.filter((_, i) => i !== idx) }));
   };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     if (file.size > 2 * 1024 * 1024) return alert('頭像大小不得超過 2MB');
-
     setUploading(true);
     const formDataPayload = new FormData();
     formDataPayload.append('file', file);
     formDataPayload.append('fileType', 'avatar');
-
     try {
-      const res = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formDataPayload,
-      });
+      const res = await fetch('/api/files/upload', { method: 'POST', body: formDataPayload });
       const data = await res.json();
-      if (res.ok) {
-        setFormData(prev => ({ ...prev, avatar_url: data.avatar_url }));
-        alert('頭像已預覽，請點擊「儲存變更」以完成更新。');
-      } else {
-        alert('上傳失敗：' + data.error);
-      }
-    } catch (err) {
-      alert('上傳發生技術錯誤');
-    } finally {
-      setUploading(false);
-    }
+      if (res.ok) { setFormData(prev => ({ ...prev, avatar_url: data.avatar_url })); alert('頭像已上傳'); } 
+      else { alert('上傳失敗'); }
+    } catch (err) { alert('錯誤'); } finally { setUploading(false); }
   };
 
-  if (authLoading || loading) {
-    return (
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'80vh', color: ORANGE, background: BG }}>
-        <Loader2 className="animate-spin" size={32} />
-      </div>
-    );
-  }
+  const handleApplyCode = async () => {
+    const code = promoCodeInput.trim().toUpperCase();
+    if (!code) return;
+    setApplyingCode(true);
+    try {
+      const res = await fetch('/api/user/apply-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+      const data = await res.json();
+      if (!res.ok) alert(data.error || '套用失敗');
+      else { alert('套用成功！'); setPromoCodeInput(''); fetchProfile(); }
+    } catch (err) { alert('系統錯誤'); } finally { setApplyingCode(false); }
+  };
 
-  const inputStyle = { width:'100%', padding:'12px 16px', borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 14, background: INPUT_BG, color: TEXT_LIGHT };
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(extraData.promotion_code || '');
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch (err) {}
+  };
+
+  if (authLoading || loading) return <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', color: ORANGE, background: BG }}><Loader2 className="animate-spin" /></div>;
+
+  const inputStyle = { width:'100%', padding:'12px 16px', borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: INPUT_BG, color: TEXT_LIGHT };
   const labelStyle = { display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 8 };
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
-      {/* Background Gradient */}
-      <div style={{
-        position: 'absolute', top: -100, left: '50%', transform: 'translateX(-50%)',
-        width: '600px', height: '600px',
-        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, rgba(9, 14, 23, 0) 60%)',
-        zIndex: 0, pointerEvents: 'none'
-      }} />
+    <div style={{ background: BG, minHeight: '100dvh', paddingBottom: 'calc(132px + env(safe-area-inset-bottom))', color: TEXT_LIGHT, overflowX: 'hidden' }}>
+      <div style={{ padding: '20px 16px', background: CARD, display:'flex', alignItems:'center', gap: 12, borderBottom: "1px solid var(--border)", position:'sticky', top: 0, zIndex: 10 }}>
+        <button onClick={() => router.back()} style={{ background: INPUT_BG, border:'none', borderRadius: 12, padding: 8, cursor:'pointer' }}><ArrowLeft size={20} color={TEXT_LIGHT} /></button>
+        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>個人設定與錢包</h1>
+      </div>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Top Bar */}
-        <div style={{
-          padding: '20px 16px', background: 'var(--color-surface)', display:'flex', alignItems:'center',
-          gap: 12, borderBottom: `1px solid ${BORDER}`, position:'sticky', top: 0, zIndex: 10
-        }}>
-          <button
-            onClick={() => router.back()}
-            style={{ background: INPUT_BG, border:'none', borderRadius: 12, padding: 8, cursor:'pointer' }}
-          >
-            <ArrowLeft size={20} color={TEXT_LIGHT} />
-          </button>
-          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>編輯個人資料</h1>
-        </div>
+      <div style={{ padding: '24px 16px', display:'flex', flexDirection:'column', gap: 32, maxWidth: '100%' }}>
+        <section aria-label="Profile Hero" style={{ borderRadius: 22, padding: 16, background: 'linear-gradient(180deg, rgba(11,18,32,0.96), rgba(8,13,24,0.96))', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 8px 22px rgba(0,0,0,0.18)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <div style={{ width: 72, height: 72, borderRadius: 24, background: INPUT_BG, overflow: 'hidden', border: `2px solid rgba(255,138,61,0.55)`, display: 'grid', placeItems: 'center' }}>
+                {formData.avatar_url ? <img src={formData.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" /> : <span style={{ fontSize: 24, fontWeight: 900, color: ORANGE }}>{formData.name?.charAt(0) || 'U'}</span>}
+              </div>
+              <span style={{ position: 'absolute', right: -3, bottom: -3, width: 14, height: 14, borderRadius: 99, background: '#22C55E', border: `2px solid ${BG}` }} />
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 12, fontWeight: 760 }}>Profile Hero</p>
+              <h1 style={{ margin: '2px 0 5px', color: TEXT_LIGHT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.03em' }}>{formData.name || 'UniCoach 學員'}</h1>
+              <p style={{ margin: 0, color: MUTED, fontSize: 13, lineHeight: 1.5 }}>已加入學習社群・偏好 {formData.language || '中文'}・目前在線</p>
+            </div>
+          </div>
+        </section>
 
-        <form onSubmit={handleSave} style={{ padding: '24px 16px', display:'flex', flexDirection:'column', gap: 24 }}>
+        <section>
+          <p style={{ fontSize: 11, fontWeight: 760, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 10, paddingLeft: 4 }}>我的課程</p>
+          <div style={{ display: 'grid', gap: 10 }}>
+            <div style={{ borderRadius: 18, padding: 14, background: CARD, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
+              <div>
+                <p style={{ margin: 0, color: TEXT_LIGHT, fontSize: 15, fontWeight: 860 }}>下次課程：籃球基礎體驗課</p>
+                <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 12 }}>明天 19:30・已付款・教練已讀</p>
+              </div>
+              <span style={{ color: ORANGE, fontSize: 12, fontWeight: 850 }}>體驗課狀態</span>
+            </div>
+            <div style={{ borderRadius: 18, padding: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.04)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><p style={{ margin: 0, color: MUTED, fontSize: 11 }}>最近預約</p><p style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 13, fontWeight: 820 }}>今晚可預約・正在確認時段</p></div>
+              <div><p style={{ margin: 0, color: MUTED, fontSize: 11 }}>最近觀看</p><p style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 13, fontWeight: 820 }}>數學解題影片・幾分鐘前</p></div>
+            </div>
+          </div>
+        </section>
 
+        {/* Wallet & Referral Block */}
+        <section>
+          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>優惠券與推薦碼</p>
+          <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Wallet size={20} color={ORANGE} />
+                </div>
+                <div>
+                  <p style={{ fontSize: 13, color: MUTED, margin: '0 0 4px' }}>錢包餘額</p>
+                  <p style={{ fontSize: 20, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>$ {extraData.wallet_balance}</p>
+                </div>
+              </div>
+              <button style={{ background: INPUT_BG, border: "1px solid var(--border)", color: TEXT_LIGHT, padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700 }}>提領</button>
+            </div>
+            
+            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+              <input 
+                placeholder="輸入推廣碼 / 優惠碼" 
+                value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value)} 
+                style={{ ...inputStyle, flex: 1, marginBottom: 0 }} 
+              />
+              <button 
+                onClick={handleApplyCode} disabled={applyingCode || !promoCodeInput}
+                style={{ background: ORANGE, color: TEXT_LIGHT, border: 'none', padding: '0 16px', borderRadius: 12, fontWeight: 700, opacity: applyingCode||!promoCodeInput ? 0.5 : 1 }}
+              >
+                {applyingCode ? <Loader2 size={16} className="animate-spin" /> : '套用'}
+              </button>
+            </div>
+
+            <div style={{ background: INPUT_BG, borderRadius: 16, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, minWidth: 0 }}>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p style={{ fontSize: 13, color: MUTED, margin: '0 0 4px' }}>推薦碼</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 800, color: ORANGE, letterSpacing: 1.2, overflowWrap: 'anywhere' }}>{extraData.promotion_code}</span>
+                  <button onClick={handleCopyCode} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', padding: 4 }}>
+                    {copiedCode ? <Check size={16} color="#10B981" /> : <Copy size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div style={{ background: '#FFF', padding: 4, borderRadius: 8, flexShrink: 0 }}>
+                {extraData.promotion_code && <QRCodeSVG value={`https://unicoach.tw/register?code=${extraData.promotion_code}`} size={48} />}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <details open={false} style={{ borderRadius: 20, background: CARD, border: '1px solid rgba(255,255,255,0.05)', padding: 14 }}>
+          <summary style={{ cursor: 'pointer', color: TEXT_LIGHT, fontSize: 16, fontWeight: 860, listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            帳號設定
+            <span style={{ color: MUTED, fontSize: 12, fontWeight: 760 }}>展開編輯資料</span>
+          </summary>
+          <form onSubmit={handleSave} style={{ display:'flex', flexDirection:'column', gap: 22, marginTop: 18 }}>
           {/* Avatar Section */}
           <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
-              <div style={{
-                width: 100, height: 100, borderRadius: '50%', background: INPUT_BG,
-                overflow: 'hidden', border: `3px solid ${ORANGE}`, boxShadow: `0 0 20px rgba(249, 115, 22, 0.3)`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center'
-              }}>
-                {formData.avatar_url ? (
-                  <img src={formData.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" />
-                ) : (
-                  <span style={{ fontSize: 32, fontWeight: 800, color: MUTED }}>{formData.name?.charAt(0) || 'U'}</span>
-                )}
+              <div style={{ width: 100, height: 100, borderRadius: '50%', background: INPUT_BG, overflow: 'hidden', border: `3px solid ${ORANGE}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {formData.avatar_url ? <img src={formData.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="Avatar" /> : <span style={{ fontSize: 32, fontWeight: 800, color: MUTED }}>{formData.name?.charAt(0) || 'U'}</span>}
               </div>
-              <label style={{
-                position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT,
-                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}`
-              }}>
+              <label style={{ position: 'absolute', bottom: 0, right: 0, background: ORANGE, color: TEXT_LIGHT, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: `2px solid ${BG}` }}>
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <UploadCloud size={16} />}
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileUpload} disabled={uploading} />
               </label>
             </div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>點擊更換大頭貼</p>
           </section>
 
-          {/* Basic Info Card */}
+          {/* Basic Info */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>帳號資訊</p>
-            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-
-              <div>
-                <label style={labelStyle}>
-                  <User size={14} color={ORANGE} /> 真實姓名
-                </label>
-                <input
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="請輸入姓名"
-                  style={inputStyle}
-                  required
-                />
-              </div>
-
-              <div>
-                <label style={{ ...labelStyle, color: MUTED }}>
-                  <Mail size={14} /> 電子信箱 (無法修改)
-                </label>
-                <input
-                  value={formData.email}
-                  readOnly
-                  style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  <Phone size={14} color={ORANGE} /> 聯絡電話
-                </label>
-                <input
-                  value={formData.phone || ''}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  placeholder="請輸入電話號碼"
-                  style={inputStyle}
-                />
-              </div>
-
+            <div className="premium-card" style={{ display:'flex', flexDirection:'column', gap: 16 }}>
+              <div><label style={labelStyle}><User size={14} color={ORANGE} /> 真實姓名</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="請輸入姓名" style={inputStyle} required /></div>
+              <div><label style={{ ...labelStyle, color: MUTED }}><Mail size={14} /> 電子信箱</label><input value={formData.email} readOnly style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }} /></div>
+              <div><label style={labelStyle}><Phone size={14} color={ORANGE} /> 聯絡電話</label><input value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="請輸入電話" style={inputStyle} /></div>
             </div>
           </section>
 
-          {/* Preferences Card */}
           <section>
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>學習與偏好</p>
-            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-
-              <div>
-                <label style={labelStyle}>
-                  <MapPin size={14} color={ORANGE} /> 常用地址
-                </label>
-                <input
-                  value={formData.address || ''}
-                  onChange={e => setFormData({...formData, address: e.target.value})}
-                  placeholder="例：台北市大安區..."
-                  style={inputStyle}
-                />
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  <Languages size={14} color={ORANGE} /> 偏好語言
-                </label>
-                <select
-                  value={formData.language}
-                  onChange={e => setFormData({...formData, language: e.target.value})}
-                  style={inputStyle}
-                >
-                  <option value="中文">中文</option>
-                  <option value="英文">英文 (English)</option>
-                  <option value="台語">台語</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  <User size={14} color={ORANGE} /> 性別
-                </label>
-                <select
-                  value={formData.gender}
-                  onChange={e => setFormData({...formData, gender: e.target.value})}
-                  style={inputStyle}
-                >
-                  <option value="">請選擇性別</option>
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="不願透露">不願透露</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  <Target size={14} color={ORANGE} /> 年級
-                </label>
-                <select
-                  value={formData.grade}
-                  onChange={e => setFormData({...formData, grade: e.target.value})}
-                  style={inputStyle}
-                >
-                  <option value="">請選擇年級</option>
-                  {['國小', '國中', '高中', '大學', '成人'].map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={labelStyle}>
-                  <Target size={14} color={ORANGE} /> 學習目標
-                </label>
-                <textarea
-                  value={formData.learning_goals || ''}
-                  onChange={e => setFormData({...formData, learning_goals: e.target.value})}
-                  placeholder="你想達成什麼目標呢？"
-                  rows={4}
-                  style={{ ...inputStyle, lineHeight: 1.6 }}
-                />
-              </div>
+            <div className="premium-card" style={{ display:'flex', flexDirection:'column', gap: 16 }}>
+              <div><label style={labelStyle}><MapPin size={14} color={ORANGE} /> 常用地址</label><input value={formData.address || ''} onChange={e => setFormData({...formData, address: e.target.value})} style={inputStyle} /></div>
+              <div><label style={labelStyle}><Languages size={14} color={ORANGE} /> 偏好語言</label><select value={formData.language} onChange={e => setFormData({...formData, language: e.target.value})} style={inputStyle}><option value="中文">中文</option><option value="英文">英文</option></select></div>
+              <div><label style={labelStyle}><Target size={14} color={ORANGE} /> 學習目標</label><textarea value={formData.learning_goals || ''} onChange={e => setFormData({...formData, learning_goals: e.target.value})} rows={3} style={inputStyle} /></div>
             </div>
           </section>
 
-          {/* Frequent Addresses Card */}
-          <section>
-            <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>常用地址管理</p>
-            <div style={{ background: 'var(--color-surface)', borderRadius: RADIUS, boxShadow: SHADOW, padding: 20, display:'flex', flexDirection:'column', gap: 16, border: `1px solid ${BORDER}` }}>
-
-              {/* List Existing */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {formData.frequent_addresses.map((item, idx) => (
-                  <div key={idx} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px', background: INPUT_BG, borderRadius: 12, border: `1px solid ${BORDER}`
-                  }}>
-                    <div>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: ORANGE, background: `rgba(249, 115, 22, 0.1)`, padding: '2px 8px', borderRadius: 100, marginRight: 8 }}>{item.label}</span>
-                      <span style={{ fontSize: 13, color: TEXT_LIGHT }}>{item.address}</span>
-                    </div>
-                    <button type="button" onClick={() => removeFrequent(idx)} style={{ background: 'none', border: 'none', color: '#EF4444', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>刪除</button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add New */}
-              <div style={{ marginTop: 8, padding: '16px', border: `1px dashed ${MUTED}`, borderRadius: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT }}>新增地址</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <input
-                    placeholder="標籤 (如: 家)"
-                    value={newLabel} onChange={e => setNewLabel(e.target.value)}
-                    style={{ width: 80, padding: '8px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${BORDER}`, background: INPUT_BG, color: TEXT_LIGHT }}
-                  />
-                  <input
-                    placeholder="完整地址"
-                    value={newAddr} onChange={e => setNewAddr(e.target.value)}
-                    style={{ flex: 1, padding: '8px 12px', fontSize: 13, borderRadius: 8, border: `1px solid ${BORDER}`, background: INPUT_BG, color: TEXT_LIGHT }}
-                  />
-                </div>
-                <button type="button" onClick={addFrequent} style={{
-                  background: ORANGE, color: TEXT_LIGHT, border: 'none', padding: '8px', borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: 'pointer'
-                }}>+ 加入清單</button>
-              </div>
-            </div>
-          </section>
-
-          {/* Submit Button */}
-          <div style={{ marginTop: 12 }}>
-            <button
-              type="submit"
-              disabled={saving}
-              style={{
-                width:'100%', height: 56, background: ORANGE, color: 'var(--text-light)',
-                border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800,
-                display:'flex', alignItems:'center', justifyContent:'center', gap: 8,
-                boxShadow: `0 8px 25px rgba(249, 115, 22, 0.4)`,
-                opacity: saving ? 0.7 : 1,
-                cursor: saving ? 'not-allowed' : 'pointer',
-                transition: 'transform 0.2s'
-              }}
-            >
-              {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-              儲存變更
-            </button>
-          </div>
-
-        </form>
+          <button type="submit" disabled={saving} className="btn-press" style={{ width:'100%', height: 56, background: ORANGE, color: TEXT_LIGHT, border:'none', borderRadius: 16, fontSize: 16, fontWeight: 800, display:'flex', alignItems:'center', justifyContent:'center', gap: 8, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
+            {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} 儲存變更
+          </button>
+          </form>
+        </details>
       </div>
     </div>
   );

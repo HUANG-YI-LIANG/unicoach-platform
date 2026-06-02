@@ -4,13 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 
-const ORANGE = 'var(--color-accent)';
-const BG = 'var(--color-bg)';
-const CARD = 'var(--color-bg)'; // Unified
-const BORDER = 'var(--color-border)';
-const MUTED = 'var(--color-text-muted)';
-const TEXT_LIGHT = 'var(--color-text)';
-const SHADOW = 'none'; // Remove shadow for flat unified look
+const ORANGE = '#FF8A3D';
+const BG = '#050816';
+const CARD = '#0F172A';
+const BORDER = 'rgba(255,255,255,0.06)';
+const MUTED = 'rgba(255,255,255,0.58)';
+const TEXT_LIGHT = 'rgba(255,255,255,0.92)';
+const SHADOW = '0 6px 16px rgba(0,0,0,0.14)';
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
@@ -78,11 +78,11 @@ function RoomCard({ room, onClick }) {
         background: hovered ? 'var(--color-surface-soft)' : CARD,
         borderRadius: 16,
         padding: '14px 16px',
-        boxShadow: hovered ? 'var(--shadow-card)' : SHADOW,
+        boxShadow: hovered ? '0 6px 16px rgba(0,0,0,0.14)' : SHADOW,
         cursor: 'pointer',
         transition: 'background 0.15s, transform 0.1s, box-shadow 0.15s',
-        transform: hovered ? 'scale(1.01)' : 'scale(1)',
-        border: hovered ? `1px solid ${ORANGE}` : `1px solid ${BORDER}`,
+        transform: hovered ? 'translateY(-1px)' : 'translateY(0)',
+        border: hovered ? `1px solid rgba(255,138,61,0.22)` : `1px solid ${BORDER}`,
       }}
     >
       <Avatar name={room.other_party_name} src={room.other_party_avatar} size={48} />
@@ -131,13 +131,47 @@ export default function ChatPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isCoach = user?.role === 'coach';
+  const isGuest = !loading && !authLoading && !user;
 
   useEffect(() => {
     let isMounted = true;
+    if (authLoading) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const withId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('with') : null;
+
+    const openDirectRoom = async () => {
+      if (!withId || !user) return false;
+      try {
+        const response = await fetch('/api/chat/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ with: withId }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.roomId) {
+          router.replace(`/chat/${data.roomId}`);
+          return true;
+        }
+        console.error('[CHAT DIRECT OPEN ERROR]', data.error || response.statusText);
+        return false;
+      } catch (error) {
+        console.error('[CHAT DIRECT OPEN ERROR]', error);
+        return false;
+      }
+    };
 
     const fetchRooms = async () => {
+      if (!user) {
+        if (isMounted) setRooms([]);
+        return;
+      }
+
       try {
         const response = await fetch('/api/chat/rooms', { cache: 'no-store' });
         if (!response.ok) return;
@@ -150,8 +184,11 @@ export default function ChatPage() {
       }
     };
 
-    fetchRooms().finally(() => {
-      if (isMounted) setLoading(false);
+    openDirectRoom().then((opened) => {
+      if (opened) return;
+      fetchRooms().finally(() => {
+        if (isMounted) setLoading(false);
+      });
     });
 
     const pollId = setInterval(fetchRooms, 4000);
@@ -159,7 +196,7 @@ export default function ChatPage() {
       isMounted = false;
       clearInterval(pollId);
     };
-  }, []);
+  }, [router, user, authLoading]);
 
   if (loading) {
     return (
@@ -170,7 +207,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 100, color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
+    <div style={{ background: BG, minHeight: '100dvh', paddingBottom: 'calc(128px + env(safe-area-inset-bottom))', color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
       {/* Background Gradient Effect */}
       <div style={{
         position: 'absolute',
@@ -179,29 +216,50 @@ export default function ChatPage() {
         transform: 'translateX(-50%)',
         width: '600px',
         height: '600px',
-        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.1) 0%, transparent 60%)',
+        background: 'radial-gradient(circle, rgba(249, 115, 22, 0.045) 0%, transparent 58%)',
         zIndex: 0,
         pointerEvents: 'none'
       }} />
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ padding: '20px 16px 12px' }}>
+          <p style={{ margin: '0 0 4px', color: MUTED, fontSize: 12, fontWeight: 760 }}>Messages & bookings</p>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: TEXT_LIGHT }}>聊天室</h1>
         </div>
+
+        <section style={{ margin: '0 16px 16px', padding: 14, borderRadius: 16, background: 'rgba(11,18,32,0.92)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+            <div>
+              <p style={{ margin: 0, color: ORANGE, fontSize: 12, fontWeight: 850 }}>預約狀態</p>
+              <h2 style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 16, fontWeight: 880 }}>尚未建立預約</h2>
+            </div>
+            <span style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: MUTED, fontSize: 11, fontWeight: 850 }}>無正式訂單</span>
+          </div>
+          <p style={{ margin: 0, color: MUTED, fontSize: 12, lineHeight: 1.65 }}>
+            聊天室只用於與教練溝通需求；若尚未透過預約流程建立訂單，這裡不會顯示付款成功或正式上課資訊。完成預約與付款確認後，請以「我的預約」中的真實訂單狀態為準。
+          </p>
+          <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.42)', fontSize: 11, lineHeight: 1.5 }}>
+            Next step · 確認時段後再進入正式預約與付款流程。
+          </p>
+        </section>
 
         {rooms.length === 0 ? (
           <div style={{ padding: '32px 24px', textAlign: 'center', marginTop: 20 }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
             <p style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>目前還沒有聊天紀錄</p>
             <p style={{ margin: '0 0 24px', fontSize: 14, color: MUTED }}>
-              {isCoach ? '學員建立對話後，聊天室會顯示在這裡。' : '先找到合適的教練，之後就能在這裡直接溝通。'}
+              {isCoach
+                ? '學員建立對話後，聊天室會顯示在這裡。'
+                : isGuest
+                  ? '請先註冊/登入後才能使用訊息功能，之後就能在這裡直接溝通。'
+                  : '先找到合適的教練，之後就能在這裡直接溝通。'}
             </p>
             <button
-              onClick={() => router.push(isCoach ? '/dashboard/coach' : '/coaches')}
+              onClick={() => router.push(isGuest ? '/register?redirect=/chat' : isCoach ? '/dashboard/coach' : '/coaches')}
               style={{
                 padding: '14px 36px',
-                background: ORANGE,
-                color: 'var(--text-light)',
+                background: 'linear-gradient(135deg,#FF8A3D,#FF5E3A)',
+                color: '#050816',
                 border: 'none',
                 borderRadius: 16,
                 fontSize: 15,
@@ -210,7 +268,7 @@ export default function ChatPage() {
                 boxShadow: `0 8px 20px rgba(249, 115, 22, 0.3)`,
               }}
             >
-              {isCoach ? '返回教練後台' : '開始找教練'}
+              {isCoach ? '返回教練後台' : isGuest ? '請先註冊' : '開始找教練'}
             </button>
           </div>
         ) : (
