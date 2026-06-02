@@ -10,12 +10,26 @@ export default function Navigation() {
   const { user } = useAuth();
   const role = user?.role;
   const [unreadChatCount, setUnreadChatCount] = useState(0);
-  
+
+  const TASK_FLOW_ROUTES = [
+    '/login',
+    '/register',
+    '/reset-password',
+    '/onboarding',
+    '/welcome',
+    '/role-select',
+    '/first-entry',
+    '/match',
+  ];
+
   // Hide nav on chat room inner pages (e.g. /chat/123) to avoid overlapping the input bar
   const isChatRoom = /^\/chat\/[^/]+/.test(pathname);
+  const isTaskFlowRoute = (currentPath) => TASK_FLOW_ROUTES.some((route) => currentPath === route || currentPath?.startsWith(`${route}/`));
+
+  const isTaskFlow = isTaskFlowRoute(pathname);
 
   useEffect(() => {
-    if (!user || isChatRoom) return;
+    if (!user || isChatRoom || isTaskFlow) return;
     let isMounted = true;
     const fetchUnread = async () => {
       try {
@@ -34,9 +48,9 @@ export default function Navigation() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [user, isChatRoom]);
+  }, [user, isChatRoom, isTaskFlow]);
 
-  if (isChatRoom) return null;
+  if (isChatRoom || isTaskFlowRoute(pathname)) return null;
   
   let navItems = [];
 
