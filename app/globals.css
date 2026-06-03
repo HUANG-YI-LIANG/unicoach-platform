@@ -195,7 +195,7 @@ input:focus, textarea:focus, select:focus {
 /* === NAVIGATION MENU === */
 .bottom-nav {
   position: fixed;
-  bottom: max(12px, env(safe-area-inset-bottom));
+  bottom: env(safe-area-inset-bottom, 0px);
   left: 50%;
   right: auto;
   transform: translateX(-50%);
@@ -250,10 +250,11 @@ input:focus, textarea:focus, select:focus {
 
 @media (max-width: 400px) {
   .bottom-nav {
-    left: 8px !important;
-    right: 8px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
     width: calc(100vw - 16px) !important;
-    max-width: none !important;
+    max-width: 402px !important;
     height: 68px;
     padding: 6px;
   }
