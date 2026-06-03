@@ -160,11 +160,14 @@ export default function DiscoverPage() {
           background: #000; /* Pure black for immersive media feel */
           color: #FFF;
           height: 100dvh;
-          width: 100vw;
+          width: calc(100% + 36px);
           overflow: hidden;
           position: relative;
-          /* Offsets to bypass global padding if any */
-          margin: calc(-1 * max(16px, env(safe-area-inset-top))) -16px -112px;
+          /* Offsets to bypass global padding of main.content */
+          margin-top: calc(-1 * max(18px, env(safe-area-inset-top)));
+          margin-left: -18px;
+          margin-right: -18px;
+          margin-bottom: -112px;
         }
 
         /* Top Overlay Header */
@@ -248,7 +251,7 @@ export default function DiscoverPage() {
         /* Snap Scroll Feed Container */
         .feed-container {
           height: 100dvh;
-          width: 100vw;
+          width: 100%;
           overflow-y: scroll;
           scroll-snap-type: y mandatory;
           -webkit-overflow-scrolling: touch;
@@ -257,7 +260,7 @@ export default function DiscoverPage() {
         .feed-card {
           position: relative;
           height: 100dvh;
-          width: 100vw;
+          width: 100%;
           scroll-snap-align: start;
           scroll-snap-stop: always;
         }
