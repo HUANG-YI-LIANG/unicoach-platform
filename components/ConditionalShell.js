@@ -24,7 +24,12 @@ const isStandaloneMobileRoute = (pathname) => (
 export default function ConditionalShell({ children, header, navigation }) {
   const pathname = usePathname();
 
-  if (isStandaloneMobileRoute(pathname) || isTaskFlowRoute(pathname)) {
+  if (isTaskFlowRoute(pathname)) {
+    // Single-task flow mode: no global header/nav, but keep a scroll container for long mobile forms.
+    return <main className="task-flow-content">{children}</main>;
+  }
+
+  if (isStandaloneMobileRoute(pathname)) {
     // Full-screen mode: no global header, no padding, no duplicated nav
     return <>{children}</>;
   }
