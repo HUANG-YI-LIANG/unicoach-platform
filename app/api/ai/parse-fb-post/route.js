@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
@@ -16,12 +16,11 @@ if (redisUrl && redisToken) {
   });
 }
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
-
 export async function POST(req) {
   try {
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY || 'dummy-key-for-build'
+    });
     // 1. Auth Check
     const cookieStore = cookies();
     const supabase = createServerClient(

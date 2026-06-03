@@ -89,24 +89,26 @@ html,
 body {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  min-height: 100%;
   background: #02040A;
 }
 body {
+  min-height: 100dvh;
   background: #02040A;
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.55;
-  display: flex;
-  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   text-rendering: geometricPrecision;
-  overscroll-behavior: none;
+  overscroll-behavior-x: none;
 }
 .mobile-container {
   width: 100%;
   max-width: 430px;
   min-height: 100dvh;
+  margin: 0 auto;
   background:
     radial-gradient(circle at 50% -10%, rgba(255,138,61,0.08), transparent 34%),
     var(--bg-primary);
@@ -114,6 +116,7 @@ body {
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 main.content {
   flex: 1;
@@ -130,6 +133,7 @@ main.content {
   overflow-y: auto;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
 }
 h1, h2, h3, h4 {
   font-weight: 600;
