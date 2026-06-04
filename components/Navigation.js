@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare, PieChart } from 'lucide-react';
+import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare, PieChart, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -66,7 +66,7 @@ export default function Navigation() {
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '收藏', path: '/favorites', icon: Heart },
+      { name: '錢包', path: '/dashboard/user/wallet', icon: Wallet },
       { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/dashboard/user/edit', icon: User }
     ];

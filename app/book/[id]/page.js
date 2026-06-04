@@ -63,6 +63,10 @@ export default function BookServicePage() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Wallet & Custom Points
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [customPoints, setCustomPoints] = useState('');
 
   useEffect(() => {
     if (!serviceIdLoaded) {
@@ -91,6 +95,15 @@ export default function BookServicePage() {
       })
       .catch((err) => setError(err.message || '載入失敗'))
       .finally(() => setLoading(false));
+
+    // Fetch Wallet Balance
+    fetch('/api/user/profile')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setWalletBalance(data.user.wallet_balance || 0);
+        }
+      });
   }, [user, coachId, serviceId, serviceIdLoaded, router]);
 
   useEffect(() => {
@@ -125,6 +138,17 @@ export default function BookServicePage() {
 
   const submitBooking = async () => {
     if (!service || submitting) return;
+    
+    const pointsToPay = Number(customPoints);
+    if (!pointsToPay || pointsToPay <= 0) {
+      setError('請輸入有效的扣款點數');
+      return;
+    }
+    if (pointsToPay > walletBalance) {
+      setError(`您的錢包餘額不足（目前餘額：${walletBalance} 點），請先前往錢包儲值。`);
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 
@@ -143,6 +167,7 @@ export default function BookServicePage() {
           learningStatus,
           durationMinutes: 60,
           rebookFromBookingId,
+          customPrice: pointsToPay, // <-- New parameter for wallet booking
         }),
       });
       const data = await response.json().catch(() => ({}));
@@ -241,15 +266,47 @@ export default function BookServicePage() {
             <textarea value={learningStatus} onChange={(event) => setLearningStatus(event.target.value)} rows={4} placeholder="讓教練知道你的目標、目前程度或特殊需求" style={{ padding: 14, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#FFFFFF', outline: 'none', resize: 'none' }} onFocus={e => e.target.style.borderColor = '#FF8A3D'} onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} />
           </label>
 
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div>
-              <span style={{ color: 'rgba(255,255,255,0.54)', fontSize: 13, fontWeight: 620 }}>全額付款金額</span>
-              <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>狀態：待確認付款 · 全額付款由平台保管</p>
+          <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span style={{ color: 'rgba(255,255,255,0.54)', fontSize: 13, fontWeight: 620 }}>目前錢包餘額</span>
+              </div>
+              <strong style={{ fontSize: 18, color: '#94A3B8', fontWeight: 760 }}>{walletBalance.toLocaleString()} 點</strong>
             </div>
-            <strong style={{ fontSize: 22, color: '#FFFFFF', fontWeight: 760 }}>NT$ {selectedPrice}</strong>
+
+            <label style={{ display: 'grid', gap: 8 }}>
+              <span style={{ fontWeight: 800, color: '#FFFFFF', display: 'flex', justifyContent: 'space-between' }}>
+                本次預約扣除點數 
+                <span style={{ color: '#FF8A3D', fontSize: 12 }}>教練方案參考價：NT$ {selectedPrice}</span>
+              </span>
+              <input 
+                type="number" 
+                min="1"
+                value={customPoints} 
+                onChange={(event) => setCustomPoints(event.target.value)} 
+                placeholder="輸入與教練協議好的金額點數" 
+                style={{ padding: 16, fontSize: 18, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)', color: '#FF8A3D', fontWeight: 900, outline: 'none' }} 
+                onFocus={e => e.target.style.borderColor = '#FF8A3D'} 
+                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.1)'} 
+              />
+              <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.38)', fontSize: 12 }}>確認預約時將直接從錢包扣除此點數。狀態：待確認排程</p>
+            </label>
           </div>
 
-          {error && <p style={{ margin: 0, color: '#EF4444', fontWeight: 700, padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.5)' }}>{error}</p>}
+          {error && (
+            <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.1)', borderRadius: 12, border: '1px solid rgba(239, 68, 68, 0.5)' }}>
+              <p style={{ margin: 0, color: '#EF4444', fontWeight: 700 }}>{error}</p>
+              {error.includes('餘額不足') && (
+                <button 
+                  type="button"
+                  onClick={() => router.push('/dashboard/user/wallet')}
+                  style={{ marginTop: 8, padding: '8px 16px', borderRadius: 8, background: '#EF4444', color: '#FFF', fontWeight: 800, border: 0, cursor: 'pointer' }}
+                >
+                  前往錢包儲值
+                </button>
+              )}
+            </div>
+          )}
 
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#FFF', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -265,9 +322,9 @@ export default function BookServicePage() {
           <div style={{ background: 'rgba(255,255,255,0.03)', padding: 16, borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <h4 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#FFF' }}>預約確認與取消規則</h4>
             <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: '#94A3B8', lineHeight: 1.6 }}>
-              <li>送出後會建立待確認訂單；若教練未確認，訂單維持待確認狀態。</li>
-              <li>取消規則會依平台公告與訂單狀態處理，請在付款前先確認可上課時間。</li>
-              <li>退款需依平台規則審核，若有爭議平台會協助釐清後再處理撥款。</li>
+              <li>送出後會直接扣除點數並建立已排程訂單。</li>
+              <li>取消規則會依平台公告與訂單狀態處理，請在預約前先確認可上課時間。</li>
+              <li>退款需依平台規則審核，退點將退回平台錢包。</li>
               <li>實體課地點可於聊天中確認，請勿私下轉帳或離開平台交易。</li>
               <li>線上課連結會於確認後提供，請以聊天或訂單通知中的資訊為準。</li>
             </ul>

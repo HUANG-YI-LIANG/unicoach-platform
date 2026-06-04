@@ -399,6 +399,7 @@ export async function POST(request) {
       durationMinutes: requestedDurationMinutes,
       rebookFromBookingId: camelRebookFromBookingId,
       rebook_from_booking_id: snakeRebookFromBookingId,
+      customPrice,
     } = body;
 
     const rebookFromBookingId = camelRebookFromBookingId || snakeRebookFromBookingId || null;
@@ -585,6 +586,37 @@ export async function POST(request) {
       couponDiscountPercent,
       coachCommission,
     });
+    
+    // Wallet check
+    const pointsToPay = Number(customPrice) || basePrice;
+    if (userData?.wallet_balance === undefined) {
+      // Need to fetch full user to get wallet_balance
+      const { data: fullUser } = await adminSupabase.from('users').select('wallet_balance').eq('id', userId).single();
+      userData.wallet_balance = fullUser?.wallet_balance || 0;
+    }
+    const currentBalance = userData.wallet_balance || 0;
+    if (currentBalance < pointsToPay * totalSessions) {
+      return NextResponse.json({ error: '錢包餘額不足' }, { status: 400 });
+    }
+
+    // Deduct points
+    // Since we don't have the RPC guaranteed to exist, we use a standard update. 
+    // It's acceptable for this phase, but RPC is recommended for true production.
+    const { error: deductError } = await adminSupabase
+      .from('users')
+      .update({ wallet_balance: currentBalance - (pointsToPay * totalSessions) })
+      .eq('id', userId);
+
+    if (deductError) {
+      console.error('Wallet deduction error:', deductError);
+      return NextResponse.json({ error: '錢包扣款失敗' }, { status: 500 });
+    }
+
+    // Adjust pricing to reflect custom points
+    pricing.finalPrice = pointsToPay;
+    pricing.depositPaid = pointsToPay;
+    pricing.platformFee = Math.round(pointsToPay * (coachCommission / 100));
+    pricing.coachPayout = pointsToPay - pricing.platformFee;
 
     const bookingsToInsert = [];
     const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
@@ -613,7 +645,7 @@ export async function POST(request) {
         learning_status: finalLearningStatus,
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
-        status: 'pending_payment',
+        status: 'scheduled', // direct to scheduled since it's paid
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,
         session_number: i + 1,
