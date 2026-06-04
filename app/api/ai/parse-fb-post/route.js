@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenAI } from '@google/genai';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
 import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
+import { parseFbPostWithOllama } from '@/lib/ollamaProfileParser.mjs';
 
 // Optional: Upstash Ratelimit
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -18,11 +18,8 @@ if (redisUrl && redisToken) {
 
 export async function POST(req) {
   try {
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY || 'dummy-key-for-build'
-    });
     // 1. Auth Check
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -59,54 +56,8 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Text too long (max 3000 chars)' }, { status: 400 });
     }
 
-    // 4. Gemini Parsing
-    const prompt = `
-You are an expert AI parser for a tutoring and coaching platform.
-Your task is to read a Facebook post (written by a coach/tutor) and extract structured information.
-
-STRICT RULES TO PREVENT HALLUCINATION:
-1. ONLY extract information that is explicitly stated in the text.
-2. If the text does not mention a price, set base_price to null.
-3. If the text does not mention a location, DO NOT GUESS. Set location to an empty string.
-4. DO NOT invent experiences, certificates, or features. 
-5. Return ONLY a valid JSON object matching the schema below. No markdown formatting (\`\`\`json etc), no explanations.
-
-JSON SCHEMA:
-{
-  "experience": "string",
-  "philosophy": "string",
-  "teaching_features": ["string", "string"],
-  "location": "string",
-  "base_price": number | null,
-  "service_areas": ["string"]
-}
-
-TEXT TO PARSE:
-${text}
-    `;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        temperature: 0.1, // Low temperature for extraction task
-      }
-    });
-
-    const outputText = response.text;
-    if (!outputText) {
-      throw new Error('No output from Gemini');
-    }
-    
-    // Parse JSON
-    let parsedData;
-    try {
-      parsedData = JSON.parse(outputText.trim());
-    } catch (e) {
-      console.error('Failed to parse Gemini output as JSON:', outputText);
-      return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });
-    }
+    // 4. Ollama Parsing
+    const parsedData = await parseFbPostWithOllama({ text });
 
     return NextResponse.json(parsedData);
   } catch (error) {
