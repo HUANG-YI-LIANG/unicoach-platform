@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
+import VideoUpload from '@/components/VideoUpload';
 import {
   ArrowUpRight, Bell, Calendar, Check, ChevronRight, Circle, Clock,
   FileText, MessageCircle, ShieldCheck, UserCheck, Wallet
@@ -364,6 +365,13 @@ export default function CoachDashboard() {
                 {dashboardData.uniqueStudentIds.size > 0 ? `${dashboardData.uniqueStudentIds.size} 位學生` : '尚無學生資料'}
               </p>
             </div>
+          </div>
+        </section>
+
+        <section>
+          <SectionLabel>影音介紹 (短影音牆)</SectionLabel>
+          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, boxShadow: 'var(--shadow-sm)' }}>
+            <VideoUpload />
           </div>
         </section>
 
