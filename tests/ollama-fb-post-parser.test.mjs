@@ -26,11 +26,13 @@ test('parseFbPostWithOllama sends the FB post to Ollama generate API and parses 
     text: '姓名：曾紗弓\n台大法律系，台北，可線上教學，費用 1200/hr',
     baseUrl: 'http://ollama.example.test/',
     model: 'qwen2.5:7b',
+    apiKey: 'test-secret',
     fetchImpl
   });
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, 'http://ollama.example.test/api/generate');
+  assert.equal(calls[0].init.headers.Authorization, 'Bearer test-secret');
   assert.equal(calls[0].body.model, 'qwen2.5:7b');
   assert.equal(calls[0].body.stream, false);
   assert.equal(calls[0].body.format, 'json');
