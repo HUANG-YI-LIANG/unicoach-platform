@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare } from 'lucide-react';
+import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare, PieChart } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -72,7 +72,7 @@ export default function Navigation() {
     ];
   } else if (role === 'coach') {
     navItems = [
-      { name: '首頁', path: '/dashboard/coach', icon: Home },
+      { name: '後台', path: '/dashboard/coach', icon: PieChart },
       { name: '方案', path: '/coach/plans', icon: Layers },
       { name: '排程', path: '/coach/schedule', icon: Calendar },
       { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
