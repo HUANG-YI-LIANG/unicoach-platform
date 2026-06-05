@@ -86,11 +86,17 @@ test('premium landing hero keeps primary title and brand readable on dark image 
   const css = read('app/globals.css');
 
   const titleBlock = css.match(/\.premium-title\s*\{([\s\S]*?)\n\}/)?.[1] || '';
-  assert.ok(titleBlock.includes('color: var(--text-light);'), 'Hero title must use high-contrast light text, not dark surface color');
-  assert.ok(/text-shadow:\s*0\s+2px\s+18px\s+rgba\(0,\s*0,\s*0,\s*0\.55\)/.test(titleBlock), 'Hero title needs a dark text-shadow over the photo background');
+  assert.ok(titleBlock.includes('color: #FFFFFF !important;'), 'Hero title must hard-code white text so theme variables cannot regress contrast');
+  assert.ok(titleBlock.includes('-webkit-text-fill-color: #FFFFFF;'), 'Hero title needs explicit text fill for mobile browser readability');
+  assert.ok(/text-shadow:\s*\n\s*0\s+2px\s+4px\s+rgba\(0,\s*0,\s*0,\s*0\.98\),\s*\n\s*0\s+0\s+18px\s+rgba\(0,\s*0,\s*0,\s*0\.96\),\s*\n\s*0\s+0\s+34px\s+rgba\(0,\s*0,\s*0,\s*0\.88\);/.test(titleBlock), 'Hero title needs a strong multi-layer dark text-shadow over the photo background');
   assert.ok(!titleBlock.includes('color: var(--color-surface);'), 'Hero title must not use dark surface color on the dark hero image');
 
   const brandBlock = css.match(/\.premium-brand\s*\{([\s\S]*?)\n\}/)?.[1] || '';
-  assert.ok(brandBlock.includes('color: var(--text-light);'), 'Hero brand pill text must stay readable');
+  assert.ok(brandBlock.includes('color: #FFFFFF !important;'), 'Hero brand pill text must stay readable');
+  assert.ok(brandBlock.includes('-webkit-text-fill-color: #FFFFFF;'), 'Hero brand pill needs explicit text fill for mobile browser readability');
   assert.ok(!brandBlock.includes('color: var(--color-surface);'), 'Hero brand pill must not use dark surface color');
+
+  const overlayBlock = css.match(/\.premium-hero-bg::after\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.ok(overlayBlock.includes('rgba(2,4,10,0.72)'), 'Hero photo overlay must be dark enough at the top for title readability');
+  assert.ok(overlayBlock.includes('rgba(2,4,10,0.94)'), 'Hero photo overlay must stay dark behind the CTA/title stack');
 });
