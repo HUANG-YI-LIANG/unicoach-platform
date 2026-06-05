@@ -81,3 +81,16 @@ test('runtime source files do not reference undefined CSS variables', () => {
 
   assert.deepEqual(missing, [], `Undefined CSS variables:\n${missing.join('\n')}`);
 });
+
+test('premium landing hero keeps primary title and brand readable on dark image overlay', () => {
+  const css = read('app/globals.css');
+
+  const titleBlock = css.match(/\.premium-title\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.ok(titleBlock.includes('color: var(--text-light);'), 'Hero title must use high-contrast light text, not dark surface color');
+  assert.ok(/text-shadow:\s*0\s+2px\s+18px\s+rgba\(0,\s*0,\s*0,\s*0\.55\)/.test(titleBlock), 'Hero title needs a dark text-shadow over the photo background');
+  assert.ok(!titleBlock.includes('color: var(--color-surface);'), 'Hero title must not use dark surface color on the dark hero image');
+
+  const brandBlock = css.match(/\.premium-brand\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+  assert.ok(brandBlock.includes('color: var(--text-light);'), 'Hero brand pill text must stay readable');
+  assert.ok(!brandBlock.includes('color: var(--color-surface);'), 'Hero brand pill must not use dark surface color');
+});

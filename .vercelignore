@@ -1,4 +1,8 @@
-﻿_hermes_backups
+node_modules
+node_modules.broken*
+.next
+.vercel
+_hermes_backups
 _hermes_patches
 _hermes_smoke
 __pycache__
@@ -9,3 +13,9 @@ tests
 scripts
 ai-prompts
 docs
+coverage
+out
+build
+.env.local
+.env*.local
+*.tsbuildinfo
