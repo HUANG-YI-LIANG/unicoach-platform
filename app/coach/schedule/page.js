@@ -193,6 +193,37 @@ export default function CoachSchedulePage() {
     ]);
   }
 
+  function applyBatch(type) {
+    const newSlots = [];
+    if (type === 'weekday-evening') {
+      [1, 2, 3, 4, 5].forEach((weekday) => {
+        SLOT_OPTIONS.forEach((slot) => {
+          if (slot.start >= '18:00' && slot.start < '22:00') {
+            newSlots.push({ weekday, start: slot.start, end: slot.end, slotMinutes: 30 });
+          }
+        });
+      });
+    } else if (type === 'weekend-day') {
+      [6, 0].forEach((weekday) => {
+        SLOT_OPTIONS.forEach((slot) => {
+          if (slot.start >= '10:00' && slot.start < '18:00') {
+            newSlots.push({ weekday, start: slot.start, end: slot.end, slotMinutes: 30 });
+          }
+        });
+      });
+    }
+
+    setSlots((current) => {
+      const merged = [...current];
+      newSlots.forEach((newSlot) => {
+        if (!merged.some((s) => s.weekday === newSlot.weekday && s.start === newSlot.start)) {
+          merged.push(newSlot);
+        }
+      });
+      return merged;
+    });
+  }
+
   async function handleSave() {
     setSaving(true);
     try {
@@ -315,24 +346,29 @@ export default function CoachSchedulePage() {
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              border: 'none',
-              background: 'var(--primary)',
-              color: 'var(--text-light)',
-              padding: '14px 18px',
-              borderRadius: 16,
-              fontWeight: 900,
-              cursor: 'pointer',
-              boxShadow: '0 8px 24px var(--primary-bg)',
-            }}
-          >
-            {saving ? <Loader2 className="animate-spin" size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> : <Save size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />}
-            新增可上課時段
-          </button>
+          <div style={{ textAlign: 'right' }}>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              style={{
+                border: 'none',
+                background: 'var(--primary)',
+                color: 'var(--text-light)',
+                padding: '14px 18px',
+                borderRadius: 16,
+                fontWeight: 900,
+                cursor: 'pointer',
+                boxShadow: '0 8px 24px var(--primary-bg)',
+              }}
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} /> : <Save size={16} style={{ verticalAlign: 'text-bottom', marginRight: 6 }} />}
+              儲存整週可上課時段
+            </button>
+            <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6, fontWeight: 700 }}>
+              會以目前勾選內容覆蓋原本固定週課表
+            </div>
+          </div>
         </div>
 
         <section style={{
@@ -444,9 +480,16 @@ export default function CoachSchedulePage() {
           border: '1px solid var(--border-main)',
           padding: 20,
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 900, marginBottom: 12 }}>
-            <CalendarDays size={16} />
-            勾選式週課表
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 900 }}>
+              <CalendarDays size={16} />
+              勾選式週課表
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => applyBatch('weekday-evening')} style={batchBtnStyle}>平日晚上 (18:00-22:00)</button>
+              <button type="button" onClick={() => applyBatch('weekend-day')} style={batchBtnStyle}>週末全天 (10:00-18:00)</button>
+              <button type="button" onClick={() => setSlots([])} style={{ ...batchBtnStyle, color: 'var(--error)', background: 'var(--danger-bg)', border: 'none' }}>清空全部</button>
+            </div>
           </div>
 
           {usingLegacy && (
@@ -536,7 +579,7 @@ export default function CoachSchedulePage() {
             <CalendarDays size={16} color="var(--primary)" />
             單日例外時段
           </div>
-          
+
           <p style={{ margin: '0 0 16px', color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
             用來設定特定日期的請假/停課，或臨時加開可約時段。例外會覆蓋上方固定週課表。
           </p>
@@ -745,4 +788,15 @@ const fieldInputStyle = {
   fontSize: 13,
   outline: 'none',
   width: '100%',
+};
+
+const batchBtnStyle = {
+  border: '1px solid var(--border-main)',
+  background: 'var(--bg-input)',
+  color: 'var(--text-main)',
+  borderRadius: 12,
+  padding: '6px 12px',
+  fontSize: 12,
+  fontWeight: 800,
+  cursor: 'pointer',
 };

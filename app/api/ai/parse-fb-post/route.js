@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { requireAuth } from '@/lib/auth';
 import { parseFbPostWithOllama } from '@/lib/ollamaProfileParser.mjs';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Optional: Upstash Ratelimit
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
@@ -18,29 +20,14 @@ if (redisUrl && redisToken) {
 
 export async function POST(req) {
   try {
-    // 1. Auth Check
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          get(name) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name, value, options) {},
-          remove(name, options) {},
-        },
-      }
-    );
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    const auth = await requireAuth(['coach', 'admin']);
+    if (auth.error) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // 2. Rate Limit Check
     if (ratelimit) {
-      const { success } = await ratelimit.limit(session.user.id);
+      const { success } = await ratelimit.limit(auth.user.id);
       if (!success) {
         return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
       }

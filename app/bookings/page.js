@@ -1,6 +1,6 @@
-﻿'use client';
+'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet } from 'lucide-react';
 
@@ -84,6 +84,37 @@ const COACH_NEXT_STEP_COPY = {
   已取消: '訂單已取消，不需要再安排上課。',
 };
 
+const STUDENT_TASK_GROUPS = [
+  { label: '下一堂課', statuses: ['confirmed', 'scheduled', 'in_progress'] },
+  { label: '待處理', statuses: ['pending_payment', 'payment_submitted', 'payment_review', 'pending_confirmation', 'awaiting_confirmation'] },
+  { label: '即將上課', statuses: ['confirmed', 'scheduled'] },
+  { label: '課後追蹤', statuses: ['pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required'] },
+  { label: '已完成', statuses: ['completed'] },
+  { label: '已取消', statuses: ['cancelled', 'refunded', 'expired', 'dispute', 'disputed'] },
+];
+
+const STUDENT_NEXT_STEP_COPY = {
+  pending_payment: '完成付款後，平台會保留你的預約並通知教練確認。',
+  payment_submitted: '平台正在確認付款或時段，先保留聊天紀錄即可。',
+  payment_review: '平台正在確認付款或時段，先保留聊天紀錄即可。',
+  pending_confirmation: '平台正在確認付款或時段，先保留聊天紀錄即可。',
+  awaiting_confirmation: '平台正在確認付款或時段，先保留聊天紀錄即可。',
+  confirmed: '課程已確認，建議先到聊天室確認地點、器材或線上連結。',
+  scheduled: '課程已確認，建議先到聊天室確認地點、器材或線上連結。',
+  in_progress: '課程進行中，課後可以回來查看紀錄與後續安排。',
+  pending_completion: '課後可以查看紀錄、補評價，或再約下一堂。',
+  report_required: '課後可以查看紀錄、補評價，或再約下一堂。',
+  needs_report: '課後可以查看紀錄、補評價，或再約下一堂。',
+  pending_report: '課後可以查看紀錄、補評價，或再約下一堂。',
+  lesson_log_required: '課後可以查看紀錄、補評價，或再約下一堂。',
+  completed: '課程已完成，可以補評價或回到教練頁再約下一堂。',
+  dispute: '平台正在協助處理，請先保留付款與聊天紀錄。',
+  disputed: '平台正在協助處理，請先保留付款與聊天紀錄。',
+  cancelled: '這堂課已取消，可重新找教練或再約其他時段。',
+  refunded: '這堂課已退款，可重新找教練或再約其他時段。',
+  expired: '付款保留時間已過，可重新預約適合的教練。',
+};
+
 const STATUS_STYLE = {
   pending_payment: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
   payment_submitted: { bg: 'var(--status-pending-bg)', color: 'var(--status-pending)' },
@@ -108,6 +139,10 @@ function getCoachBookingGroup(status) {
   return COACH_STATUS_GROUPS.find((group) => group.statuses.includes(status))?.label || '待確認';
 }
 
+function getStudentBookingGroup(status) {
+  return STUDENT_TASK_GROUPS.find((group) => group.statuses.includes(status))?.label || '待處理';
+}
+
 function getStatusLabel(status, isCoach) {
   return (isCoach ? STATUS_MAP : STUDENT_STATUS_MAP)[status] || status || '狀態未明';
 }
@@ -130,9 +165,21 @@ export default function BookingsPage() {
   const [uploadingReceipt, setUploadingReceipt] = useState(false);
   const [reportingPayment, setReportingPayment] = useState(false);
   const [selectedCoachGroup, setSelectedCoachGroup] = useState('全部');
+  const [selectedStudentGroup, setSelectedStudentGroup] = useState('全部');
   const [expandedBookingId, setExpandedBookingId] = useState(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const filter = searchParams.get('filter');
   const isCoach = user?.role === 'coach' || user?.role === 'admin';
+
+  useEffect(() => {
+    if (filter && isCoach) {
+      if (filter === 'today') setSelectedCoachGroup('全部');
+      else if (filter === 'pending_confirmation') setSelectedCoachGroup('待確認');
+      else if (filter === 'pending_payment') setSelectedCoachGroup('待付款');
+      else if (filter === 'pending_report') setSelectedCoachGroup('待填課後日誌');
+    }
+  }, [filter, isCoach]);
 
   useEffect(() => {
     if (!authLoading && !user) { router.push('/login'); return; }
@@ -360,9 +407,27 @@ export default function BookingsPage() {
     acc[group.label] = bookings.filter((booking) => getCoachBookingGroup(booking.status) === group.label).length;
     return acc;
   }, { 全部: bookings.length });
+  const studentTaskCounts = STUDENT_TASK_GROUPS.reduce((acc, group) => {
+    acc[group.label] = bookings.filter((booking) => getStudentBookingGroup(booking.status) === group.label).length;
+    return acc;
+  }, { 全部: bookings.length });
+  const activeStudentBookings = bookings.filter((booking) => ['pending_payment', 'payment_submitted', 'payment_review', 'pending_confirmation', 'awaiting_confirmation', 'confirmed', 'scheduled', 'in_progress', 'pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required'].includes(booking.status));
+  const studentNextBooking = activeStudentBookings
+    .slice()
+    .sort((a, b) => new Date(a.expected_time || a.created_at || 0) - new Date(b.expected_time || b.created_at || 0))[0] || bookings[0];
   const visibleBookings = isCoach && selectedCoachGroup !== '全部'
     ? bookings.filter((booking) => getCoachBookingGroup(booking.status) === selectedCoachGroup)
-    : bookings;
+    : !isCoach && selectedStudentGroup !== '全部'
+      ? bookings.filter((booking) => getStudentBookingGroup(booking.status) === selectedStudentGroup)
+      : bookings;
+
+  const finalVisibleBookings = visibleBookings.filter((booking) => {
+    if (isCoach && filter === 'today') {
+      if (!booking.expected_time) return false;
+      return new Date(booking.expected_time).toDateString() === new Date().toDateString();
+    }
+    return true;
+  });
 
   return (
     <div style={{ padding: '20px 16px', background: BG, minHeight: '100vh', paddingBottom: 100 }}>
@@ -370,13 +435,13 @@ export default function BookingsPage() {
       <header style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
           <ShoppingBag size={24} />
-          {isCoach ? '教學訂單' : '我的預約'}
+          {isCoach ? '教學訂單' : '我的課程'}
         </h1>
-        {isCoach && (
-          <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED }}>
-            用狀態分組快速判斷下一步：先處理待付款、待確認與待完課確認的訂單
-          </p>
-        )}
+        <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.6 }}>
+          {isCoach
+            ? '用狀態分組快速判斷下一步：先處理待付款、待確認與待完課確認的訂單'
+            : '先看下一步，不用翻訂單狀態；付款、確認、上課與課後紀錄都在這裡。'}
+        </p>
       </header>
 
       {isCoach && bookings.length > 0 && (
@@ -410,6 +475,57 @@ export default function BookingsPage() {
         </section>
       )}
 
+      {!isCoach && bookings.length > 0 && (
+        <section style={{ display: 'grid', gap: 12, marginBottom: 18 }}>
+          {studentNextBooking && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(255,138,61,0.16), rgba(59,130,246,0.08))',
+              border: '1px solid rgba(255,255,255,0.08)', borderRadius: 22, padding: 18,
+              boxShadow: 'var(--shadow-card)'
+            }}>
+              <div style={{ fontSize: 12, color: MUTED, fontWeight: 900, marginBottom: 6 }}>下一堂課</div>
+              <div style={{ color: DARK, fontSize: 18, fontWeight: 950, marginBottom: 6 }}>
+                {studentNextBooking.service_title || studentNextBooking.plan_title || studentNextBooking.coach_name || '待確認課程'}
+              </div>
+              <div style={{ color: MUTED, fontSize: 12, fontWeight: 750, lineHeight: 1.6 }}>
+                {studentNextBooking.expected_time ? new Date(studentNextBooking.expected_time).toLocaleString('zh-TW', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '時間待教練確認'} · {getStatusLabel(studentNextBooking.status, false)}
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+            {[
+              ['下一堂課', activeStudentBookings.length],
+              ['待處理', studentTaskCounts['待處理'] || 0],
+              ['已完成', studentTaskCounts['已完成'] || 0],
+            ].map(([label, count]) => (
+              <div key={label} style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 16, padding: 12 }}>
+                <div style={{ color: DARK, fontWeight: 950, fontSize: 18 }}>{count}</div>
+                <div style={{ color: MUTED, fontWeight: 800, fontSize: 11, marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {['全部', ...STUDENT_TASK_GROUPS.map((group) => group.label)].map((groupLabel) => {
+              const active = selectedStudentGroup === groupLabel;
+              const count = studentTaskCounts[groupLabel] || 0;
+              return (
+                <button
+                  key={groupLabel}
+                  onClick={() => setSelectedStudentGroup(groupLabel)}
+                  style={{
+                    flex: '0 0 auto', border: `1px solid ${active ? BLUE : 'var(--color-border)'}`,
+                    background: active ? BLUE : 'var(--color-surface)', color: active ? 'var(--text-light)' : DARK,
+                    borderRadius: 999, padding: '8px 12px', fontSize: 12, fontWeight: 900, cursor: 'pointer'
+                  }}
+                >
+                  {groupLabel} · {count}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {bookings.length === 0 ? (
         <div style={{
           background: 'var(--color-surface)', borderRadius: 20, padding: '48px 20px',
@@ -418,7 +534,7 @@ export default function BookingsPage() {
           <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
           <p style={{ fontSize: 16, fontWeight: 700, color: DARK, margin: '0 0 6px' }}>目前沒有訂單</p>
           <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
-            {isCoach ? '目前還沒有預約。確認你的課程方案、可上課時段與公開教練頁已完成，學生就能開始預約你。' : '去找一位教練開始預約吧！'}
+            {isCoach ? '目前還沒有預約。確認你的課程方案、可上課時段與公開教練頁已完成，學生就能開始預約你。' : '目前還沒有課程。先找一位適合的教練，從聊天確認需求再預約第一堂。'}
           </p>
           {isCoach ? (
             <button
@@ -438,17 +554,19 @@ export default function BookingsPage() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {visibleBookings.length === 0 ? (
+          {finalVisibleBookings.length === 0 ? (
             <div style={{
               background: 'var(--color-surface)', borderRadius: 18, padding: 20,
               border: '1px solid var(--color-border)', color: MUTED, fontSize: 13, fontWeight: 700, textAlign: 'center'
             }}>
               這個分組目前沒有訂單。
             </div>
-          ) : visibleBookings.map(b => {
+          ) : finalVisibleBookings.map(b => {
             const ss = statusStyle(b.status);
             const coachGroup = getCoachBookingGroup(b.status);
+            const studentGroup = getStudentBookingGroup(b.status);
             const nextStepCopy = COACH_NEXT_STEP_COPY[coachGroup];
+            const studentNextStepCopy = STUDENT_NEXT_STEP_COPY[b.status] || '先查看課程狀態，需要時可到聊天室確認下一步。';
             const canStartReport = isCoach && ['scheduled', 'confirmed', 'in_progress', 'pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required'].includes(b.status);
             const canConfirmCompletion = isCoach && ['pending_completion', 'in_progress'].includes(b.status);
             const isCompleted = b.status === 'completed';
@@ -532,6 +650,46 @@ export default function BookingsPage() {
                   </div>
                 )}
 
+                {!isCoach && (
+                  <div className="student-next-step-card" style={{
+                    borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 12, marginBottom: 12,
+                    background: studentGroup === '待處理' ? 'var(--warning-bg)' : 'var(--color-surface-soft)',
+                    borderRadius: 14, padding: 12,
+                  }}>
+                    <div style={{ fontSize: 11, color: MUTED, fontWeight: 900, marginBottom: 4 }}>下一步 · {studentGroup}</div>
+                    <div style={{ color: DARK, fontSize: 13, fontWeight: 800, lineHeight: 1.55 }}>
+                      {studentNextStepCopy}
+                    </div>
+                  </div>
+                )}
+
+                {!isCoach && (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 12 }}>
+                    {!isCompleted && !isCancelled && !isPendingPayment && (
+                      <button
+                        onClick={() => router.push('/chat')}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: BLUE, color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        前往聊天
+                      </button>
+                    )}
+                    {isPendingPayment && (
+                      <button
+                        onClick={() => openPaymentModal(b)}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: BLUE, color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        完成付款
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setExpandedBookingId(expandedBookingId === b.id ? null : b.id)}
+                      style={{ flex: '1 1 120px', padding: '10px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: DARK, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                    >
+                      查看課程
+                    </button>
+                  </div>
+                )}
+
                 {isCoach && (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 12 }}>
                     {!isCompleted && !isCancelled && (
@@ -603,32 +761,6 @@ export default function BookingsPage() {
                         查看已上傳截圖
                       </a>
                     )}
-                  </div>
-                )}
-
-                {!isCoach && isPendingPayment && (
-                  <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--color-border)', paddingTop: 12, marginTop: 12 }}>
-                    <button
-                      onClick={() => openPaymentModal(b)}
-                      style={{
-                        flex: 1,
-                        padding: '11px 14px',
-                        borderRadius: 12,
-                        border: 'none',
-                        background: BLUE,
-                        color: 'var(--text-light)',
-                        fontWeight: 800,
-                        fontSize: 13,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <Upload size={15} />
-                      {hasReceipt ? '重新上傳轉帳截圖' : '上傳轉帳截圖'}
-                    </button>
                   </div>
                 )}
 

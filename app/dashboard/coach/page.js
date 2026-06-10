@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
-import VideoUpload from '@/components/VideoUpload';
 import {
-  ArrowUpRight, Bell, Calendar, Check, ChevronRight, Circle, Clock,
-  FileText, MessageCircle, ShieldCheck, UserCheck, Wallet
+  ArrowUpRight, Bell, Calendar, Check, ChevronRight, Clock,
+  FileText, MessageCircle, ShieldCheck, UserCheck, Wallet, Activity
 } from 'lucide-react';
 
 const BG = 'var(--bg-primary)';
@@ -39,40 +38,37 @@ function safeStatus(booking) {
   return String(booking?.status || '').toLowerCase();
 }
 
+function getBookingScheduleTime(booking) {
+  return booking?.expected_time || booking?.booking_date || booking?.scheduled_at || null;
+}
+
 function getStudentKey(booking) {
   return booking?.student_id || booking?.user_id || booking?.student?.id || booking?.user?.id || booking?.user_name || null;
 }
 
 function TodoRow({ icon: Icon, label, detail, count, active, onClick }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="btn-press"
-      style={{
-        width: '100%', border: `1px solid ${active ? 'rgba(255, 138, 61, 0.35)' : BORDER}`,
-        background: active ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.025)',
-        borderRadius: 18, padding: '14px 16px', cursor: 'pointer', color: TEXT_LIGHT,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left',
-      }}
-    >
-      <span style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-        <span style={{
-          width: 36, height: 36, borderRadius: 12, flex: '0 0 auto',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: active ? 'rgba(255, 138, 61, 0.14)' : 'rgba(255,255,255,0.045)', color: active ? ORANGE : MUTED,
-        }}>
-          <Icon size={18} />
-        </span>
-        <span style={{ minWidth: 0 }}>
-          <span style={{ display: 'block', fontSize: 14, fontWeight: 800, marginBottom: 3 }}>{label}</span>
-          <span style={{ display: 'block', fontSize: 12, color: MUTED, lineHeight: 1.45 }}>{detail}</span>
-        </span>
-      </span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 12 }}>
-        {active && (
+    <button onClick={onClick} className="btn-press" style={{
+      width: '100%', background: active ? 'rgba(255,255,255,0.035)' : 'rgba(255,255,255,0.015)',
+      border: `1px solid ${active ? 'rgba(255,255,255,0.1)' : BORDER}`, borderRadius: 16,
+      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
+      cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s ease',
+    }}>
+      <div style={{
+        width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: active ? 'rgba(255, 138, 61, 0.15)' : 'rgba(255,255,255,0.04)',
+        color: active ? ORANGE : MUTED,
+      }}>
+        <Icon size={18} />
+      </div>
+      <div style={{ flex: 1 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 750, color: active ? TEXT_LIGHT : MUTED, margin: '0 0 2px' }}>{label}</h3>
+        <p style={{ fontSize: 12, color: MUTED, margin: 0, lineHeight: 1.4 }}>{detail}</p>
+      </div>
+      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {count > 0 && (
           <span style={{
-            minWidth: 24, height: 24, padding: '0 8px', borderRadius: 999,
+            minWidth: 20, height: 20, borderRadius: 10, padding: '0 6px',
             background: ORANGE, color: '#120B06', fontSize: 12, fontWeight: 900,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           }}>
@@ -85,22 +81,22 @@ function TodoRow({ icon: Icon, label, detail, count, active, onClick }) {
   );
 }
 
-function ChecklistItem({ done, label, hint }) {
+function TaskCard({ title, description, buttonText, onClick }) {
   return (
-    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '12px 0', borderTop: `1px solid ${BORDER}` }}>
-      <span style={{
-        width: 22, height: 22, borderRadius: 999, flex: '0 0 auto', marginTop: 1,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: done ? 'rgba(16, 185, 129, 0.14)' : 'rgba(255,255,255,0.04)',
-        border: `1px solid ${done ? 'rgba(16, 185, 129, 0.45)' : BORDER}`,
-        color: done ? '#10B981' : MUTED,
-      }}>
-        {done ? <Check size={14} /> : <Circle size={10} />}
-      </span>
-      <span>
-        <span style={{ display: 'block', fontSize: 14, fontWeight: 750, color: TEXT_LIGHT }}>{label}</span>
-        <span style={{ display: 'block', fontSize: 12, color: MUTED, lineHeight: 1.45, marginTop: 2 }}>{hint}</span>
-      </span>
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 18, marginBottom: 12, boxShadow: 'var(--shadow-sm)' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 12, fontWeight: 800, color: ORANGE, margin: '0 0 6px' }}>還差一步</p>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: TEXT_LIGHT, margin: '0 0 6px' }}>{title}</h3>
+          <p style={{ fontSize: 13, color: MUTED, margin: '0 0 14px', lineHeight: 1.5 }}>{description}</p>
+          <button onClick={onClick} className="btn-press" style={{
+            background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 10,
+            padding: '10px 16px', fontSize: 14, fontWeight: 800, cursor: 'pointer'
+          }}>
+            {buttonText}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -163,7 +159,7 @@ export default function CoachDashboard() {
 
   const dashboardData = useMemo(() => {
     const activeBookings = bookings.filter((booking) => !['cancelled', 'refunded'].includes(safeStatus(booking)));
-    const todayBookings = activeBookings.filter((booking) => isSameLocalDay(booking.booking_date));
+    const todayBookings = activeBookings.filter((booking) => isSameLocalDay(getBookingScheduleTime(booking)));
     const pendingOrders = activeBookings.filter((booking) => ['pending', 'pending_confirmation', 'requested'].includes(safeStatus(booking)));
     const pendingPayments = activeBookings.filter((booking) => safeStatus(booking) === 'pending_payment');
     const pendingReports = activeBookings.filter((booking) => (
@@ -207,33 +203,272 @@ export default function CoachDashboard() {
     );
   }
 
-  const checklist = [
-    {
-      label: '身分 / 學生證審核通過',
-      done: dashboardData.isApproved,
-      hint: dashboardData.isApproved ? '平台已通過你的教練身分審核。' : '尚未看到審核通過狀態，請確認教練資料。',
-    },
-    {
-      label: '已建立課程方案',
-      done: dashboardData.hasRealPlans,
-      hint: dashboardData.hasRealPlans ? '已有可接單方案。' : '尚未建立可接單服務',
-    },
-    {
-      label: '已設定可上課時段',
-      done: dashboardData.hasAvailability,
-      hint: dashboardData.hasAvailability ? '學生可以依你的開放時段預約。' : '尚未看到固定可預約時段。',
-    },
-    {
-      label: '已上傳教學影片或自介',
-      done: dashboardData.hasIntro,
-      hint: dashboardData.hasIntro ? '已有自介/教學內容可協助學生判斷。' : '建議補上自介、教學特色或影片，提高轉換率。',
-    },
-    {
-      label: '已開啟可接單狀態',
-      done: dashboardData.canReceiveOrders,
-      hint: dashboardData.canReceiveOrders ? '基本接單條件已就緒。' : '完成審核、方案與時段後再開放接單較安全。',
-    },
+  // Calculate missing steps
+  const missingStepsCount = (!dashboardData.hasRealPlans ? 1 : 0) + (!dashboardData.hasAvailability ? 1 : 0) + (!dashboardData.isApproved ? 1 : 0);
+
+  const completedStepsCount = [
+    dashboardData.isApproved,
+    dashboardData.hasRealPlans,
+    dashboardData.hasAvailability,
+    dashboardData.hasIntro
+  ].filter(Boolean).length;
+
+  const steps = [
+    { label: '身分與學生證審核', done: dashboardData.isApproved },
+    { label: '課程方案', done: dashboardData.hasRealPlans },
+    { label: '可約時段', done: dashboardData.hasAvailability },
+    { label: '自介內容', done: dashboardData.hasIntro },
   ];
+
+  const StatusSection = (
+    <section style={{
+      background: dashboardData.canReceiveOrders ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 138, 61, 0.05)',
+      border: `1px solid ${dashboardData.canReceiveOrders ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255, 138, 61, 0.3)'}`,
+      borderRadius: 24, padding: 20,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+        <Activity size={20} color={dashboardData.canReceiveOrders ? '#10B981' : ORANGE} />
+        <h2 style={{ fontSize: 16, fontWeight: 800, color: dashboardData.canReceiveOrders ? '#10B981' : ORANGE, margin: 0 }}>
+          目前狀態：{dashboardData.canReceiveOrders ? '已可接單' : '尚未公開接單'}
+        </h2>
+      </div>
+      {dashboardData.canReceiveOrders ? (
+        <p style={{ margin: 0, fontSize: 14, color: TEXT_LIGHT, lineHeight: 1.6 }}>
+          基本接單設定已完成，建議再檢查公開資料與課程方案是否完整。學生進入你的教練頁後，即可依開放時段預約。
+        </p>
+      ) : (
+        <p style={{ margin: 0, fontSize: 14, color: TEXT_LIGHT, lineHeight: 1.6 }}>
+          還差 {missingStepsCount} 步完成接單準備。完成後，學生就能在教練列表找到你並預約！
+        </p>
+      )}
+    </section>
+  );
+
+  const ProgressSection = (
+    <section style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20 }}>
+      <h3 style={{ fontSize: 15, fontWeight: 800, color: TEXT_LIGHT, margin: '0 0 12px' }}>
+        接單準備進度：{completedStepsCount} / 4
+      </h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {steps.map(s => (
+          <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 8, color: s.done ? '#10B981' : MUTED, fontSize: 14, fontWeight: 700 }}>
+            {s.done ? <Check size={16} /> : <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${MUTED}` }} />}
+            <span>{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+
+  const TasksSection = (
+    <section>
+      {!dashboardData.hasRealPlans && (
+        <TaskCard
+          title="建立你的第一個課程方案"
+          description="學生需要看到課程長度、價格與內容，才知道能不能預約你。"
+          buttonText="新增課程方案"
+          onClick={() => router.push('/coach/plans')}
+        />
+      )}
+      {!dashboardData.hasAvailability && (
+        <TaskCard
+          title="設定每週可上課時段"
+          description="學生只能預約你有開放的時段，請確保時段是最新的。"
+          buttonText="設定每週時段"
+          onClick={() => router.push('/coach/schedule')}
+        />
+      )}
+      {!dashboardData.isApproved && (
+        <TaskCard
+          title="補完公開教練資料並驗證身分"
+          description="完整自介與身分驗證能大幅提高家長信任感，這是上架必經步驟。"
+          buttonText="編輯公開資料"
+          onClick={() => router.push('/coach/profile/edit')}
+        />
+      )}
+      {!dashboardData.hasIntro && dashboardData.isApproved && (
+        <TaskCard
+          title="補完自介內容與介紹影片"
+          description="有影片或豐富圖文的教練獲得預約的機率是沒圖文的3倍！"
+          buttonText="編輯公開資料"
+          onClick={() => router.push('/coach/profile/edit')}
+        />
+      )}
+    </section>
+  );
+
+  const TodoSection = (
+    <section style={{
+      background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20,
+      boxShadow: 'var(--shadow-sm)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
+        <div>
+          <SectionLabel style={{ marginBottom: 8, paddingLeft: 0 }}>今日待辦</SectionLabel>
+          <h2 style={{ fontSize: 24, fontWeight: 900, color: TEXT_LIGHT, margin: 0, lineHeight: 1.25 }}>
+            今天要做什麼
+          </h2>
+        </div>
+        <span style={{
+          border: `1px solid ${BORDER}`, borderRadius: 999, padding: '7px 10px',
+          color: dashboardData.hasTodo ? ORANGE : MUTED, fontSize: 12, fontWeight: 800,
+          background: dashboardData.hasTodo ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.025)',
+        }}>
+          {dashboardData.hasTodo ? '需要處理' : '暫無待辦'}
+        </span>
+      </div>
+
+      {!dashboardData.hasTodo && (
+        <div style={{
+          border: `1px dashed ${BORDER}`, borderRadius: 18, padding: 18,
+          color: MUTED, fontSize: 14, lineHeight: 1.6, marginBottom: 14,
+          background: 'rgba(255,255,255,0.02)',
+        }}>
+          今天還沒有待辦，先確認你的服務與時段是否已開放。
+        </div>
+      )}
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <TodoRow
+          icon={Calendar}
+          label="今日預約"
+          detail={dashboardData.todayBookings.length ? `${dashboardData.todayBookings.length} 堂課需要準備或上課` : '今天沒有已排程課程'}
+          count={dashboardData.todayBookings.length}
+          active={dashboardData.todayBookings.length > 0}
+          onClick={() => router.push('/bookings?filter=today')}
+        />
+        <TodoRow
+          icon={MessageCircle}
+          label="未讀訊息"
+          detail={unreadCount ? '有學生訊息尚未回覆' : '沒有未讀聊天訊息'}
+          count={unreadCount}
+          active={unreadCount > 0}
+          onClick={() => router.push('/chat')}
+        />
+        <TodoRow
+          icon={Bell}
+          label="待確認訂單"
+          detail={dashboardData.pendingOrders.length ? '有新預約需要確認下一步' : '沒有待確認的新訂單'}
+          count={dashboardData.pendingOrders.length}
+          active={dashboardData.pendingOrders.length > 0}
+          onClick={() => router.push('/bookings?filter=pending_confirmation')}
+        />
+        <TodoRow
+          icon={Wallet}
+          label="待付款提醒"
+          detail={dashboardData.pendingPayments.length ? '有訂單仍在等待付款或付款確認' : '沒有待付款提醒'}
+          count={dashboardData.pendingPayments.length}
+          active={dashboardData.pendingPayments.length > 0}
+          onClick={() => router.push('/bookings?filter=pending_payment')}
+        />
+        <TodoRow
+          icon={FileText}
+          label="待填課後日誌"
+          detail={dashboardData.pendingReports.length ? '完成課程後請補上學習紀錄' : '沒有待補課後日誌'}
+          count={dashboardData.pendingReports.length}
+          active={dashboardData.pendingReports.length > 0}
+          onClick={() => router.push('/bookings?filter=pending_report')}
+        />
+      </div>
+    </section>
+  );
+
+  const SummarySection = (
+    <section>
+      <SectionLabel>營運摘要</SectionLabel>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Check size={16} color={MUTED} />
+            <span style={{ fontSize: 13, color: MUTED }}>完成課程</span>
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
+            {dashboardData.completedBookings.length > 0 ? `${dashboardData.completedBookings.length} 堂` : '尚無完成課程'}
+          </p>
+        </div>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <UserCheck size={16} color={MUTED} />
+            <span style={{ fontSize: 13, color: MUTED }}>學生資料</span>
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
+            {dashboardData.uniqueStudentIds.size > 0 ? `${dashboardData.uniqueStudentIds.size} 位學生` : '尚無學生資料'}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+
+  const ManagementSection = (
+    <section>
+      <SectionLabel>服務與資料管理</SectionLabel>
+      <div style={{ display: 'grid', gap: 10 }}>
+        <div className="btn-press" onClick={() => router.push('/coach/plans')} style={{
+          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ArrowUpRight size={18} color={TEXT_LIGHT} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>管理課程方案</h4>
+              <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>檢查方案內容與價格</p>
+            </div>
+          </div>
+          <ChevronRight size={16} color={MUTED} />
+        </div>
+
+        <div className="btn-press" onClick={() => router.push('/coach/schedule')} style={{
+          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Clock size={18} color={TEXT_LIGHT} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>設定可約時段</h4>
+              <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>調整每週固定開放時段</p>
+            </div>
+          </div>
+          <ChevronRight size={16} color={MUTED} />
+        </div>
+
+        <div className="btn-press" onClick={() => router.push('/coach/profile/edit')} style={{
+          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <UserCheck size={18} color={TEXT_LIGHT} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>編輯教練資料與影片</h4>
+              <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>更新公開自介與介紹短影音</p>
+            </div>
+          </div>
+          <ChevronRight size={16} color={MUTED} />
+        </div>
+      </div>
+
+      <section style={{
+        border: `1px solid ${BORDER}`, borderRadius: 20, padding: 18,
+        background: 'rgba(255,255,255,0.018)', marginTop: 24,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <ShieldCheck size={18} color={ORANGE} />
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: MUTED }}>成長提醒</span>
+        </div>
+        <h3 style={{ fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, margin: '0 0 8px' }}>
+          還在 FB 社團重複貼文找學生嗎？
+        </h3>
+        <p style={{ fontSize: 14, color: MUTED, margin: 0, lineHeight: 1.65 }}>
+          把教學影片、可約時段與課程方案一次整理好，讓學生直接看懂，讓系統幫你接單。
+        </p>
+      </section>
+    </section>
+  );
 
   return (
     <div className="mobile-container fade-in" style={{ backgroundColor: BG, minHeight: '100vh' }}>
@@ -261,157 +496,23 @@ export default function CoachDashboard() {
       </header>
 
       <main style={{ padding: '0 var(--padding-page) 100px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-section)' }}>
-        <section style={{
-          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20,
-          boxShadow: 'var(--shadow-sm)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 18 }}>
-            <div>
-              <SectionLabel style={{ marginBottom: 8, paddingLeft: 0 }}>今日待辦</SectionLabel>
-              <h2 style={{ fontSize: 24, fontWeight: 900, color: TEXT_LIGHT, margin: 0, lineHeight: 1.25 }}>
-                今天要做什麼
-              </h2>
-            </div>
-            <span style={{
-              border: `1px solid ${BORDER}`, borderRadius: 999, padding: '7px 10px',
-              color: dashboardData.hasTodo ? ORANGE : MUTED, fontSize: 12, fontWeight: 800,
-              background: dashboardData.hasTodo ? 'rgba(255, 138, 61, 0.08)' : 'rgba(255,255,255,0.025)',
-            }}>
-              {dashboardData.hasTodo ? '需要處理' : '暫無待辦'}
-            </span>
-          </div>
-
-          {!dashboardData.hasTodo && (
-            <div style={{
-              border: `1px dashed ${BORDER}`, borderRadius: 18, padding: 18,
-              color: MUTED, fontSize: 14, lineHeight: 1.6, marginBottom: 14,
-              background: 'rgba(255,255,255,0.02)',
-            }}>
-              今天還沒有待辦，先確認你的服務與時段是否已開放。
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <TodoRow
-              icon={Calendar}
-              label="今日預約"
-              detail={dashboardData.todayBookings.length ? `${dashboardData.todayBookings.length} 堂課需要準備或上課` : '今天沒有已排程課程'}
-              count={dashboardData.todayBookings.length}
-              active={dashboardData.todayBookings.length > 0}
-              onClick={() => router.push('/bookings')}
-            />
-            <TodoRow
-              icon={MessageCircle}
-              label="未讀訊息"
-              detail={unreadCount ? '有學生訊息尚未回覆' : '沒有未讀聊天訊息'}
-              count={unreadCount}
-              active={unreadCount > 0}
-              onClick={() => router.push('/chat')}
-            />
-            <TodoRow
-              icon={Bell}
-              label="待確認訂單"
-              detail={dashboardData.pendingOrders.length ? '有新預約需要確認下一步' : '沒有待確認的新訂單'}
-              count={dashboardData.pendingOrders.length}
-              active={dashboardData.pendingOrders.length > 0}
-              onClick={() => router.push('/bookings')}
-            />
-            <TodoRow
-              icon={Wallet}
-              label="待付款提醒"
-              detail={dashboardData.pendingPayments.length ? '有訂單仍在等待付款或付款確認' : '沒有待付款提醒'}
-              count={dashboardData.pendingPayments.length}
-              active={dashboardData.pendingPayments.length > 0}
-              onClick={() => router.push('/bookings')}
-            />
-            <TodoRow
-              icon={FileText}
-              label="待填課後日誌"
-              detail={dashboardData.pendingReports.length ? '完成課程後請補上學習紀錄' : '沒有待補課後日誌'}
-              count={dashboardData.pendingReports.length}
-              active={dashboardData.pendingReports.length > 0}
-              onClick={() => router.push('/bookings')}
-            />
-          </div>
-        </section>
-
-        <section>
-          <SectionLabel>接單狀態 Checklist</SectionLabel>
-          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 22, padding: '6px 18px 8px' }}>
-            {checklist.map((item) => (
-              <ChecklistItem key={item.label} done={item.done} label={item.label} hint={item.hint} />
-            ))}
-          </div>
-        </section>
-
-        <section>
-          <SectionLabel>營運摘要</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <Check size={16} color={MUTED} />
-                <span style={{ fontSize: 13, color: MUTED }}>完成課程</span>
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
-                {dashboardData.completedBookings.length > 0 ? `${dashboardData.completedBookings.length} 堂` : '尚無完成課程'}
-              </p>
-            </div>
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 18, padding: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <UserCheck size={16} color={MUTED} />
-                <span style={{ fontSize: 13, color: MUTED }}>學生資料</span>
-              </div>
-              <p style={{ fontSize: 14, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>
-                {dashboardData.uniqueStudentIds.size > 0 ? `${dashboardData.uniqueStudentIds.size} 位學生` : '尚無學生資料'}
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <SectionLabel>影音介紹 (短影音牆)</SectionLabel>
-          <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 20, boxShadow: 'var(--shadow-sm)' }}>
-            <VideoUpload />
-          </div>
-        </section>
-
-        <section>
-          <SectionLabel>我的服務</SectionLabel>
-          <div className="btn-press" onClick={() => router.push('/coach/plans')} style={{
-            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm)',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ArrowUpRight size={20} color={TEXT_LIGHT} />
-              </div>
-              <div>
-                <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>管理服務項目</h4>
-                <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
-                  {dashboardData.hasRealPlans ? '檢查方案內容、價格與可接單狀態' : '尚未建立可接單服務'}
-                </p>
-              </div>
-            </div>
-            <ChevronRight size={16} color={MUTED} />
-          </div>
-        </section>
-
-        <section style={{
-          border: `1px solid ${BORDER}`, borderRadius: 20, padding: 18,
-          background: 'rgba(255,255,255,0.018)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-            <ShieldCheck size={18} color={ORANGE} />
-            <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', color: MUTED }}>成長提醒</span>
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 900, color: TEXT_LIGHT, margin: '0 0 8px' }}>
-            還在 FB 社團重複貼文找學生嗎？
-          </h3>
-          <p style={{ fontSize: 14, color: MUTED, margin: 0, lineHeight: 1.65 }}>
-            把你的教學影片、可預約時段與課程方案一次整理好，讓學生先了解你，再主動預約你。
-          </p>
-        </section>
+        {dashboardData.canReceiveOrders ? (
+          <>
+            {TodoSection}
+            {SummarySection}
+            {StatusSection}
+            {ManagementSection}
+          </>
+        ) : (
+          <>
+            {StatusSection}
+            {ProgressSection}
+            {TasksSection}
+            {TodoSection}
+            {SummarySection}
+            {ManagementSection}
+          </>
+        )}
       </main>
     </div>
   );

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 
-const DURATIONS = [30, 45, 60, 75, 90, 120, 150, 180];
+const DURATIONS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 480, 600];
 const EMPTY_FORM = {
   title: '',
   description: '',
@@ -106,6 +106,35 @@ export default function CoachPlansPage() {
       setLoadError(error.message || '無法載入方案');
     } finally {
       setLoading(false);
+    }
+  }
+
+  function applyTemplate(type) {
+    const basePrice = coachDetail?.base_price || 1000;
+    if (type === 'single') {
+      setForm({
+        title: '單堂體驗課',
+        description: '適合想先體驗上課風格與節奏的同學。',
+        duration_minutes: 60,
+        price: basePrice,
+        is_active: true,
+      });
+    } else if (type === 'pack-4') {
+      setForm({
+        title: '【包月方案】四堂精華課',
+        description: '每週一堂，適合想建立固定學習習慣的同學。',
+        duration_minutes: 240,
+        price: Math.floor(basePrice * 4 * 0.95),
+        is_active: true,
+      });
+    } else if (type === 'pack-10') {
+      setForm({
+        title: '【長期訓練】十堂優惠包',
+        description: '完整學習計畫，適合目標明確、想穩紮穩打進步的同學。',
+        duration_minutes: 600,
+        price: Math.floor(basePrice * 10 * 0.9),
+        is_active: true,
+      });
     }
   }
 
@@ -333,6 +362,17 @@ export default function CoachPlansPage() {
             <h2 style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 900, color: 'var(--text-main)' }}>
               {editingId ? '編輯課程方案' : '新增課程方案'}
             </h2>
+
+            {!editingId && (
+              <div style={{ marginBottom: 20, padding: 16, background: 'var(--bg-input)', borderRadius: 16, border: '1px solid var(--border-main)' }}>
+                <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-muted)', fontWeight: 800 }}>💡 一鍵套用範本 (價格會參考底價自動計算)</p>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" onClick={() => applyTemplate('single')} style={templateBtnStyle}>單堂體驗課</button>
+                  <button type="button" onClick={() => applyTemplate('pack-4')} style={templateBtnStyle}>四堂包月課 (95折)</button>
+                  <button type="button" onClick={() => applyTemplate('pack-10')} style={templateBtnStyle}>十堂優惠包 (9折)</button>
+                </div>
+              </div>
+            )}
             <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', fontWeight: 800, marginBottom: 6 }}>方案名稱</label>
             <input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} style={inputStyle} placeholder="例如：基礎單堂課" />
 
@@ -346,6 +386,7 @@ export default function CoachPlansPage() {
 
             <label style={labelStyle}>價格</label>
             <input type="number" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} style={inputStyle} min="100" max="50000" />
+            <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--primary)', fontWeight: 800 }}>學生實際預約時會看到這裡的課程方案價格。</p>
 
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 16, color: 'var(--text-main)', fontWeight: 800, fontSize: 13 }}>
               <input type="checkbox" checked={form.is_active} onChange={(event) => setForm({ ...form, is_active: event.target.checked })} />
@@ -403,5 +444,16 @@ const secondaryButtonStyle = {
   borderRadius: 12,
   padding: '10px 14px',
   fontWeight: 900,
+  cursor: 'pointer',
+};
+
+const templateBtnStyle = {
+  border: '1px solid var(--border-main)',
+  background: 'var(--bg-surface)',
+  color: 'var(--text-main)',
+  borderRadius: 12,
+  padding: '6px 12px',
+  fontSize: 12,
+  fontWeight: 800,
   cursor: 'pointer',
 };

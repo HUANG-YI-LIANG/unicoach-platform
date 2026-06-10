@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { requireApprovedCoach } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { normalizePlan } from '@/lib/coachPlans';
 
@@ -48,7 +48,7 @@ function sanitizePatch(body) {
 
 export async function PATCH(request, { params }) {
   try {
-    const auth = await requireApprovedCoach();
+    const auth = await requireAuth(['coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { id } = await params;
@@ -80,7 +80,7 @@ export async function PATCH(request, { params }) {
 
 export async function DELETE(_request, { params }) {
   try {
-    const auth = await requireApprovedCoach();
+    const auth = await requireAuth(['coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { id } = await params;

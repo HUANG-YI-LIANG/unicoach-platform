@@ -36,10 +36,10 @@ function normalizeRules(rawRules) {
       throw new Error('星期資料不合法');
     }
     if (startMinutes === null || endMinutes === null || endMinutes <= startMinutes) {
-      throw new Error('時段起訖不合法');
+      throw new Error('時間區間不合法');
     }
     if ((startMinutes % 30) !== 0 || (endMinutes % 30) !== 0) {
-      throw new Error('時段必須以 30 分鐘為單位');
+      throw new Error('時間區間必須以 30 分鐘為單位');
     }
 
     rules.push({
@@ -58,7 +58,7 @@ function normalizeRules(rawRules) {
     const start = parseTimeToMinutes(rule.start_time);
     const end = parseTimeToMinutes(rule.end_time);
     if (items.some((item) => start < item.end && item.start < end)) {
-      throw new Error('同一天不可設定重疊時段');
+      throw new Error('同一天內不可設定重疊的時段');
     }
     items.push({ start, end });
     activeByWeekday.set(key, items);
@@ -130,13 +130,13 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Availability fetch error:', error);
-    return NextResponse.json({ error: '無法取得固定時段' }, { status: 500 });
+    return NextResponse.json({ error: '無法取得可用時段' }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
   try {
-    const auth = await requireApprovedCoach();
+    const auth = await requireAuth(['coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();
@@ -164,6 +164,6 @@ export async function PUT(request) {
     return NextResponse.json({ success: true, count: rules.length });
   } catch (error) {
     console.error('Availability update error:', error);
-    return NextResponse.json({ error: error.message || '固定時段儲存失敗' }, { status: 400 });
+    return NextResponse.json({ error: error.message || '可用時段更新失敗' }, { status: 400 });
   }
 }

@@ -70,7 +70,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const auth = await requireApprovedCoach();
+    const auth = await requireAuth(['coach', 'admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const body = await request.json();
