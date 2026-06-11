@@ -13,6 +13,20 @@ const INPUT_BG = 'var(--color-surface)';
 const BORDER = 'var(--color-border)';
 const SECONDARY_BUBBLE = 'var(--color-surface-soft)';
 
+
+const CHAT_CONTEXT_CHECKLIST = [
+  '確認時段',
+  '確認地點',
+  '確認器材',
+  '確認線上連結',
+];
+
+const LESSON_CONTEXT_QUICK_REPLIES = [
+  '我想確認時段、地點、器材與線上連結。',
+  '這堂課前我需要先準備什麼？',
+  '如果我程度不確定，你建議從哪裡開始？',
+];
+
 const QUICK_REPLIES = [
   '你好，我想先了解課程安排。',
   '請問最近有哪些可預約時段？',
@@ -317,17 +331,24 @@ export default function ChatRoomPage({ params }) {
         </div>
       )}
 
-      <section className="booking-state-card" style={{ margin: '10px 14px 0', padding: '12px 14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
+      <section className="chat-task-context-card" style={{ margin: '10px 14px 0', padding: '12px 14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
           <div>
             <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>Booking context</p>
-            <h2 style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 760, color: TEXT_LIGHT }}>正在確認時段</h2>
+            <h2 style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 760, color: TEXT_LIGHT }}>上課前對話任務</h2>
           </div>
-          <span style={{ fontSize: 11, color: ORANGE, background: ORANGE_BG, borderRadius: 999, padding: '4px 8px', fontWeight: 700 }}>待確認</span>
+          <span style={{ fontSize: 11, color: ORANGE, background: ORANGE_BG, borderRadius: 999, padding: '4px 8px', fontWeight: 700 }}>先問清楚</span>
         </div>
         <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.55, color: MUTED }}>
-          先聊清楚目標、地點與時間；建立正式預約後，狀態與付款資訊會以訂單頁為準。
+          確認時段、地點、器材與線上連結；正式預約與付款狀態仍以「我的課程」為準。
         </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+          {CHAT_CONTEXT_CHECKLIST.map((item) => (
+            <span key={item} style={{ borderRadius: 12, background: 'rgba(255,255,255,0.045)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.72)', fontSize: 11, fontWeight: 720, padding: '7px 8px' }}>
+              ✓ {item}
+            </span>
+          ))}
+        </div>
       </section>
 
       <div
@@ -368,7 +389,29 @@ export default function ChatRoomPage({ params }) {
             )}
 
             <p style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 6 }}>開始第一則訊息吧</p>
-            <p style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>你可以直接選擇常用問題，快速開啟對話。</p>
+            <p style={{ fontSize: 13, color: MUTED, marginBottom: 20 }}>你可以直接選擇課程任務問題，快速確認上課上下文。</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+              {LESSON_CONTEXT_QUICK_REPLIES.map((reply) => (
+                <button
+                  key={reply}
+                  onClick={() => sendMessage(reply)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 20px',
+                    background: ORANGE_BG,
+                    border: `1.5px solid ${ORANGE}`,
+                    borderRadius: 100,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: ORANGE,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {reply}
+                </button>
+              ))}
+            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {QUICK_REPLIES.map((reply) => (

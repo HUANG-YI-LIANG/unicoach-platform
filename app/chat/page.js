@@ -12,6 +12,52 @@ const MUTED = 'rgba(255,255,255,0.58)';
 const TEXT_LIGHT = 'rgba(255,255,255,0.92)';
 const SHADOW = '0 6px 16px rgba(0,0,0,0.14)';
 
+const CHAT_TASK_FILTERS = [
+  { key: 'all', label: '全部' },
+  { key: 'booked', label: '有預約' },
+  { key: 'unread', label: '待回覆' },
+  { key: 'askFirst', label: '先問教練' },
+];
+
+const CHAT_ROOM_TASK_COPY = {
+  booked: {
+    label: '預約上下文',
+    title: '已連到課程',
+    next: '下一步：確認時段、地點、器材與線上連結。',
+    tone: 'booked',
+  },
+  unread: {
+    label: '待回覆',
+    title: '有人等你回覆',
+    next: '下一步：先回覆對方問題，再回到我的課程確認正式狀態。',
+    tone: 'unread',
+  },
+  askFirst: {
+    label: '先問教練',
+    title: '尚未建立正式課程',
+    next: '下一步：先聊清楚程度、目標與可上課時間，再前往預約。',
+    tone: 'neutral',
+  },
+};
+
+function getRoomTaskType(room) {
+  if (room?.booking_id) return 'booked';
+  if ((room?.unread_count || 0) > 0) return 'unread';
+  return 'askFirst';
+}
+
+function getChatTaskCounts(rooms) {
+  return rooms.reduce(
+    (counts, room) => {
+      counts.all += 1;
+      const taskType = getRoomTaskType(room);
+      counts[taskType] += 1;
+      return counts;
+    },
+    { all: 0, booked: 0, unread: 0, askFirst: 0 }
+  );
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -65,6 +111,9 @@ function Avatar({ name, src, size = 46 }) {
 
 function RoomCard({ room, onClick }) {
   const [hovered, setHovered] = useState(false);
+  const taskType = getRoomTaskType(room);
+  const taskCopy = CHAT_ROOM_TASK_COPY[taskType] || CHAT_ROOM_TASK_COPY.askFirst;
+  const isBooked = taskType === 'booked';
 
   return (
     <div
@@ -73,7 +122,7 @@ function RoomCard({ room, onClick }) {
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         gap: 14,
         background: hovered ? 'var(--color-surface-soft)' : CARD,
         borderRadius: 16,
@@ -87,21 +136,29 @@ function RoomCard({ room, onClick }) {
     >
       <Avatar name={room.other_party_name} src={room.other_party_avatar} size={48} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: room.unread_count > 0 ? 900 : 800, color: TEXT_LIGHT }}>
-          {room.other_party_name || '未命名聊天室'}
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: room.unread_count > 0 ? 900 : 800, color: TEXT_LIGHT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {room.other_party_name || '未命名聊天室'}
+          </p>
+          <span style={{ flexShrink: 0, padding: '3px 7px', borderRadius: 999, background: isBooked ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.10)', color: isBooked ? '#86EFAC' : MUTED, fontSize: 10, fontWeight: 850 }}>
+            {taskCopy.label}
+          </span>
+        </div>
         <p
           style={{
-            margin: '3px 0 0',
+            margin: '4px 0 0',
             fontSize: 13,
-            fontWeight: room.unread_count > 0 ? 800 : 400,
+            fontWeight: room.unread_count > 0 ? 800 : 500,
             color: room.unread_count > 0 ? TEXT_LIGHT : MUTED,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}
         >
-          {room.last_message || '點擊進入聊天室'}
+          {room.last_message || taskCopy.title}
+        </p>
+        <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.45, color: 'rgba(255,255,255,0.48)' }}>
+          {taskCopy.next}
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
@@ -130,10 +187,13 @@ function RoomCard({ room, onClick }) {
 export default function ChatPage() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeChatTaskFilter, setActiveChatTaskFilter] = useState('all');
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const isCoach = user?.role === 'coach';
   const isGuest = !loading && !authLoading && !user;
+  const chatTaskCounts = getChatTaskCounts(rooms);
+  const filteredRooms = rooms.filter((room) => activeChatTaskFilter === 'all' || getRoomTaskType(room) === activeChatTaskFilter);
 
   useEffect(() => {
     let isMounted = true;
@@ -224,26 +284,58 @@ export default function ChatPage() {
       <div style={{ position: 'relative', zIndex: 1 }}>
         <div style={{ padding: '20px 16px 12px' }}>
           <p style={{ margin: '0 0 4px', color: MUTED, fontSize: 12, fontWeight: 760 }}>Messages & bookings</p>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: TEXT_LIGHT }}>聊天室</h1>
+          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: TEXT_LIGHT }}>對話任務</h1>
+          <p style={{ margin: '7px 0 0', color: MUTED, fontSize: 13, lineHeight: 1.55 }}>
+            把聊天當成上課前的任務清單：先問教練、確認時段、地點、器材與線上連結，再回到「我的課程」看正式預約上下文。
+          </p>
         </div>
 
-        <section style={{ margin: '0 16px 16px', padding: 14, borderRadius: 16, background: 'rgba(11,18,32,0.92)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <div>
-              <p style={{ margin: 0, color: ORANGE, fontSize: 12, fontWeight: 850 }}>預約狀態</p>
-              <h2 style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 16, fontWeight: 880 }}>尚未建立預約</h2>
+        <section style={{ margin: '0 16px 14px', padding: 14, borderRadius: 16, background: 'rgba(11,18,32,0.92)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+            <div style={{ padding: 10, borderRadius: 14, background: 'rgba(255,255,255,0.04)' }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 11 }}>全部對話</p>
+              <strong style={{ display: 'block', marginTop: 3, color: TEXT_LIGHT, fontSize: 18 }}>{chatTaskCounts.all}</strong>
             </div>
-            <span style={{ padding: '5px 8px', borderRadius: 999, background: 'rgba(148,163,184,0.12)', color: MUTED, fontSize: 11, fontWeight: 850 }}>無正式訂單</span>
+            <div style={{ padding: 10, borderRadius: 14, background: 'rgba(255,255,255,0.04)' }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 11 }}>有預約</p>
+              <strong style={{ display: 'block', marginTop: 3, color: '#86EFAC', fontSize: 18 }}>{chatTaskCounts.booked}</strong>
+            </div>
+            <div style={{ padding: 10, borderRadius: 14, background: 'rgba(255,255,255,0.04)' }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 11 }}>待回覆</p>
+              <strong style={{ display: 'block', marginTop: 3, color: ORANGE, fontSize: 18 }}>{chatTaskCounts.unread}</strong>
+            </div>
           </div>
           <p style={{ margin: 0, color: MUTED, fontSize: 12, lineHeight: 1.65 }}>
-            聊天室只用於與教練溝通需求；若尚未透過預約流程建立訂單，這裡不會顯示付款成功或正式上課資訊。完成預約與付款確認後，請以「我的預約」中的真實訂單狀態為準。
-          </p>
-          <p style={{ margin: '8px 0 0', color: 'rgba(255,255,255,0.42)', fontSize: 11, lineHeight: 1.5 }}>
-            Next step · 確認時段後再進入正式預約與付款流程。
+            尚未建立預約時，聊天只用來釐清需求；預約上下文只顯示既有聊天室資料，正式預約、付款與課後紀錄仍以「我的課程」為準，不在聊天裡假裝訂單已成立。
           </p>
         </section>
 
-        {rooms.length === 0 ? (
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 16px 14px' }}>
+          {CHAT_TASK_FILTERS.map((filter) => {
+            const active = activeChatTaskFilter === filter.key;
+            return (
+              <button
+                key={filter.key}
+                onClick={() => setActiveChatTaskFilter(filter.key)}
+                style={{
+                  flexShrink: 0,
+                  border: `1px solid ${active ? 'rgba(255,138,61,0.42)' : BORDER}`,
+                  background: active ? 'rgba(255,138,61,0.14)' : 'rgba(255,255,255,0.04)',
+                  color: active ? ORANGE : MUTED,
+                  borderRadius: 999,
+                  padding: '8px 11px',
+                  fontSize: 12,
+                  fontWeight: 820,
+                  cursor: 'pointer',
+                }}
+              >
+                {filter.label} · {chatTaskCounts[filter.key] ?? 0}
+              </button>
+            );
+          })}
+        </div>
+
+        {filteredRooms.length === 0 ? (
           <div style={{ padding: '32px 24px', textAlign: 'center', marginTop: 20 }}>
             <div style={{ fontSize: 56, marginBottom: 16 }}>💬</div>
             <p style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 800, color: TEXT_LIGHT }}>目前還沒有聊天紀錄</p>
@@ -273,7 +365,7 @@ export default function ChatPage() {
           </div>
         ) : (
           <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {rooms.map((room) => (
+            {filteredRooms.map((room) => (
               <RoomCard key={room.id} room={room} onClick={() => router.push(`/chat/${room.id}`)} />
             ))}
           </div>

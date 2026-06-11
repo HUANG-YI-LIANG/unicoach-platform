@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 // 強制使用動態渲染
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {

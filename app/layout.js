@@ -3,8 +3,10 @@ import Navigation from '@/components/Navigation';
 import Header from '@/components/Header';
 import { AuthProvider } from '@/components/AuthProvider';
 import ConditionalShell from '@/components/ConditionalShell';
+import SupportChatWidget from '@/components/SupportChatWidget';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { Suspense } from 'react';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata = {
   title: 'UniCoach',
@@ -48,6 +50,8 @@ export default function RootLayout({ children }) {
                   {children}
                 </Suspense>
               </ConditionalShell>
+              <SupportChatWidget />
+              <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
             </AuthProvider>
           </div>
         </ThemeProvider>

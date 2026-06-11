@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { verifyConnection } from '@/lib/metaApi';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const result = await verifyConnection();

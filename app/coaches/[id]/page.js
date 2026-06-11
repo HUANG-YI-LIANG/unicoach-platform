@@ -68,6 +68,11 @@ export default function CoachDetailPage({ params }) {
     }
   }
 
+  function handleViewAvailability() {
+    if (typeof document === 'undefined') return;
+    document.getElementById('booking-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   if (loading) {
     return <div style={{ height: '100dvh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>載入中...</div>;
   }
@@ -332,36 +337,67 @@ export default function CoachDetailPage({ params }) {
           gap: 12px;
         }
         .btn-chat {
-          flex: 0 0 auto;
-          min-width: 104px;
+          flex: 1;
           height: 56px;
           border-radius: 16px;
-          background: rgba(255,255,255,0.1);
-          border: 1px solid rgba(255,255,255,0.2);
+          background: var(--accent);
+          border: none;
           color: #FFF;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          font-size: 14px;
-          font-weight: 800;
+          font-size: 16px;
+          font-weight: 900;
+          box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
           cursor: pointer;
         }
         .btn-book-primary {
-          flex: 1;
+          flex: 0 0 auto;
+          min-width: 136px;
           height: 56px;
-          background: var(--accent);
-          border: none;
+          background: rgba(255,255,255,0.08);
+          border: 1px solid rgba(255,255,255,0.14);
           border-radius: 16px;
-          color: #FFF;
-          font-size: 16px;
+          color: rgba(255,255,255,0.9);
+          font-size: 14px;
           font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          box-shadow: 0 8px 18px rgba(249, 115, 22, 0.18);
+          box-shadow: none;
           cursor: pointer;
+        }
+        .pre-booking-card {
+          background: linear-gradient(135deg, rgba(249,115,22,0.14), rgba(255,255,255,0.04));
+          border: 1px solid rgba(249,115,22,0.24);
+          border-radius: 22px;
+          padding: 18px;
+          display: grid;
+          gap: 12px;
+          margin-bottom: 28px;
+        }
+        .pre-booking-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0;
+          font-size: 17px;
+          font-weight: 900;
+        }
+        .pre-booking-list {
+          margin: 0;
+          padding-left: 20px;
+          color: rgba(255,255,255,0.74);
+          font-size: 14px;
+          line-height: 1.7;
+        }
+        .pre-booking-note {
+          margin: 0;
+          color: rgba(255,255,255,0.62);
+          font-size: 13px;
+          line-height: 1.6;
         }
       `}} />
 
@@ -455,6 +491,16 @@ export default function CoachDetailPage({ params }) {
           </div>
         )}
 
+        <div id="booking-guidance" className="pre-booking-card">
+          <h2 className="pre-booking-title"><MessageCircle size={19} color="var(--accent)" /> 預約前先確認</h2>
+          <ul className="pre-booking-list">
+            <li>程度是否適合：先問教練你的目標、程度與是否需要零基礎陪練。</li>
+            <li>時間與地點：確認最快可約時段、實體地點或線上連結安排。</li>
+            <li>器材與上課方式：先確認需要自備什麼、第一堂會怎麼開始。</li>
+          </ul>
+          <p className="pre-booking-note">按「先問教練」只會開啟聊天室，不會直接扣款；等你確認適合後，再從平台預約並保留紀錄。</p>
+        </div>
+
         {/* PLANS */}
         <div className="section-block">
           <h2 className="section-title"><Zap size={20} color="var(--accent)" /> 課程方案</h2>
@@ -482,10 +528,11 @@ export default function CoachDetailPage({ params }) {
         <div className="sticky-content">
           <button className="btn-chat btn-press" onClick={handleChat} disabled={chatting}>
             <MessageCircle size={20} />
-            <span>先聊聊</span>
+            <span>{chatting ? '開啟中...' : '先問教練'}</span>
           </button>
-          <button className="btn-book-primary btn-press" onClick={() => router.push(`/coaches/${id}/booking`)}>
-            立即預約時段
+          <button className="btn-book-primary btn-press" onClick={handleViewAvailability}>
+            <Calendar size={18} />
+            查看可預約時間
           </button>
         </div>
       </div>

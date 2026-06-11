@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Home, Search, MessageCircle, User, Heart, Calendar, Layers, LogIn, PlaySquare, PieChart, Wallet } from 'lucide-react';
+import { Home, Search, MessageCircle, User, Calendar, Layers, LogIn, PieChart, PlaySquare, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
 
@@ -57,16 +57,16 @@ export default function Navigation() {
   if (!user) {
     navItems = [
       { name: '首頁', path: '/', icon: Home },
-      { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '收藏', path: '/favorites', icon: Heart },
-      { name: '訊息', path: '/chat', icon: MessageCircle },
+      { name: '找教練', path: '/coaches', icon: Search },
+      { name: '預約', path: '/login?redirect=/bookings', icon: Calendar, matchPaths: ['/bookings', '/book'] },
+      { name: '聊天', path: '/chat', icon: MessageCircle },
       { name: '我的', path: '/login', icon: LogIn }
     ];
   } else if (role === 'user') {
     navItems = [
       { name: '首頁', path: '/dashboard/user', icon: Home },
       { name: '探索', path: '/explore', icon: PlaySquare },
-      { name: '錢包', path: '/dashboard/user/wallet', icon: Wallet },
+      { name: '點數', path: '/dashboard/user/wallet', icon: Wallet },
       { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/dashboard/user/edit', icon: User }
     ];
@@ -89,9 +89,10 @@ export default function Navigation() {
     <nav className="bottom-nav">
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = item.path === '/' 
-          ? pathname === '/' 
-          : (pathname === item.path || pathname.startsWith(item.path + '/'));
+        const isPathActive = (targetPath) => targetPath === '/'
+          ? pathname === '/'
+          : (pathname === targetPath || pathname.startsWith(targetPath + '/'));
+        const isActive = item.matchPaths ? item.matchPaths.some((matchPath) => isPathActive(matchPath)) : isPathActive(item.path.split('?')[0]);
 
         return (
           <Link key={item.path} href={item.path} className={`nav-link ${isActive ? 'active' : ''}`} style={{ position: 'relative' }}>

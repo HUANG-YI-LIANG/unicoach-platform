@@ -14,9 +14,13 @@ import {
 const root = process.cwd();
 const schema = readFileSync(join(root, 'supabase_schema.sql'), 'utf8');
 const migrationPath = join(root, 'supabase_migration_settlement_financial_guards.sql');
+const settlementsRpcPath = join(root, 'supabase_migration_settlements_rpc.sql');
 const combinedSql = existsSync(migrationPath)
   ? `${schema}\n${readFileSync(migrationPath, 'utf8')}`
   : schema;
+const settlementsRpcSql = existsSync(settlementsRpcPath)
+  ? readFileSync(settlementsRpcPath, 'utf8')
+  : '';
 
 function compact(sql) {
   return sql.replace(/\s+/g, ' ');
@@ -67,4 +71,18 @@ test('schema and migration enforce one active settlement batch per coach-month',
   assert.match(sql, /settlement_batches_unique_active_coach_month/i, 'active coach-month unique index is required');
   assert.match(sql, /CREATE UNIQUE INDEX[^;]+settlement_batches_unique_active_coach_month[^;]+ON (public\.)?settlement_batches\s*\(\s*month\s*,\s*coach_id\s*\)[^;]+WHERE\s*\(status\s*<>\s*'cancelled'\)/i, 'unique index must ignore cancelled batches only');
   assert.match(sql, /settlement_batches_non_negative_totals/i, 'settlement totals/count need non-negative DB CHECK');
+});
+
+test('paid settlement batches make financial fields immutable at DB trigger level', () => {
+  const sql = compact(settlementsRpcSql);
+  const standaloneGuardSql = compact(combinedSql);
+
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.guard_settlement_batch_status_transition\(\)/i, 'settlement status trigger function must exist');
+  assert.match(sql, /IF OLD\.status = 'paid' THEN .*OLD\.total_amount IS DISTINCT FROM NEW\.total_amount.*RAISE EXCEPTION 'Paid settlement batch total_amount is immutable'/i, 'paid total_amount must be immutable');
+  assert.match(sql, /IF OLD\.status = 'paid' THEN .*OLD\.booking_count IS DISTINCT FROM NEW\.booking_count.*RAISE EXCEPTION 'Paid settlement batch booking_count is immutable'/i, 'paid booking_count must be immutable');
+  assert.match(sql, /BEFORE UPDATE OF status, paid_at, total_amount, booking_count ON public\.settlement_batches/i, 'trigger must fire for financial field updates');
+
+  assert.match(standaloneGuardSql, /CREATE OR REPLACE FUNCTION public\.guard_settlement_batch_status_transition\(\)/i, 'standalone financial guards migration must also install the immutable trigger');
+  assert.match(standaloneGuardSql, /IF OLD\.status = 'paid' THEN .*OLD\.total_amount IS DISTINCT FROM NEW\.total_amount.*RAISE EXCEPTION 'Paid settlement batch total_amount is immutable'/i, 'standalone migration must freeze paid total_amount');
+  assert.match(standaloneGuardSql, /IF OLD\.status = 'paid' THEN .*OLD\.booking_count IS DISTINCT FROM NEW\.booking_count.*RAISE EXCEPTION 'Paid settlement batch booking_count is immutable'/i, 'standalone migration must freeze paid booking_count');
 });

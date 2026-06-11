@@ -43,7 +43,7 @@ export default function AdminTopupsPage() {
       const res = await fetch('/api/admin/topups/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requestId: id, userId, amount })
+        body: JSON.stringify({ requestId: id })
       });
       if (res.ok) {
         alert('核准成功，點數已發放！');

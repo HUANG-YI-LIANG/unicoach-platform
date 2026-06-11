@@ -275,15 +275,25 @@ export default function CoachProfileEdit() {
   const inputStyle = { width:'100%', padding:'12px 16px', borderRadius: 12, border: `1px solid ${BORDER}`, fontSize: 14, background: INPUT_BG, color: TEXT_LIGHT };
   const labelStyle = { display:'flex', alignItems:'center', gap: 6, fontSize: 13, fontWeight: 700, color: TEXT_LIGHT, marginBottom: 8 };
   const profileChecklist = [
-    { label: '大頭貼', done: Boolean(formData.avatar_url) },
-    { label: '教學經驗', done: Boolean(formData.experience?.trim()) },
-    { label: '教學理念', done: Boolean(formData.philosophy?.trim()) },
-    { label: '課程特色', done: Boolean(formData.teaching_features?.trim()) },
-    { label: '上課地區', done: Boolean(formData.location?.trim()) },
-    { label: '適合學生', done: Boolean(formData.service_areas?.trim()) },
-    { label: '教學影片或照片', done: Boolean(formData.avatar_url) },
-    { label: '已完成身份驗證', done: vStatus === 'approved' },
+    { label: '大頭貼', done: Boolean(formData.avatar_url), targetId: 'profile-avatar-section' },
+    { label: '教學經驗', done: Boolean(formData.experience?.trim()), targetId: 'profile-experience-section' },
+    { label: '教學理念', done: Boolean(formData.philosophy?.trim()), targetId: 'profile-philosophy-section' },
+    { label: '課程特色', done: Boolean(formData.teaching_features?.trim()), targetId: 'profile-teaching-features-section' },
+    { label: '上課地區', done: Boolean(formData.location?.trim()), targetId: 'profile-location-section' },
+    { label: '適合學生', done: Boolean(formData.service_areas?.trim()), targetId: 'profile-service-areas-section' },
+    { label: '教學影片或照片', done: Boolean(formData.avatar_url), targetId: 'profile-avatar-section' },
+    { label: '已完成身份驗證', done: vStatus === 'approved', targetId: 'profile-identity-section' },
   ];
+
+  const scrollToProfileSection = (targetId) => {
+    const target = document.getElementById(targetId);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const focusTarget = target.querySelector('input, textarea, button');
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      window.setTimeout(() => focusTarget.focus({ preventScroll: true }), 360);
+    }
+  };
 
   return (
     <div style={{ background: BG, minHeight: '100dvh', paddingBottom: 'calc(132px + env(safe-area-inset-bottom))', color: TEXT_LIGHT, position: 'relative', overflowX: 'hidden' }}>
@@ -322,10 +332,21 @@ export default function CoachProfileEdit() {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
                 {profileChecklist.map((item) => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8, background: INPUT_BG, border: `1px solid ${item.done ? 'rgba(16,185,129,0.35)' : BORDER}`, borderRadius: 12, padding: '9px 10px', color: item.done ? '#34D399' : MUTED, fontSize: 12, fontWeight: 800 }}>
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => scrollToProfileSection(item.targetId)}
+                    aria-label={`前往${item.label}欄位`}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, background: INPUT_BG,
+                      border: `1px solid ${item.done ? 'rgba(16,185,129,0.35)' : BORDER}`,
+                      borderRadius: 12, padding: '9px 10px', color: item.done ? '#34D399' : MUTED,
+                      fontSize: 12, fontWeight: 800, cursor: 'pointer', textAlign: 'left'
+                    }}
+                  >
                     {item.done ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                     {item.label}
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
@@ -360,7 +381,7 @@ export default function CoachProfileEdit() {
           </section>
 
           {/* Avatar Section */}
-          <section style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+          <section id="profile-avatar-section" style={{ scrollMarginTop: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, marginBottom: 8 }}>
             <div style={{ position: 'relative' }}>
               <div style={{
                 width: 100, height: 100, borderRadius: '50%', background: INPUT_BG,
@@ -414,7 +435,7 @@ export default function CoachProfileEdit() {
                 />
               </div>
 
-              <div>
+              <div id="profile-location-section" style={{ scrollMarginTop: 96 }}>
                 <label style={labelStyle}>
                   <MapPin size={14} color={ORANGE} /> 上課地區 / 縣市
                 </label>
@@ -427,7 +448,7 @@ export default function CoachProfileEdit() {
                 />
               </div>
 
-              <div>
+              <div id="profile-service-areas-section" style={{ scrollMarginTop: 96 }}>
                 <label style={labelStyle}>
                   <Tag size={14} color={ORANGE} /> 服務項目 / 分類
                 </label>
@@ -444,6 +465,7 @@ export default function CoachProfileEdit() {
               <div style={{ background: "rgba(249, 115, 22, 0.05)", padding: 16, borderRadius: 12, border: "1px dashed var(--cta)" }}>
                 <label style={labelStyle}>
                   <DollarSign size={14} color={ORANGE} /> 預設每小時底價 (TWD)
+                  <span style={{ display: 'block', color: MUTED, fontSize: 12, fontWeight: 500, marginTop: 4, letterSpacing: 'normal' }}>這只是建立方案時的參考價格，學生實際看到的價格以「課程方案」為準。</span>
                 </label>
                 <div style={{ position:'relative' }}>
                   <span style={{ position:'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', color: MUTED, fontSize: 14 }}>$</span>
@@ -476,7 +498,7 @@ export default function CoachProfileEdit() {
                 </div>
               </div>
 
-              <div>
+              <div id="profile-experience-section" style={{ scrollMarginTop: 96 }}>
                 <label style={labelStyle}>
                   <BookOpen size={14} color={ORANGE} /> 教學經驗詳述
                 </label>
@@ -524,7 +546,7 @@ export default function CoachProfileEdit() {
                   placeholder: '例如：費用已包含/不包含場地費。若孩子生病需請假...'
                 }
               ].map(section => (
-                <div key={section.id} style={{ background: INPUT_BG, padding: 20, borderRadius: 16, border: `1px solid ${BORDER}` }}>
+                <div key={section.id} id={`profile-${section.id.replace(/_/g, '-')}-section`} style={{ scrollMarginTop: 96, background: INPUT_BG, padding: 20, borderRadius: 16, border: `1px solid ${BORDER}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <div>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800, color: TEXT_LIGHT }}>
@@ -587,7 +609,7 @@ export default function CoachProfileEdit() {
           </section>
 
           {/* Identity Verification Card */}
-          <section>
+          <section id="profile-identity-section" style={{ scrollMarginTop: 96 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom: 12, paddingLeft: 4 }}>
               <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', margin: 0 }}>身份驗證 (信任建置)</p>
               <div style={{
@@ -673,14 +695,16 @@ export default function CoachProfileEdit() {
       {/* AI Modal */}
       {showAiModal && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)'
+          position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+          padding: '16px 12px calc(16px + env(safe-area-inset-bottom))'
         }}>
           <div style={{
             width: '100%', maxWidth: 500, background: 'var(--color-surface)',
-            borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: '24px 20px 40px',
-            boxShadow: '0 -10px 40px rgba(0,0,0,0.3)', border: `1px solid ${BORDER}`, borderBottom: 'none',
-            display: 'flex', flexDirection: 'column', gap: 16, animation: 'slideUp 0.3s ease-out forwards'
+            borderRadius: 24, padding: '24px 20px calc(24px + env(safe-area-inset-bottom))',
+            boxShadow: '0 -10px 40px rgba(0,0,0,0.3)', border: `1px solid ${BORDER}`,
+            display: 'flex', flexDirection: 'column', gap: 16, animation: 'slideUp 0.3s ease-out forwards',
+            maxHeight: 'min(86dvh, 720px)', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: TEXT_LIGHT, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -692,6 +716,7 @@ export default function CoachProfileEdit() {
             </div>
             <p style={{ margin: 0, fontSize: 14, color: MUTED }}>
               AI 會幫你整理成公開教練資料草稿，帶入「經歷、理念、特色、地區、費用」等欄位。不會自動儲存，仍需你確認後按儲存。
+              本機模型通常需要 30–60 秒，按下後請稍等。
             </p>
             <textarea
               value={aiInput}
@@ -715,7 +740,7 @@ export default function CoachProfileEdit() {
             >
               {isParsing ? (
                 <>
-                  <Loader2 size={18} className="animate-spin" /> 解析中...
+                  <Loader2 size={18} className="animate-spin" /> 解析中，約 30–60 秒...
                 </>
               ) : (
                 '開始自動解析'

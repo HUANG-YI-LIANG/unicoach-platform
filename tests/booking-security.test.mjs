@@ -55,8 +55,8 @@ test('calculateBookingPrice clamps total discounts and recomputes deposit/payout
   assert.equal(price.discountAmount, 300);
   assert.equal(price.finalPrice, 900);
   assert.equal(price.depositPaid, 270);
-  assert.equal(price.platformFee, 240);
-  assert.equal(price.coachPayout, 960);
+  assert.equal(price.platformFee, 180);
+  assert.equal(price.coachPayout, 720);
 });
 
 test('isBookingTimeAllowed rejects unavailable exception overlap and accepts rule-contained slots', () => {

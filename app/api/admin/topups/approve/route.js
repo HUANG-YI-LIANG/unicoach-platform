@@ -10,66 +10,29 @@ export async function POST(request) {
     const auth = await requireAuth(['admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
-    const { requestId, userId, amount } = await request.json();
+    const { requestId } = await request.json();
+    if (!requestId) {
+      return NextResponse.json({ error: '缺少儲值申請 ID' }, { status: 400 });
+    }
     const adminSupabase = getAdminSupabase();
-    
-    // 1. Verify the request is still pending
-    const { data: reqData, error: reqError } = await adminSupabase
-      .from('point_topup_requests')
-      .select('status, amount')
-      .eq('id', requestId)
-      .single();
 
-    if (reqError || !reqData || reqData.status !== 'pending') {
-      return NextResponse.json({ error: '該申請不存在或已被處理' }, { status: 400 });
+    const { data, error } = await adminSupabase.rpc('approve_point_topup_request', {
+      p_request_id: requestId,
+      p_admin_id: auth.user.id,
+    });
+
+    if (error) {
+      const text = [error.code, error.message, error.details, error.hint].filter(Boolean).join(' ');
+      if (/approve_point_topup_request|Could not find the function|PGRST202/i.test(text)) {
+        return NextResponse.json({ error: '請先執行錢包補強 SQL migration 後再核准儲值' }, { status: 500 });
+      }
+      if (/topup_request_not_found|topup_request_already_processed/i.test(text)) {
+        return NextResponse.json({ error: '該申請不存在或已被處理' }, { status: 400 });
+      }
+      throw error;
     }
 
-    // 2. Fetch current user balance
-    const { data: user, error: userError } = await adminSupabase
-      .from('users')
-      .select('wallet_balance')
-      .eq('id', userId)
-      .single();
-
-    if (userError || !user) {
-      return NextResponse.json({ error: '找不到申請的用戶' }, { status: 404 });
-    }
-
-    const newBalance = (user.wallet_balance || 0) + reqData.amount;
-
-    // 3. Update request status
-    const { error: updateReqError } = await adminSupabase
-      .from('point_topup_requests')
-      .update({
-        status: 'approved',
-        approved_at: new Date().toISOString(),
-        approved_by: auth.user.id
-      })
-      .eq('id', requestId);
-
-    if (updateReqError) throw updateReqError;
-
-    // 4. Update user balance
-    const { error: updateUserError } = await adminSupabase
-      .from('users')
-      .update({ wallet_balance: newBalance })
-      .eq('id', userId);
-
-    if (updateUserError) {
-      // Rollback status theoretically, but we don't have transaction here
-      console.error('Failed to update user balance after approving request', updateUserError);
-    }
-
-    // 5. Audit log
-    await adminSupabase.from('audit_logs').insert([{
-      action: 'APPROVE_TOPUP',
-      actor_id: auth.user.id,
-      actor_role: 'admin',
-      target_id: requestId,
-      details: JSON.stringify({ userId, amount: reqData.amount, newBalance })
-    }]);
-
-    return NextResponse.json({ success: true, newBalance });
+    return NextResponse.json(data || { success: true });
   } catch (error) {
     console.error('Approve topup error:', error);
     return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 });

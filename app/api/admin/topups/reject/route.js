@@ -11,29 +11,28 @@ export async function POST(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const { requestId } = await request.json();
+    if (!requestId) {
+      return NextResponse.json({ error: '缺少儲值申請 ID' }, { status: 400 });
+    }
     const adminSupabase = getAdminSupabase();
-    
-    // 1. Update request status
-    const { error: updateReqError } = await adminSupabase
-      .from('point_topup_requests')
-      .update({
-        status: 'rejected',
-        approved_at: new Date().toISOString(),
-        approved_by: auth.user.id
-      })
-      .eq('id', requestId);
 
-    if (updateReqError) throw updateReqError;
+    const { data, error } = await adminSupabase.rpc('reject_point_topup_request', {
+      p_request_id: requestId,
+      p_admin_id: auth.user.id,
+    });
 
-    // 2. Audit log
-    await adminSupabase.from('audit_logs').insert([{
-      action: 'REJECT_TOPUP',
-      actor_id: auth.user.id,
-      actor_role: 'admin',
-      target_id: requestId
-    }]);
+    if (error) {
+      const text = [error.code, error.message, error.details, error.hint].filter(Boolean).join(' ');
+      if (/reject_point_topup_request|Could not find the function|PGRST202/i.test(text)) {
+        return NextResponse.json({ error: '請先執行錢包補強 SQL migration 後再拒絕儲值' }, { status: 500 });
+      }
+      if (/topup_request_not_found|topup_request_already_processed/i.test(text)) {
+        return NextResponse.json({ error: '該申請不存在或已被處理' }, { status: 400 });
+      }
+      throw error;
+    }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json(data || { success: true });
   } catch (error) {
     console.error('Reject topup error:', error);
     return NextResponse.json({ error: '伺服器錯誤' }, { status: 500 });

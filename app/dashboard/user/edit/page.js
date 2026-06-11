@@ -170,54 +170,6 @@ export default function UserProfileEdit() {
           </div>
         </section>
 
-        {/* Wallet & Referral Block */}
-        <section>
-          <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>優惠券與推薦碼</p>
-          <div className="premium-card" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Wallet size={20} color={ORANGE} />
-                </div>
-                <div>
-                  <p style={{ fontSize: 13, color: MUTED, margin: '0 0 4px' }}>錢包餘額</p>
-                  <p style={{ fontSize: 20, fontWeight: 800, color: TEXT_LIGHT, margin: 0 }}>$ {extraData.wallet_balance}</p>
-                </div>
-              </div>
-              <button style={{ background: INPUT_BG, border: "1px solid var(--border)", color: TEXT_LIGHT, padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 700 }}>提領</button>
-            </div>
-            
-            <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
-              <input 
-                placeholder="輸入推廣碼 / 優惠碼" 
-                value={promoCodeInput} onChange={e => setPromoCodeInput(e.target.value)} 
-                style={{ ...inputStyle, flex: 1, marginBottom: 0 }} 
-              />
-              <button 
-                onClick={handleApplyCode} disabled={applyingCode || !promoCodeInput}
-                style={{ background: ORANGE, color: TEXT_LIGHT, border: 'none', padding: '0 16px', borderRadius: 12, fontWeight: 700, opacity: applyingCode||!promoCodeInput ? 0.5 : 1 }}
-              >
-                {applyingCode ? <Loader2 size={16} className="animate-spin" /> : '套用'}
-              </button>
-            </div>
-
-            <div style={{ background: INPUT_BG, borderRadius: 16, padding: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 14, minWidth: 0 }}>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ fontSize: 13, color: MUTED, margin: '0 0 4px' }}>推薦碼</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: ORANGE, letterSpacing: 1.2, overflowWrap: 'anywhere' }}>{extraData.promotion_code}</span>
-                  <button onClick={handleCopyCode} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', padding: 4 }}>
-                    {copiedCode ? <Check size={16} color="#10B981" /> : <Copy size={16} />}
-                  </button>
-                </div>
-              </div>
-              <div style={{ background: '#FFF', padding: 4, borderRadius: 8, flexShrink: 0 }}>
-                {extraData.promotion_code && <QRCodeSVG value={`https://unicoach.tw/register?code=${extraData.promotion_code}`} size={48} />}
-              </div>
-            </div>
-          </div>
-        </section>
-
         <details open={false} style={{ borderRadius: 20, background: CARD, border: '1px solid rgba(255,255,255,0.05)', padding: 14 }}>
           <summary style={{ cursor: 'pointer', color: TEXT_LIGHT, fontSize: 16, fontWeight: 860, listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             帳號設定

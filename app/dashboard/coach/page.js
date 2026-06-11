@@ -7,6 +7,7 @@ import {
   ArrowUpRight, Bell, Calendar, Check, ChevronRight, Clock,
   FileText, MessageCircle, ShieldCheck, UserCheck, Wallet, Activity
 } from 'lucide-react';
+import { DashboardSkeleton } from '@/components/Skeleton';
 
 const BG = 'var(--bg-primary)';
 const CARD = 'var(--bg-card)';
@@ -196,11 +197,7 @@ export default function CoachDashboard() {
   }, [availabilityRules, bookings, coachDetail, plans, profile, unreadCount, usingDefaultPlans]);
 
   if (loading) {
-    return (
-      <div className="mobile-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: MUTED }}>載入中...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Calculate missing steps
@@ -446,6 +443,22 @@ export default function CoachDashboard() {
             <div>
               <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>編輯教練資料與影片</h4>
               <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>更新公開自介與介紹短影音</p>
+            </div>
+          </div>
+          <ChevronRight size={16} color={MUTED} />
+        </div>
+
+        <div className="btn-press" onClick={() => router.push('/dashboard/coach/earnings')} style={{
+          background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Wallet size={18} color={ORANGE} />
+            </div>
+            <div>
+              <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>我的錢包與收益</h4>
+              <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>查看收入明細與提領</p>
             </div>
           </div>
           <ChevronRight size={16} color={MUTED} />

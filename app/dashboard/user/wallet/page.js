@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { Wallet, Plus, Loader2, AlertCircle, CheckCircle, Copy } from 'lucide-react';
+import { Wallet, Copy, Check, Coins, Loader2, MessageCircle, ArrowDownLeft, ArrowUpRight, Ticket, UserPlus } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const DARK = '#050816';
 const CARD = '#0B1220';
@@ -12,175 +13,258 @@ const ORANGE = '#FF8A3D';
 const TEXT_LIGHT = '#FFFFFF';
 const MUTED = '#94A3B8';
 
-export default function WalletPage() {
+export default function PointsCenterPage() {
   const { user } = useAuth();
   const router = useRouter();
   
   const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [message, setMessage] = useState(null);
-
-  const [amount, setAmount] = useState('');
-  const [bankLast5, setBankLast5] = useState('');
+  const [profile, setProfile] = useState(null);
+  const [bindCode, setBindCode] = useState('');
+  const [binding, setBinding] = useState(false);
+  const [bindError, setBindError] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
     if (!user) {
       router.push('/login');
       return;
     }
-    fetchBalance();
+    fetchPointsData();
   }, [user]);
 
-  const fetchBalance = async () => {
+  const fetchPointsData = async () => {
     try {
-      const res = await fetch('/api/user/profile');
-      if (res.ok) {
-        const data = await res.json();
-        setBalance(data.user?.wallet_balance || 0);
+      const [walletRes, profileRes] = await Promise.all([
+        fetch('/api/wallet'),
+        fetch('/api/auth/profile')
+      ]);
+
+      if (walletRes.ok) {
+        const data = await walletRes.json();
+        setBalance(data.balance || 0);
+        setTransactions(data.transactions || []);
+      }
+
+      if (profileRes.ok) {
+        const { profile } = await profileRes.json();
+        setProfile(profile);
       }
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      console.error('Failed to fetch data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText('822-123456789012');
-    alert('已複製帳號');
+  const openSupportChat = () => {
+    // Attempt to trigger the floating support widget if it's rendered globally
+    // If not, redirect to chat
+    router.push('/chat');
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!amount || Number(amount) <= 0) {
-      setMessage({ type: 'error', text: '請輸入正確的儲值金額' });
-      return;
-    }
-    if (!bankLast5 || bankLast5.length < 4) {
-      setMessage({ type: 'error', text: '請輸入帳號末五碼' });
-      return;
-    }
-
-    setProcessing(true);
-    setMessage(null);
+  const handleBind = async () => {
+    if (!bindCode.trim()) return;
+    setBinding(true);
+    setBindError('');
     try {
-      const res = await fetch('/api/wallet/topup/request', {
+      const res = await fetch('/api/user/referral/bind', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: Number(amount), bankLast5 })
+        body: JSON.stringify({ code: bindCode })
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage({ type: 'success', text: '已送出儲值申請！管理員核對匯款後將為您入點。' });
-        setAmount('');
-        setBankLast5('');
+        setProfile(prev => ({ ...prev, referred_by: 'bound' }));
       } else {
-        setMessage({ type: 'error', text: data.error || '申請失敗' });
+        setBindError(data.error || '綁定失敗');
       }
     } catch (err) {
-      setMessage({ type: 'error', text: '伺服器連線失敗' });
+      setBindError('網路錯誤，請稍後再試');
     } finally {
-      setProcessing(false);
+      setBinding(false);
     }
   };
 
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: DARK, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Loader2 className="animate-spin" color={ORANGE} />
-    </div>
-  );
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess('已複製！');
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
+
+  if (loading) {
+    return (
+      <main style={{ minHeight: '100vh', padding: '24px 16px 96px', background: DARK, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Loader2 size={32} color={ORANGE} style={{ animation: 'spin 1s linear infinite' }} />
+      </main>
+    );
+  }
 
   return (
     <main style={{ minHeight: '100vh', padding: '24px 16px 96px', background: DARK, color: TEXT_LIGHT, fontFamily: 'sans-serif' }}>
       <section style={{ maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Wallet size={28} color={ORANGE} /> 我的錢包
-        </h1>
 
-        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 32, textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-          <p style={{ margin: '0 0 8px', fontSize: 14, color: MUTED, fontWeight: 600 }}>目前可用點數</p>
-          <div style={{ fontSize: 48, fontWeight: 900, color: ORANGE, lineHeight: 1 }}>
-            {balance.toLocaleString()}
-          </div>
-          <p style={{ margin: '16px 0 0', fontSize: 12, color: MUTED }}>1 點 = 1 元新台幣</p>
-        </div>
-
-        <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 24, padding: 24 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px' }}>匯款儲值</h2>
-          
-          <div style={{ background: 'rgba(255,138,61,0.05)', border: `1px solid rgba(255,138,61,0.2)`, borderRadius: 16, padding: 16, marginBottom: 24 }}>
-            <p style={{ margin: '0 0 8px', fontSize: 13, color: '#FF8A3D', fontWeight: 800 }}>🏦 指定匯款帳戶</p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <p style={{ margin: '0 0 4px', fontSize: 14, color: TEXT_LIGHT, fontWeight: 700 }}>中國信託 (822)</p>
-                <p style={{ margin: 0, fontSize: 18, color: TEXT_LIGHT, fontWeight: 900, letterSpacing: '0.05em' }}>1234 5678 9012</p>
+        {/* 頂部整合面板：餘額、儲值與推廣碼 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}` }}>
+          {/* 上部：餘額與操作 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={28} color={ORANGE} />
               </div>
-              <button onClick={handleCopy} style={{ background: 'rgba(255,255,255,0.1)', border: 0, padding: '8px 12px', borderRadius: 8, color: TEXT_LIGHT, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Copy size={14} /> 複製
-              </button>
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: 14, color: MUTED }}>錢包餘額</p>
+                <div style={{ fontSize: 32, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 24 }}>$</span> {balance.toLocaleString()}
+                </div>
+              </div>
             </div>
-            <p style={{ margin: '12px 0 0', fontSize: 12, color: MUTED }}>匯款完成後，請填寫下方表單回報，我們會盡快為您入點。</p>
-          </div>
-
-          {message && (
-            <div style={{ 
-              padding: 16, borderRadius: 12, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8,
-              background: message.type === 'success' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-              color: message.type === 'success' ? '#10B981' : '#EF4444',
-              border: `1px solid ${message.type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
-            }}>
-              {message.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{message.text}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <label style={{ display: 'grid', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>匯款金額 (NT$)</span>
-              <input 
-                type="number" 
-                value={amount}
-                onChange={e => setAmount(e.target.value)}
-                placeholder="例如：1000"
-                required
-                min="1"
-                style={{ padding: 14, borderRadius: 12, border: `1px solid ${BORDER}`, background: 'rgba(255,255,255,0.03)', color: TEXT_LIGHT, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = ORANGE}
-                onBlur={e => e.target.style.borderColor = BORDER}
-              />
-            </label>
-
-            <label style={{ display: 'grid', gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 700, color: MUTED }}>轉出帳號末五碼</span>
-              <input 
-                type="text" 
-                value={bankLast5}
-                onChange={e => setBankLast5(e.target.value)}
-                placeholder="例如：54321"
-                required
-                maxLength="5"
-                style={{ padding: 14, borderRadius: 12, border: `1px solid ${BORDER}`, background: 'rgba(255,255,255,0.03)', color: TEXT_LIGHT, outline: 'none' }}
-                onFocus={e => e.target.style.borderColor = ORANGE}
-                onBlur={e => e.target.style.borderColor = BORDER}
-              />
-            </label>
-
-            <button 
-              type="submit" 
-              disabled={processing}
-              style={{ 
-                marginTop: 8, padding: 16, borderRadius: 12, border: 0, 
-                background: ORANGE, color: '#000', fontWeight: 900, fontSize: 16,
-                cursor: processing ? 'not-allowed' : 'pointer', opacity: processing ? 0.7 : 1
+            <button
+              onClick={openSupportChat}
+              style={{
+                padding: '10px 24px', borderRadius: 12, border: `1px solid rgba(255,255,255,0.1)`,
+                background: 'transparent', color: TEXT_LIGHT, fontWeight: 700, fontSize: 15,
+                cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              {processing ? '送出中...' : '送出儲值申請'}
+              提領 / 儲值
             </button>
-          </form>
+          </div>
+
+          <div style={{ height: 1, background: BORDER, margin: '0 0 24px' }} />
+
+          {/* 中部：推廣碼 / 優惠碼輸入 */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+            <input
+              type="text"
+              placeholder="輸入推廣碼 / 優惠碼"
+              value={bindCode}
+              onChange={(e) => setBindCode(e.target.value.toUpperCase())}
+              style={{
+                flex: 1, background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.05)`,
+                borderRadius: 16, padding: '16px 20px', color: TEXT_LIGHT, fontSize: 15,
+                outline: 'none', letterSpacing: '1px'
+              }}
+            />
+            <button
+              onClick={handleBind}
+              disabled={binding || !bindCode.trim()}
+              style={{
+                padding: '0 32px', borderRadius: 16, border: 0,
+                background: bindCode.trim() ? '#8B5E3C' : 'rgba(139, 94, 60, 0.3)',
+                color: bindCode.trim() ? '#FFF' : 'rgba(255,255,255,0.4)',
+                fontWeight: 700, fontSize: 15, cursor: bindCode.trim() ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s'
+              }}
+            >
+              {binding ? '處理中' : '套用'}
+            </button>
+          </div>
+
+          {/* 下部：推薦碼與 QR Code */}
+          {profile && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <p style={{ margin: '0 0 8px', fontSize: 14, color: MUTED }}>推薦碼</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24, fontWeight: 900, color: ORANGE, letterSpacing: '2px' }}>
+                    {profile.promotion_code || '------'}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(profile.promotion_code)}
+                    style={{ background: 'transparent', border: 0, padding: 4, cursor: 'pointer', color: MUTED, display: 'flex', alignItems: 'center' }}
+                  >
+                    {copySuccess ? <Check size={20} color="#10B981" /> : <Copy size={20} />}
+                  </button>
+                </div>
+                {profile.referred_by && (
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#10B981', fontWeight: 600 }}>✓ 已綁定推廣人</p>
+                )}
+                {bindError && (
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#EF4444', fontWeight: 600 }}>{bindError}</p>
+                )}
+              </div>
+              <div style={{ background: '#FFF', padding: 8, borderRadius: 12 }}>
+                <QRCodeSVG
+                  value={`https://platform-zeta-one-51.vercel.app/register?ref=${profile.promotion_code}`}
+                  size={80}
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  level={"L"}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 90 天收益明細按鈕 */}
+        <button
+          onClick={() => router.push('/dashboard/user/wallet/referrals')}
+          style={{
+            width: '100%', padding: '16px', borderRadius: 16, border: `1px solid rgba(255,138,61,0.3)`,
+            background: 'rgba(255,138,61,0.05)', color: ORANGE, fontWeight: 800, fontSize: 15,
+            cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+            transition: 'all 0.2s'
+          }}
+        >
+          <Coins size={18} /> 查看推廣人上課明細 (90天)
+        </button>
+
+        {/* 交易紀錄 */}
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+             交易紀錄
+          </h2>
+          {transactions.length === 0 ? (
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無交易紀錄</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {transactions.map((tx) => {
+                const isPositive = tx.amount > 0;
+                return (
+                  <div key={tx.id} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isPositive ? <ArrowDownLeft size={20} color="#10B981" /> : <ArrowUpRight size={20} color="#EF4444" />}
+                      </div>
+                      <div>
+                        <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: TEXT_LIGHT }}>
+                          {tx.description || (tx.transaction_type === 'top_up' ? '儲值' : tx.transaction_type === 'booking' ? '課程預約' : '點數交易')}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 12, color: MUTED }}>
+                          {new Date(tx.created_at).toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: isPositive ? '#10B981' : TEXT_LIGHT }}>
+                      {isPositive ? '+' : ''}{tx.amount} 點
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 優惠券區塊保留 */}
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 32, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Ticket size={20} color={ORANGE} /> 我的優惠券
+          </h2>
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+            <Ticket size={32} color={MUTED} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+            <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無可用優惠券</p>
+          </div>
         </div>
 
       </section>
     </main>
   );
-}
+};

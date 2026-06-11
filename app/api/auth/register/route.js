@@ -143,8 +143,8 @@ export async function POST(request) {
       }
     }
 
-    // 生成隨機推廣碼 (6碼英數)
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // 生成隨機推廣碼 (6碼大寫英數，排除 O, 0, I, 1)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let newPromotionCode = '';
     for (let i = 0; i < 6; i++) {
       newPromotionCode += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -162,7 +162,6 @@ export async function POST(request) {
       is_frozen: false,
       level: 1,
       promotion_code: newPromotionCode,
-      referred_by: referredById,
       created_at: new Date().toISOString()
     };
 
@@ -183,6 +182,19 @@ export async function POST(request) {
       console.error('[PROFILE CREATE ERROR]', profileError);
       await adminSupabase.auth.admin.deleteUser(authData.user.id);
       throw profileError;
+    }
+
+    if (referredById) {
+      const { error: referralAttachError } = await adminSupabase.rpc('attach_registered_referral_with_window', {
+        p_user_id: authData.user.id,
+        p_referrer_id: referredById,
+      });
+
+      if (referralAttachError) {
+        console.error('[REFERRAL ATTACH RPC ERROR]', referralAttachError);
+        await adminSupabase.auth.admin.deleteUser(authData.user.id);
+        return NextResponse.json({ error: '推薦收益期間建立失敗，請稍後再註冊。' }, { status: 500 });
+      }
     }
 
     if (isReferredByAmbassador && referredById) {

@@ -34,6 +34,10 @@ export default function UserDashboard() {
   const [bookings, setBookings] = useState([]);
   const [recommendedCoaches, setRecommendedCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showReferralPrompt, setShowReferralPrompt] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [binding, setBinding] = useState(false);
+  const [bindError, setBindError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -56,6 +60,10 @@ export default function UserDashboard() {
           setBookings(Array.isArray(bookingData) ? bookingData : []);
         }
         setRecommendedCoaches(Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 3) : []);
+
+        if (!profileData.referred_by && !localStorage.getItem('referral_prompt_dismissed')) {
+          setShowReferralPrompt(true);
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -63,6 +71,36 @@ export default function UserDashboard() {
       }
     })();
   }, [router]);
+
+  const handleDismissReferral = () => {
+    localStorage.setItem('referral_prompt_dismissed', 'true');
+    setShowReferralPrompt(false);
+  };
+
+  const handleBindReferral = async () => {
+    if (!referralCode.trim()) return;
+    setBinding(true);
+    setBindError('');
+    try {
+      const res = await fetch('/api/user/referral/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: referralCode })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('referral_prompt_dismissed', 'true');
+        setShowReferralPrompt(false);
+        setProfile(prev => ({ ...prev, referred_by: 'bound' }));
+      } else {
+        setBindError(data.error || '綁定失敗');
+      }
+    } catch (e) {
+      setBindError('網路錯誤，請稍後再試');
+    } finally {
+      setBinding(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -75,7 +113,7 @@ export default function UserDashboard() {
   const nextBooking = bookings[0] || null;
 
   return (
-    <div className="mobile-container fade-in" style={{ backgroundColor: BG, minHeight: '100vh' }}>
+    <div className="fade-in" style={{ backgroundColor: BG }}>
       
       {/* ── HEADER ── */}
       <header style={{ 
@@ -104,7 +142,7 @@ export default function UserDashboard() {
         </button>
       </header>
 
-      <main style={{ padding: '0 var(--padding-page) 100px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-section)' }}>
+      <div style={{ padding: '0 var(--padding-page) 140px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-section)' }}>
         
         {/* ── HERO COPY ── */}
         <section style={{ marginBottom: 8 }}>
@@ -250,8 +288,65 @@ export default function UserDashboard() {
             ))}
           </div>
         </section>
+      </div>
 
-      </main>
+      {/* ── REFERRAL MODAL ── */}
+      {showReferralPrompt && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(5, 8, 22, 0.85)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+          padding: 24, animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '32px 24px',
+            width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          }}>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: TEXT_LIGHT }}>有朋友推薦你嗎？</h3>
+            <p style={{ margin: 0, fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 1.5 }}>
+              可以輸入推薦碼，<br />也可以之後再補。
+            </p>
+            <div style={{ width: '100%', marginTop: 8 }}>
+              <input
+                type="text"
+                placeholder="輸入推薦碼"
+                value={referralCode}
+                onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                style={{
+                  width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`,
+                  borderRadius: 12, padding: '14px 16px', color: TEXT_LIGHT, fontSize: 16, textAlign: 'center',
+                  fontWeight: 700, letterSpacing: '2px', outline: 'none'
+                }}
+              />
+              {bindError && <p style={{ margin: '8px 0 0', color: '#EF4444', fontSize: 13, textAlign: 'center', fontWeight: 600 }}>{bindError}</p>}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 12, marginTop: 8 }}>
+              <button
+                onClick={handleBindReferral}
+                disabled={binding || !referralCode.trim()}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 12, border: 0,
+                  background: referralCode.trim() ? ORANGE : 'rgba(255,138,61,0.2)', color: referralCode.trim() ? '#000' : MUTED,
+                  fontWeight: 800, fontSize: 15, cursor: referralCode.trim() ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {binding ? '綁定中...' : '確認綁定'}
+              </button>
+              <button
+                onClick={handleDismissReferral}
+                style={{
+                  width: '100%', padding: 14, borderRadius: 12, border: 0,
+                  background: 'transparent', color: MUTED, fontWeight: 700, fontSize: 14, cursor: 'pointer'
+                }}
+              >
+                (可略過)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -13,31 +13,39 @@ export async function GET(request) {
     }
 
     const adminSupabase = getAdminSupabase();
-    const { data: logs, error: logsError } = await adminSupabase
-      .from('reward_logs')
-      .select('id')
+    const { data: rewards, error: rewardsError } = await adminSupabase
+      .from('referral_rewards')
+      .select('id, referrer_id, reward_points')
       .eq('status', 'pending')
       .lte('release_at', new Date().toISOString())
       .limit(200);
 
-    if (logsError) throw logsError;
+    if (rewardsError) throw rewardsError;
 
     let released = 0;
     let skipped = 0;
     const failed = [];
 
-    for (const log of logs || []) {
-      const { data: didRelease, error: releaseError } = await adminSupabase.rpc('release_referral_reward', { p_log_id: log.id });
+    for (const reward of rewards || []) {
+      const { data: didRelease, error: releaseError } = await adminSupabase.rpc('release_phase3c_referral_reward', {
+        p_reward_id: reward.id,
+      });
       if (releaseError) {
-        failed.push(log.id);
-        console.error('[CRON RELEASE REWARD ERROR]', safeErrorDetails(releaseError));
+        failed.push(reward.id);
+        console.error('[CRON RELEASE PHASE3C REFERRAL REWARD ERROR]', safeErrorDetails(releaseError));
         continue;
       }
       if (didRelease) released += 1;
       else skipped += 1;
     }
 
-    return NextResponse.json({ success: true, scanned: logs?.length || 0, released, skipped, failed: failed.length });
+    return NextResponse.json({
+      success: true,
+      scanned: rewards?.length || 0,
+      released,
+      skipped,
+      failed: failed.length,
+    });
   } catch (error) {
     console.error('[CRON RELEASE REWARDS FATAL]', safeErrorDetails(error));
     return NextResponse.json({ error: 'Release rewards job failed' }, { status: 500 });

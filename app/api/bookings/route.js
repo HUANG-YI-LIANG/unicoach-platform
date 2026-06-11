@@ -163,9 +163,12 @@ const REQUIRED_BOOKING_SAFETY_FIELDS = [
   'coach_service_id',
 ];
 
-function validateRequiredBookingSafetyFields(bookingsToInsert) {
+const REQUIRED_WALLET_BOOKING_SAFETY_FIELDS = REQUIRED_BOOKING_SAFETY_FIELDS
+  .filter((field) => field !== 'payment_expires_at');
+
+function validateRequiredBookingSafetyFields(bookingsToInsert, requiredFields = REQUIRED_BOOKING_SAFETY_FIELDS) {
   for (const [index, booking] of bookingsToInsert.entries()) {
-    for (const field of REQUIRED_BOOKING_SAFETY_FIELDS) {
+    for (const field of requiredFields) {
       const value = booking?.[field];
       if (value === null || value === undefined || value === '') {
         throw new Error(`missing_required_booking_safety_field:${field}:row:${index + 1}`);
@@ -191,6 +194,49 @@ async function createBookingsSafely(adminSupabase, { bookingsToInsert, userId, c
 
   const bookings = Array.isArray(data?.bookings) ? data.bookings : [];
   const bookingIds = Array.isArray(data?.booking_ids) ? data.booking_ids : [];
+  const clientGeneratedBookings = bookingsToInsert
+    .filter((booking) => Boolean(booking.id))
+    .map((booking) => ({ id: booking.id }));
+  const normalizedBookings = clientGeneratedBookings.length
+    ? clientGeneratedBookings
+    : bookings.length
+      ? bookings
+      : bookingIds.map((id) => ({ id }));
+
+  return { ok: true, bookings: normalizedBookings, bookingIds };
+}
+
+async function createWalletBookingsSafely(adminSupabase, { bookingsToInsert, userId, couponId, totalPoints }) {
+  validateRequiredBookingSafetyFields(bookingsToInsert, REQUIRED_WALLET_BOOKING_SAFETY_FIELDS);
+
+  const { data, error } = await adminSupabase.rpc('create_wallet_booking_safe', {
+    p_user_id: userId,
+    p_total_points: totalPoints,
+    p_coupon_id: couponId || null,
+    p_bookings: bookingsToInsert,
+  });
+
+  if (error) {
+    const text = [error?.code, error?.message, error?.details, error?.hint]
+      .filter(Boolean)
+      .join(' ');
+
+    if (/create_wallet_booking_safe|Could not find the function|PGRST202/i.test(text)) {
+      return { ok: false, status: 500, error: '請先執行錢包補強 SQL migration 後再建立點數預約' };
+    }
+
+    if (/insufficient_funds/i.test(text)) {
+      return { ok: false, status: 400, error: '錢包餘額不足' };
+    }
+
+    const mapped = getBookingCreationErrorResponse(error);
+    if (mapped) return { ok: false, ...mapped };
+    throw error;
+  }
+
+  const bookingPayload = data?.bookings || data;
+  const bookings = Array.isArray(bookingPayload?.bookings) ? bookingPayload.bookings : [];
+  const bookingIds = Array.isArray(bookingPayload?.booking_ids) ? bookingPayload.booking_ids : [];
   const clientGeneratedBookings = bookingsToInsert
     .filter((booking) => Boolean(booking.id))
     .map((booking) => ({ id: booking.id }));
@@ -399,7 +445,6 @@ export async function POST(request) {
       durationMinutes: requestedDurationMinutes,
       rebookFromBookingId: camelRebookFromBookingId,
       rebook_from_booking_id: snakeRebookFromBookingId,
-      customPrice,
     } = body;
 
     const rebookFromBookingId = camelRebookFromBookingId || snakeRebookFromBookingId || null;
@@ -536,7 +581,7 @@ export async function POST(request) {
 
     const { data: userData, error: userDataErr } = await adminSupabase
       .from('users')
-      .select('level')
+      .select('level, wallet_balance')
       .eq('id', userId)
       .maybeSingle();
 
@@ -586,40 +631,13 @@ export async function POST(request) {
       couponDiscountPercent,
       coachCommission,
     });
-    
-    // Wallet check
-    const pointsToPay = Number(customPrice) || basePrice;
-    if (userData?.wallet_balance === undefined) {
-      // Need to fetch full user to get wallet_balance
-      const { data: fullUser } = await adminSupabase.from('users').select('wallet_balance').eq('id', userId).single();
-      userData.wallet_balance = fullUser?.wallet_balance || 0;
-    }
     const currentBalance = userData.wallet_balance || 0;
-    if (currentBalance < pointsToPay * totalSessions) {
+    const totalPointsToPay = roundMoney(pricing.finalPrice * totalSessions);
+    if (currentBalance < totalPointsToPay) {
       return NextResponse.json({ error: '錢包餘額不足' }, { status: 400 });
     }
 
-    // Deduct points
-    // Since we don't have the RPC guaranteed to exist, we use a standard update. 
-    // It's acceptable for this phase, but RPC is recommended for true production.
-    const { error: deductError } = await adminSupabase
-      .from('users')
-      .update({ wallet_balance: currentBalance - (pointsToPay * totalSessions) })
-      .eq('id', userId);
-
-    if (deductError) {
-      console.error('Wallet deduction error:', deductError);
-      return NextResponse.json({ error: '錢包扣款失敗' }, { status: 500 });
-    }
-
-    // Adjust pricing to reflect custom points
-    pricing.finalPrice = pointsToPay;
-    pricing.depositPaid = pointsToPay;
-    pricing.platformFee = Math.round(pointsToPay * (coachCommission / 100));
-    pricing.coachPayout = pointsToPay - pricing.platformFee;
-
     const bookingsToInsert = [];
-    const paymentExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
     const serviceSnapshot = snapshotService(service, servicePriceType, durationMinutes);
 
     for (let i = 0; i < totalSessions; i++) {
@@ -646,11 +664,13 @@ export async function POST(request) {
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
         status: 'scheduled', // direct to scheduled since it's paid
+        payment_status: 'paid',
+        paid_at: null,
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,
         session_number: i + 1,
         duration_minutes: durationMinutes,
-        payment_expires_at: paymentExpiresAt,
+        payment_expires_at: null,
         plan_id: selectedPlan?.id || finalPlanId || null,
         plan_title: selectedPlan?.title || service.title,
         plan_snapshot: JSON.stringify({
@@ -671,10 +691,11 @@ export async function POST(request) {
       });
     }
 
-    const bookingCreation = await createBookingsSafely(adminSupabase, {
+    const bookingCreation = await createWalletBookingsSafely(adminSupabase, {
       bookingsToInsert,
       userId,
       couponId: couponResult.couponId,
+      totalPoints: totalPointsToPay,
     });
 
     if (!bookingCreation.ok) {

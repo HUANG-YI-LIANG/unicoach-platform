@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
+import { toast } from 'react-hot-toast';
+import { PlansSkeleton } from '@/components/Skeleton';
 
 const DURATIONS = [30, 45, 60, 75, 90, 120, 150, 180, 240, 480, 600];
 const EMPTY_FORM = {
@@ -178,12 +180,16 @@ export default function CoachPlansPage() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        alert(payload.error || '方案儲存失敗');
+        toast.error(payload.error || '方案儲存失敗');
         return;
       }
+      toast.success('方案儲存成功！');
       setEditingId(null);
       setForm(EMPTY_FORM);
       fetchPlans();
+      setTimeout(() => {
+        router.push('/dashboard/coach');
+      }, 1500);
     } finally {
       setSaving(false);
     }
@@ -191,7 +197,7 @@ export default function CoachPlansPage() {
 
   async function deletePlan(plan) {
     if (String(plan.id).startsWith('default-')) {
-      alert('預設方案不需要刪除。新增自訂課程方案後，系統會優先使用你的自訂方案；仍需完成審核、時段與公開服務狀態。');
+      toast.error('預設方案不需刪除。新增自訂方案後，系統會優先使用您的自訂方案。');
       return;
     }
     if (!confirm(`確定刪除「${plan.title}」？`)) return;
@@ -199,9 +205,10 @@ export default function CoachPlansPage() {
     const response = await fetch(`/api/coach/plans/${plan.id}`, { method: 'DELETE' });
     const payload = await response.json();
     if (!response.ok) {
-      alert(payload.error || '方案刪除失敗');
+      toast.error(payload.error || '方案刪除失敗');
       return;
     }
+    toast.success('方案已刪除');
     fetchPlans();
   }
 
@@ -227,7 +234,7 @@ export default function CoachPlansPage() {
   }, [availabilityRules, coachDetail, plans, profile, usingDefaults]);
 
   if (authLoading || loading) {
-    return <div style={{ padding: 32, color: 'var(--text-muted)' }}>載入課程方案資料中...</div>;
+    return <PlansSkeleton />;
   }
 
   if (loadError) {

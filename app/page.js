@@ -20,6 +20,8 @@ const SPORT_IMAGES = {
   '全科伴讀': 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop'
 };
 const DEFAULT_SPORT_IMAGE = 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop';
+const HOME_HERO_COURSES = ['籃球', '英文', '健身', '數學', '羽球', '我不確定'];
+const HOME_HERO_STEPS = ['選課程', '看教練', '先聊聊', '約第一堂'];
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -148,9 +150,37 @@ export default function Home() {
         <div className="premium-hero-bg"></div>
         <div className="premium-hero-content">
           <div className="premium-brand">UniCoach</div>
-          <p style={{ margin: '0 0 10px', color: 'var(--color-accent)', fontSize: 13, fontWeight: 900, letterSpacing: '0.04em' }}>第一次找教練也不用緊張</p>
-          <h1 className="premium-title">找附近最適合你的<br />真人大學生教練</h1>
-          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練；不確定也可以先問，不用一次買很多堂。</p>
+          <p style={{ margin: '0 0 10px', color: 'var(--color-accent)', fontSize: 13, fontWeight: 900, letterSpacing: '0.04em' }}>不用先註冊，先看看附近教練</p>
+          <h1 className="premium-title">你想找哪一種課？</h1>
+          <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練；不確定也可以先問，先聊聊再決定要不要預約。</p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, margin: '22px 0 18px' }}>
+            {HOME_HERO_COURSES.map((course) => {
+              const isUnsure = course === '我不確定';
+              return (
+                <button
+                  key={course}
+                  onClick={() => router.push(isUnsure ? getCoachDiscoveryHref() : getCoachDiscoveryHref(course))}
+                  style={{
+                    minHeight: 48,
+                    padding: '12px 14px',
+                    borderRadius: 16,
+                    border: isUnsure ? '1px solid rgba(255, 138, 61, 0.52)' : '1px solid rgba(255,255,255,0.22)',
+                    background: isUnsure ? 'rgba(255, 138, 61, 0.18)' : 'rgba(2, 4, 10, 0.46)',
+                    color: '#FFFFFF',
+                    WebkitTextFillColor: '#FFFFFF',
+                    fontSize: 15,
+                    fontWeight: 900,
+                    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+                    backdropFilter: 'blur(10px)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {course}
+                </button>
+              );
+            })}
+          </div>
           
           <div className="premium-cta-group">
             <button onClick={() => router.push(getCoachDiscoveryHref())} style={{
@@ -159,9 +189,17 @@ export default function Home() {
               fontSize: '20px', fontWeight: 900, boxShadow: '0 8px 30px rgba(245, 158, 11, 0.4)',
               border: 'none', cursor: 'pointer', gap: 8
             }}>
-              👉 先看看教練
+              幫我找適合的教練
             </button>
-            <p style={{ margin: '10px 0 0', color: 'var(--color-text-muted)', fontSize: 12, fontWeight: 700 }}>先聊聊再預約，第一堂前可以確認程度、地點與付款方式。</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 8, marginTop: 14 }}>
+              {HOME_HERO_STEPS.map((step, index) => (
+                <div key={step} style={{ textAlign: 'center', color: '#FFFFFF', WebkitTextFillColor: '#FFFFFF', textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>
+                  <div style={{ width: 24, height: 24, margin: '0 auto 5px', borderRadius: 999, background: 'rgba(255, 138, 61, 0.94)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900 }}>{index + 1}</div>
+                  <span style={{ fontSize: 11, fontWeight: 850 }}>{step}</span>
+                </div>
+              ))}
+            </div>
+            <p style={{ margin: '12px 0 0', color: 'rgba(255,255,255,0.88)', WebkitTextFillColor: 'rgba(255,255,255,0.88)', fontSize: 12, fontWeight: 750, textShadow: '0 2px 8px rgba(0,0,0,0.7)' }}>先聊聊再預約，第一堂前可以確認程度、地點與付款方式。</p>
           </div>
         </div>
       </section>

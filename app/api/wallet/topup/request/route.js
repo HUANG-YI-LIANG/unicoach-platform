@@ -16,8 +16,9 @@ export async function POST(request) {
       return NextResponse.json({ error: '儲值金額無效' }, { status: 400 });
     }
 
-    if (!bankLast5 || String(bankLast5).length < 4) {
-      return NextResponse.json({ error: '請提供帳號末五碼' }, { status: 400 });
+    const normalizedBankLast5 = String(bankLast5 || '').trim();
+    if (!/^\d{5}$/.test(normalizedBankLast5)) {
+      return NextResponse.json({ error: '請輸入 5 位數字帳號末五碼' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
@@ -27,7 +28,7 @@ export async function POST(request) {
       .insert([{
         user_id: auth.user.id,
         amount,
-        bank_last_5: String(bankLast5),
+        bank_last_5: normalizedBankLast5,
         status: 'pending'
       }]);
 

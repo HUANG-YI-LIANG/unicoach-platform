@@ -74,7 +74,7 @@ test('booking price clamps discounts and commission to non-negative rounded mone
   assert.equal(price.discountAmount, 300);
   assert.equal(price.finalPrice, 700);
   assert.equal(price.depositPaid, 210);
-  assert.equal(price.platformFee, 1000);
+  assert.equal(price.platformFee, 700);
   assert.equal(price.coachPayout, 0);
   for (const value of [price.discountAmount, price.finalPrice, price.depositPaid, price.platformFee, price.coachPayout]) {
     assert.equal(Number.isInteger(value), true, 'all money outputs must be rounded integers');

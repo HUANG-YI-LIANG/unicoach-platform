@@ -391,6 +391,14 @@ BEGIN
       RAISE EXCEPTION 'Paid settlement batch cannot change status';
     END IF;
 
+    IF OLD.total_amount IS DISTINCT FROM NEW.total_amount THEN
+      RAISE EXCEPTION 'Paid settlement batch total_amount is immutable';
+    END IF;
+
+    IF OLD.booking_count IS DISTINCT FROM NEW.booking_count THEN
+      RAISE EXCEPTION 'Paid settlement batch booking_count is immutable';
+    END IF;
+
     IF NEW.paid_at IS DISTINCT FROM OLD.paid_at THEN
       RAISE EXCEPTION 'Paid settlement batch paid_at is immutable';
     END IF;

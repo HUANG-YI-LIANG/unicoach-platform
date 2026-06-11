@@ -102,7 +102,7 @@ function MatchForm() {
   // 1. 最外層：身份選擇 (如果網址沒有帶 audience)
   if (!audience) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '40px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100dvh', background: 'var(--bg-page)', padding: '40px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'var(--primary)' }}>
             歡迎來到 UniCoach
@@ -153,7 +153,7 @@ function MatchForm() {
   if (!category) {
     const isCoach = audience === 'coach';
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '40px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100dvh', background: 'var(--bg-page)', padding: '40px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ maxWidth: '500px', width: '100%', textAlign: 'center' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 900, marginBottom: '16px', color: 'var(--primary)' }}>
             {isCoach ? '你想教授哪種類型？' : '你想找哪種類型的老師？'}
@@ -228,7 +228,7 @@ function MatchForm() {
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-page)', padding: '40px 20px', color: 'var(--text-main)' }}>
+    <div style={{ minHeight: '100dvh', background: 'var(--bg-page)', padding: '40px 20px', color: 'var(--text-main)' }}>
       <div style={{ maxWidth: '500px', margin: '0 auto' }}>
         
         {/* 返回按鈕 */}
@@ -369,7 +369,7 @@ function MatchForm() {
 
 export default function MatchPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>載入中...</div>}>
+    <Suspense fallback={<div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>載入中...</div>}>
       <MatchForm />
     </Suspense>
   );

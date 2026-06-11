@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Search, MapPin, Star, Zap, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Star, ChevronRight } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '推薦' },
@@ -10,6 +10,31 @@ const CATEGORY_OPTIONS = [
   { value: 'academic', label: '學科' },
   { value: 'talent', label: '才藝' },
 ];
+
+function cleanText(value) {
+  return String(value || '').trim();
+}
+
+function formatFitHint(service) {
+  const target = cleanText(service.target_students);
+  if (target) return target;
+  const subject = cleanText(service.subject_or_sport);
+  if (subject) return `想學${subject}、需要有人帶著開始的人`;
+  return '想先了解教練風格、再決定是否預約的人';
+}
+
+function formatAvailabilityHint(service) {
+  const raw = service.available_times;
+  const text = Array.isArray(raw) ? raw.filter(Boolean).join('、') : cleanText(raw);
+  if (!text) return '最快可約 · 先聊聊確認時段';
+  return `最快可約 · ${text.length > 18 ? `${text.slice(0, 18)}…` : text}`;
+}
+
+function formatFirstLessonPrice(service) {
+  const price = Number(service.price);
+  if (!Number.isFinite(price) || price <= 0) return '第一堂 · 價格待確認';
+  return `第一堂 · NT$ ${price.toLocaleString('zh-TW')}`;
+}
 
 function DiscoverFeed() {
   const router = useRouter();
@@ -86,6 +111,9 @@ function DiscoverFeed() {
             const bgImage = service.cover_image || coach.avatar_url;
             const hasRating = Number(coach.review_count) > 0 && Number(coach.overall_rating) > 0;
             const coachTarget = service.target_students?.trim();
+            const fitHint = formatFitHint(service);
+            const availabilityHint = formatAvailabilityHint(service);
+            const firstLessonPrice = formatFirstLessonPrice(service);
             const coachId = coach.user_id || coach.id || service.coach?.id;
 
             return (
@@ -114,6 +142,25 @@ function DiscoverFeed() {
                     <p className="service-intro">{service.intro}</p>
                   </div>
 
+                  <div className="decision-cards" aria-label="快速判斷這位教練是否適合你">
+                    <div className="decision-card decision-card-wide">
+                      <span className="decision-label">適合你如果</span>
+                      <strong>{fitHint}</strong>
+                    </div>
+                    <div className="decision-card">
+                      <span className="decision-label">時間</span>
+                      <strong>{availabilityHint}</strong>
+                    </div>
+                    <div className="decision-card">
+                      <span className="decision-label">費用</span>
+                      <strong>{firstLessonPrice}</strong>
+                    </div>
+                    <div className="decision-card decision-card-wide ask-first-card">
+                      <span className="decision-label">第一次不用急著下單</span>
+                      <strong>可以先聊，問程度、地點、器材與上課方式</strong>
+                    </div>
+                  </div>
+
                   {/* Layer 3: Metadata Row */}
                   <div className="feed-metrics">
                     <div className="metric-pill">
@@ -123,10 +170,6 @@ function DiscoverFeed() {
                     <div className="metric-pill">
                       <MapPin size={14} color="rgba(255,255,255,0.6)" />
                       <span>{service.city}</span>
-                    </div>
-                    <div className="metric-pill">
-                      <Zap size={14} color="rgba(255,255,255,0.6)" />
-                      <span>NT$ {Number(service.price)} /堂</span>
                     </div>
                     <div className="metric-pill target-students">
                       <span>{coachTarget ? `教學風格 · ${coachTarget}` : '教學風格以服務介紹為主'}</span>
@@ -139,7 +182,7 @@ function DiscoverFeed() {
                       查看教練
                     </button>
                     <button className="btn-primary btn-press" onClick={() => router.push(`/chat?with=${coachId}`)}>
-                      先聊聊 <ChevronRight size={18} />
+                      先問教練 <ChevronRight size={18} />
                     </button>
                   </div>
                 </div>
@@ -363,6 +406,45 @@ export default function DiscoverPage() {
           -webkit-box-orient: vertical;
           overflow: hidden;
           text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+
+        .decision-cards {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .decision-card {
+          min-width: 0;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(11,18,32,0.62);
+          border: 1px solid rgba(255,255,255,0.12);
+          backdrop-filter: blur(14px);
+          -webkit-backdrop-filter: blur(14px);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+        }
+        .decision-card-wide {
+          grid-column: 1 / -1;
+        }
+        .ask-first-card {
+          background: rgba(255,138,61,0.16);
+          border-color: rgba(255,138,61,0.30);
+        }
+        .decision-label {
+          display: block;
+          margin-bottom: 4px;
+          color: rgba(255,255,255,0.54);
+          font-size: 11px;
+          font-weight: 850;
+          letter-spacing: 0.04em;
+        }
+        .decision-card strong {
+          display: block;
+          color: rgba(255,255,255,0.93);
+          font-size: 12px;
+          line-height: 1.45;
+          font-weight: 850;
+          overflow-wrap: anywhere;
         }
 
         .feed-metrics {

@@ -4,6 +4,7 @@ import { postToFacebook, postToInstagram } from '@/lib/metaApi';
 import { uploadToImgBB } from '@/lib/imgbbApi';
 
 // 強制使用動態渲染，避免靜態快取
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // 延長 Vercel Timeout 至免費版極限 60 秒
 

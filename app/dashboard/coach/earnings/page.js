@@ -1,188 +1,313 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, CheckCircle2, ChevronLeft, Wallet } from 'lucide-react';
+import { Wallet, Copy, Check, Coins, Loader2, ArrowDownLeft, ArrowUpRight, Ticket, ChevronLeft } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
-const BG = 'var(--color-bg)';
-const CARD = 'var(--color-surface)';
-const MUTED = 'var(--color-text-muted)';
-const DARK = 'var(--color-text)';
-const SHADOW = '0 2px 16px rgba(0,0,0,0.06)';
+const DARK = '#050816';
+const CARD = '#0B1220';
+const BORDER = 'rgba(255,255,255,0.05)';
+const ORANGE = '#FF8A3D';
+const TEXT_LIGHT = '#FFFFFF';
+const MUTED = '#94A3B8';
 
-function getDayOfWeek(dateString) {
-  if (!dateString) return '--';
-  const days = ['日', '一', '二', '三', '四', '五', '六'];
-  const date = new Date(dateString);
-  return `週${days[date.getDay()]}`;
-}
-
-function formatTime(dateString) {
-  if (!dateString) return '--';
-  return new Intl.DateTimeFormat('zh-TW', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(dateString));
-}
-
-function formatDate(dateString) {
-  if (!dateString) return '--';
-  return new Intl.DateTimeFormat('zh-TW', {
-    month: 'numeric',
-    day: 'numeric',
-  }).format(new Date(dateString));
-}
-
-function formatMonthKey(dateString) {
-  const date = dateString ? new Date(dateString) : new Date();
-  return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
-}
-
-export default function EarningsPage() {
+export default function CoachEarningsWalletPage() {
+  const { user } = useAuth();
   const router = useRouter();
-  const [bookings, setBookings] = useState([]);
+  
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [bindCode, setBindCode] = useState('');
+  const [binding, setBinding] = useState(false);
+  const [bindError, setBindError] = useState('');
+  const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
-    fetch('/api/bookings', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : { bookings: [] }))
-      .then((data) => {
-        const completedBookings = Array.isArray(data.bookings)
-          ? data.bookings
-              .filter((booking) => booking.status === 'completed')
-              .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())
-          : [];
-        setBookings(completedBookings);
-      })
-      .catch((error) => {
-        console.error('[COACH EARNINGS LOAD ERROR]', error);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    fetchPointsData();
+  }, [user]);
 
-  const totalEarnings = bookings.reduce((sum, booking) => sum + (booking.coach_payout || 0), 0);
+  const fetchPointsData = async () => {
+    try {
+      const [walletRes, profileRes, bookingsRes] = await Promise.all([
+        fetch('/api/wallet'),
+        fetch('/api/auth/profile'),
+        fetch('/api/bookings')
+      ]);
 
-  const groupedBookings = bookings.reduce((acc, booking) => {
-    const monthKey = formatMonthKey(booking.completed_at);
-    if (!acc[monthKey]) acc[monthKey] = [];
-    acc[monthKey].push(booking);
-    return acc;
-  }, {});
+      let combinedTransactions = [];
+      let totalBalance = 0;
+
+      if (walletRes.ok) {
+        const data = await walletRes.json();
+        totalBalance += (data.balance || 0);
+        if (data.transactions) {
+          combinedTransactions = [...combinedTransactions, ...data.transactions.map(tx => ({
+            ...tx,
+            isBooking: false,
+            date: new Date(tx.created_at)
+          }))];
+        }
+      }
+
+      if (bookingsRes.ok) {
+        const data = await bookingsRes.json();
+        if (Array.isArray(data.bookings)) {
+          const completedBookings = data.bookings.filter(b => b.status === 'completed' && b.coach_payout);
+          totalBalance += completedBookings.reduce((sum, b) => sum + (b.coach_payout || 0), 0);
+          
+          combinedTransactions = [
+            ...combinedTransactions, 
+            ...completedBookings.map(b => ({
+              id: b.id,
+              amount: b.coach_payout,
+              description: `課程完課收入：${b.user_name || '學員'}`,
+              transaction_type: 'booking_payout',
+              isBooking: true,
+              date: new Date(b.completed_at || b.expected_time || b.created_at)
+            }))
+          ];
+        }
+      }
+
+      if (profileRes.ok) {
+        const { profile } = await profileRes.json();
+        setProfile(profile);
+      }
+
+      // Sort combined transactions descending by date
+      combinedTransactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+      setBalance(totalBalance);
+      setTransactions(combinedTransactions);
+
+    } catch (err) {
+      console.error('Failed to fetch data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openSupportChat = () => {
+    router.push('/chat');
+  };
+
+  const handleBind = async () => {
+    if (!bindCode.trim()) return;
+    setBinding(true);
+    setBindError('');
+    try {
+      const res = await fetch('/api/user/referral/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: bindCode })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setProfile(prev => ({ ...prev, referred_by: 'bound' }));
+      } else {
+        setBindError(data.error || '綁定失敗');
+      }
+    } catch (err) {
+      setBindError('網路錯誤，請稍後再試');
+    } finally {
+      setBinding(false);
+    }
+  };
+
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess('已複製！');
+      setTimeout(() => setCopySuccess(''), 2000);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+    }
+  };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '70vh' }}>
-        <p style={{ color: MUTED, fontSize: 15, fontWeight: 600 }}>載入收入明細中...</p>
-      </div>
+      <main style={{ minHeight: '100vh', padding: '24px 16px 96px', background: DARK, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <Loader2 size={32} color={ORANGE} style={{ animation: 'spin 1s linear infinite' }} />
+      </main>
     );
   }
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', paddingBottom: 60 }}>
-      <div
-        style={{
-          background: 'var(--color-surface)',
-          padding: '16px 20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 16,
-          boxShadow: SHADOW,
-          position: 'sticky',
-          top: 0,
-          zIndex: 10,
-        }}
-      >
+    <main style={{ minHeight: '100vh', padding: '24px 16px 96px', background: DARK, color: TEXT_LIGHT, fontFamily: 'sans-serif' }}>
+      <section style={{ maxWidth: 600, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        
+        {/* 返回按鈕 */}
         <button
           onClick={() => router.back()}
-          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: DARK }}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex', color: TEXT_LIGHT, alignItems: 'center', gap: 8, marginBottom: -8 }}
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={24} /> <span style={{ fontSize: 16, fontWeight: 800 }}>返回工作台</span>
         </button>
-        <h1 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK }}>收入明細</h1>
-      </div>
 
-      <div style={{ padding: '20px 16px' }}>
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #059669, #10B981)',
-            borderRadius: 16,
-            padding: 24,
-            color: 'var(--text-light)',
-            boxShadow: '0 8px 24px rgba(5,150,105,0.25)',
-            marginBottom: 24,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, opacity: 0.9 }}>
-            <Wallet size={18} />
-            <span style={{ fontSize: 13, fontWeight: 700 }}>累計已完成收入</span>
+        {/* 頂部整合面板：餘額與提領 */}
+        <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}` }}>
+          {/* 上部：餘額與操作 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={28} color={ORANGE} />
+              </div>
+              <div>
+                <p style={{ margin: '0 0 4px', fontSize: 14, color: MUTED }}>可提領總收益</p>
+                <div style={{ fontSize: 32, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={{ fontSize: 24 }}>$</span> {balance.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={openSupportChat}
+              style={{
+                padding: '10px 24px', borderRadius: 12, border: `1px solid rgba(255,255,255,0.1)`,
+                background: 'transparent', color: TEXT_LIGHT, fontWeight: 700, fontSize: 15,
+                cursor: 'pointer', transition: 'all 0.2s'
+              }}
+            >
+              提領收益
+            </button>
           </div>
-          <p style={{ margin: 0, fontSize: 32, fontWeight: 900 }}>NT${totalEarnings.toLocaleString()}</p>
+
+          <div style={{ height: 1, background: BORDER, margin: '0 0 24px' }} />
+
+          {/* 中部：推廣碼 / 優惠碼輸入 */}
+          <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>
+            <input
+              type="text"
+              placeholder="輸入推廣碼 / 優惠碼"
+              value={bindCode}
+              onChange={(e) => setBindCode(e.target.value.toUpperCase())}
+              style={{
+                flex: 1, background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(255,255,255,0.05)`,
+                borderRadius: 16, padding: '16px 20px', color: TEXT_LIGHT, fontSize: 15,
+                outline: 'none', letterSpacing: '1px'
+              }}
+            />
+            <button
+              onClick={handleBind}
+              disabled={binding || !bindCode.trim()}
+              style={{
+                padding: '0 32px', borderRadius: 16, border: 0,
+                background: bindCode.trim() ? '#8B5E3C' : 'rgba(139, 94, 60, 0.3)',
+                color: bindCode.trim() ? '#FFF' : 'rgba(255,255,255,0.4)',
+                fontWeight: 700, fontSize: 15, cursor: bindCode.trim() ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s'
+              }}
+            >
+              {binding ? '處理中' : '套用'}
+            </button>
+          </div>
+
+          {/* 下部：推薦碼與 QR Code */}
+          {profile && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <p style={{ margin: '0 0 8px', fontSize: 14, color: MUTED }}>您的教練推薦碼</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ fontSize: 24, fontWeight: 900, color: ORANGE, letterSpacing: '2px' }}>
+                    {profile.promotion_code || '------'}
+                  </span>
+                  <button
+                    onClick={() => copyToClipboard(profile.promotion_code)}
+                    style={{ background: 'transparent', border: 0, padding: 4, cursor: 'pointer', color: MUTED, display: 'flex', alignItems: 'center' }}
+                  >
+                    {copySuccess ? <Check size={20} color="#10B981" /> : <Copy size={20} />}
+                  </button>
+                </div>
+                {profile.referred_by && (
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#10B981', fontWeight: 600 }}>✓ 已綁定推廣人</p>
+                )}
+                {bindError && (
+                  <p style={{ margin: '8px 0 0', fontSize: 13, color: '#EF4444', fontWeight: 600 }}>{bindError}</p>
+                )}
+              </div>
+              <div style={{ background: '#FFF', padding: 8, borderRadius: 12 }}>
+                <QRCodeSVG
+                  value={`https://platform-zeta-one-51.vercel.app/register?ref=${profile.promotion_code}`}
+                  size={80}
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  level={"L"}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {Object.entries(groupedBookings).map(([month, monthBookings]) => (
-          <div key={month} style={{ marginBottom: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, paddingLeft: 4 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 900, color: DARK, margin: 0 }}>{month}</h2>
-              <span style={{ fontSize: 13, fontWeight: 800, color: '#059669' }}>
-                NT$
-                {monthBookings.reduce((sum, booking) => sum + (booking.coach_payout || 0), 0).toLocaleString()}
-              </span>
+        {/* 90 天收益明細按鈕 */}
+        <button
+          onClick={() => router.push('/dashboard/user/wallet/referrals')}
+          style={{
+            width: '100%', padding: '16px', borderRadius: 16, border: `1px solid rgba(255,138,61,0.3)`,
+            background: 'rgba(255,138,61,0.05)', color: ORANGE, fontWeight: 800, fontSize: 15,
+            cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+            transition: 'all 0.2s'
+          }}
+        >
+          <Coins size={18} /> 查看推廣人上課明細 (90天)
+        </button>
+
+        {/* 交易紀錄 */}
+        <div>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+             收入與交易紀錄
+          </h2>
+          {transactions.length === 0 ? (
+            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+              <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無交易或完課紀錄</p>
             </div>
-
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {monthBookings.map((booking) => (
-                <div key={booking.id} style={{ background: 'var(--color-surface)', borderRadius: 16, padding: '16px 20px', boxShadow: SHADOW }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, gap: 16 }}>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 15, fontWeight: 800, color: DARK }}>{booking.user_name || '學員'}</span>
-                        <span
-                          style={{
-                            fontSize: 11,
-                            background: 'var(--color-surface-soft)',
-                            color: '#475569',
-                            padding: '2px 8px',
-                            borderRadius: 100,
-                            fontWeight: 800,
-                          }}
-                        >
-                          {getDayOfWeek(booking.completed_at || booking.expected_time)}
-                        </span>
+              {transactions.map((tx) => {
+                const isPositive = tx.amount > 0;
+                return (
+                  <div key={tx.id || Math.random()} style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {isPositive ? <ArrowDownLeft size={20} color="#10B981" /> : <ArrowUpRight size={20} color="#EF4444" />}
                       </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MUTED, fontSize: 12, marginBottom: 4 }}>
-                        <CalendarDays size={12} />
-                        <span>
-                          預約時間：{formatDate(booking.expected_time)} {formatTime(booking.expected_time)}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: MUTED, fontSize: 12 }}>
-                        <CheckCircle2 size={12} />
-                        <span>
-                          完課時間：{formatDate(booking.completed_at)} {formatTime(booking.completed_at)}
-                        </span>
+                      <div>
+                        <p style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: TEXT_LIGHT }}>
+                          {tx.description || (tx.transaction_type === 'top_up' ? '儲值' : tx.transaction_type === 'booking' ? '課程預約' : '點數交易')}
+                        </p>
+                        <p style={{ margin: 0, fontSize: 12, color: MUTED }}>
+                          {tx.date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </p>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 700, marginBottom: 2 }}>教練實收</p>
-                      <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#059669' }}>
-                        NT${(booking.coach_payout || 0).toLocaleString()}
-                      </p>
+                    <div style={{ fontSize: 16, fontWeight: 900, color: isPositive ? '#10B981' : TEXT_LIGHT }}>
+                      {isPositive ? '+' : ''}{tx.amount} 點
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </div>
-        ))}
+          )}
+        </div>
 
-        {bookings.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--color-surface)', borderRadius: 16 }}>
-            <p style={{ margin: 0, color: MUTED, fontSize: 14, fontWeight: 600 }}>目前還沒有已完成課程的收入紀錄</p>
+        {/* 優惠券區塊保留 */}
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 32, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Ticket size={20} color={ORANGE} /> 我的優惠券
+          </h2>
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
+            <Ticket size={32} color={MUTED} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+            <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無可用優惠券</p>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+
+      </section>
+    </main>
   );
 }

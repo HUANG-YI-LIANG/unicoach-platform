@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, CalendarDays, Check, Loader2, Save } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
+import { toast } from 'react-hot-toast';
+import { ScheduleSkeleton } from '@/components/Skeleton';
 
 const WEEKDAYS = [
   { value: 1, label: '一' },
@@ -242,12 +244,14 @@ export default function CoachSchedulePage() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        alert(payload.error || '固定時段儲存失敗');
+        toast.error(payload.error || '固定時段儲存失敗');
         return;
       }
 
-      alert('固定時段已更新');
-      router.push('/dashboard/coach');
+      toast.success('固定時段已更新！');
+      setTimeout(() => {
+        router.push('/dashboard/coach');
+      }, 1500);
     } finally {
       setSaving(false);
     }
@@ -268,7 +272,7 @@ export default function CoachSchedulePage() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        alert(payload.error || '例外時段建立失敗');
+        toast.error(payload.error || '例外時段建立失敗');
         return;
       }
       setExceptionForm((current) => ({
@@ -289,18 +293,15 @@ export default function CoachSchedulePage() {
     });
     const payload = await response.json();
     if (!response.ok) {
-      alert(payload.error || '例外時段刪除失敗');
+      toast.error(payload.error || '例外時段刪除失敗');
       return;
     }
+    toast.success('例外時段已刪除');
     await refreshAvailability();
   }
 
   if (authLoading || loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '70vh', color: 'var(--text-muted)' }}>
-        <Loader2 className="animate-spin" size={28} />
-      </div>
-    );
+    return <ScheduleSkeleton />;
   }
 
   if (loadError) {
