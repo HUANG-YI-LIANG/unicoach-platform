@@ -35,6 +35,8 @@ function buildConversationSummaries(rows) {
         userId: row.user_id,
         userName: row.users?.name || '使用者',
         userEmail: row.users?.email || null,
+        role: row.users?.role || 'user',
+        walletBalance: row.users?.wallet_balance || 0,
         latestMessage: row.message || (row.image_path || row.image_url ? '圖片訊息' : '系統訊息'),
         latestAt: row.created_at,
         unreadCount: row.is_from_admin || row.is_read_by_admin ? 0 : 1,
@@ -82,7 +84,7 @@ export async function GET(request) {
 
     const { data: rows, error } = await adminSupabase
       .from('support_messages')
-      .select('id, user_id, message, image_url, image_path, is_from_admin, is_read_by_admin, created_at, users!support_messages_user_id_fkey(name, email)')
+      .select('id, user_id, message, image_url, image_path, is_from_admin, is_read_by_admin, created_at, users!support_messages_user_id_fkey(name, email, role, wallet_balance)')
       .order('created_at', { ascending: false })
       .limit(500);
 

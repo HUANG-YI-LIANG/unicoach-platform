@@ -170,7 +170,7 @@ export default function SupportChatWidget() {
             <div>
               <p style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>客服中心</p>
               <p style={{ margin: '4px 0 0', fontSize: 12, color: '#94A3B8' }}>
-                {user?.role === 'coach' ? '可上傳存摺封面與提領金額，客服確認後協助出款' : '可上傳截圖回報匯款，客服確認後協助入點'}
+                {user?.role === 'coach' || user?.role === 'ambassador' ? '可上傳存摺封面與提領金額，客服確認後協助出款' : '可上傳截圖回報匯款，客服確認後協助入點'}
               </p>
             </div>
             <button type="button" aria-label="關閉客服" onClick={() => setOpen(false)} style={{ border: 0, background: 'rgba(255,255,255,0.08)', color: '#fff', borderRadius: 10, padding: 8, cursor: 'pointer' }}>
@@ -182,9 +182,9 @@ export default function SupportChatWidget() {
             {busy && messages.length === 0 && <p style={{ margin: 0, color: '#94A3B8', fontSize: 13 }}>讀取客服紀錄中...</p>}
             {!busy && messages.length === 0 && (
               <div style={{ padding: 14, borderRadius: 16, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <p style={{ margin: '0 0 6px', fontWeight: 800 }}>{user?.role === 'coach' ? '需要提領收益嗎？' : '需要協助加值嗎？'}</p>
+                <p style={{ margin: '0 0 6px', fontWeight: 800 }}>{user?.role === 'coach' || user?.role === 'ambassador' ? '需要提領收益嗎？' : '需要協助加值嗎？'}</p>
                 <p style={{ margin: 0, color: '#94A3B8', fontSize: 13, lineHeight: 1.6 }}>
-                  {user?.role === 'coach' 
+                  {user?.role === 'coach' || user?.role === 'ambassador'
                     ? '請按「上傳截圖」附上您的存摺封面，並輸入欲提領金額與帳號。' 
                     : '匯款後請按「上傳截圖」，也可以輸入匯款金額或備註。'}
                 </p>
@@ -207,10 +207,20 @@ export default function SupportChatWidget() {
           )}
 
           <form onSubmit={handleSend} style={{ padding: 14, borderTop: '1px solid rgba(255,255,255,0.08)', display: 'grid', gap: 10 }}>
+            {/* 快速按鈕區 */}
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <button type="button" onClick={() => setMessage((prev) => (prev ? prev + '\n' : '') + '💡 關於 App 更新的建議：')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#FFF', fontSize: 12, cursor: 'pointer' }}>💡 App 更新建議</button>
+              {(user?.role === 'coach' || user?.role === 'ambassador') ? (
+                <button type="button" onClick={() => setMessage((prev) => (prev ? prev + '\n' : '') + '💰 申請提領：')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#FFF', fontSize: 12, cursor: 'pointer' }}>💰 申請提領</button>
+              ) : (
+                <button type="button" onClick={() => setMessage((prev) => (prev ? prev + '\n' : '') + '💳 已完成匯款儲值：')} style={{ whiteSpace: 'nowrap', padding: '6px 12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, color: '#FFF', fontSize: 12, cursor: 'pointer' }}>💳 匯款儲值</button>
+              )}
+            </div>
+
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value.slice(0, 1000))}
-              placeholder={user?.role === 'coach' ? '輸入訊息，例如：欲提領 2000 元至台新銀行 812-xxxx' : '輸入訊息，例如：已匯款 1000 元，請協助確認'}
+              placeholder={user?.role === 'coach' || user?.role === 'ambassador' ? '輸入訊息，例如：欲提領 2000 元至台新銀行 812-xxxx' : '輸入訊息，例如：已匯款 1000 元，請協助確認'}
               rows={3}
               style={{ resize: 'none', borderRadius: 14, border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)', color: '#fff', padding: 12, outline: 'none', fontSize: 14 }}
             />

@@ -5,27 +5,29 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  Menu, Bell, ArrowUpRight, ChevronRight, MessageCircle, 
-  Search, Dumbbell, BookOpen, Palette, Users, Star, Clock, MapPin, Check
+  Bell, ChevronRight, ChevronDown, Apple, Search, 
+  Calendar, Wallet, Settings, Dumbbell, Star, Smartphone
 } from 'lucide-react';
 
-const BG = 'var(--bg-primary)';
-const CARD = 'var(--bg-card)';
-const ORANGE = 'var(--accent)';
-const MUTED = 'var(--text-muted)';
-const TEXT_LIGHT = 'var(--text-primary)';
-const BORDER = 'var(--border)';
+const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
 
-const EMPTY_PROFILE = { name: '', avatar_url: null };
-
-function SectionLabel({ children }) {
+function AccordionItem({ title, icon: Icon, children, defaultOpen = false }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <p style={{
-      fontSize: 12, fontWeight: 700, letterSpacing: '0.1em',
-      color: MUTED, textTransform: 'uppercase', marginBottom: 16, paddingLeft: 4
-    }}>
-      {children}
-    </p>
+    <div className="accordion-item">
+      <div className="accordion-header" onClick={() => setIsOpen(!isOpen)}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Icon size={20} color="var(--text-muted)" />
+          <span>{title}</span>
+        </div>
+        {isOpen ? <ChevronDown size={20} color="var(--text-muted)" /> : <ChevronRight size={20} color="var(--text-muted)" />}
+      </div>
+      <div className={`accordion-content ${isOpen ? 'open' : ''}`}>
+        <div className="accordion-inner">
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -34,11 +36,14 @@ export default function UserDashboard() {
   const [bookings, setBookings] = useState([]);
   const [recommendedCoaches, setRecommendedCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
+  
   const [showReferralPrompt, setShowReferralPrompt] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [binding, setBinding] = useState(false);
   const [bindError, setBindError] = useState('');
+  
   const router = useRouter();
+  const { logout } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -105,7 +110,7 @@ export default function UserDashboard() {
   if (loading) {
     return (
       <div className="mobile-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: MUTED }}>載入中...</p>
+        <p style={{ color: 'var(--text-muted)' }}>載入中...</p>
       </div>
     );
   }
@@ -113,198 +118,128 @@ export default function UserDashboard() {
   const nextBooking = bookings[0] || null;
 
   return (
-    <div className="fade-in" style={{ backgroundColor: BG }}>
-      
-      {/* ── HEADER ── */}
-      <header style={{ 
-        padding: 'var(--padding-page)', paddingTop: '40px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center' 
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ 
-            width: 44, height: 44, borderRadius: 22, backgroundColor: CARD,
-            border: `1px solid ${BORDER}`, overflow: 'hidden'
-          }}>
-            {profile.avatar_url && <img src={profile.avatar_url} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+    <div className="mobile-container" style={{ background: 'var(--bg-primary)' }}>
+      <main className="content" style={{ padding: '24px 20px', paddingBottom: '120px' }}>
+        
+        {/* HEADER */}
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+            Hi, {profile.name || '學員'}
+          </h1>
+          <button onClick={() => router.push('/notifications')} style={{ background: 'transparent', padding: 8, color: 'var(--text-primary)' }}>
+            <Bell size={24} />
+          </button>
+        </header>
+
+        {/* METALLIC LEVEL CARD */}
+        <div className="metallic-card metallic-silver" style={{ marginBottom: 24 }}>
+          <div className="metallic-card-title">一般會員等級</div>
+          <div className="metallic-progress-bg">
+            <div className="metallic-progress-fill" style={{ width: '40%' }}></div>
           </div>
-          <div>
-            <p style={{ fontSize: 13, color: MUTED, marginBottom: 2 }}>晚安，</p>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: TEXT_LIGHT, letterSpacing: '-0.02em', margin: 0 }}>
-              {profile.name || '學員'}
-            </h1>
+          <div className="metallic-card-desc">再消費 NT$5400 即可成為黃金會員等級</div>
+          <div className="metallic-card-link">
+            <span>了解會員等級權益</span>
+            <ChevronRight size={16} />
+          </div>
+          <div style={{ position: 'absolute', right: 20, top: 20, width: 24, height: 24, background: 'rgba(0,0,0,0.1)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'var(--text-primary)' }}>
+            S
           </div>
         </div>
-        <button className="btn-press" onClick={() => router.push('/notifications')} style={{ 
-          background: CARD, border: `1px solid ${BORDER}`, width: 44, height: 44, borderRadius: 22,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', color: TEXT_LIGHT
-        }}>
-          <Bell size={20} />
-        </button>
-      </header>
 
-      <div style={{ padding: '0 var(--padding-page) 140px', display: 'flex', flexDirection: 'column', gap: 'var(--spacing-section)' }}>
-        
-        {/* ── HERO COPY ── */}
-        <section style={{ marginBottom: 8 }}>
-          <h2 style={{ fontSize: 28, fontWeight: 900, color: TEXT_LIGHT, margin: '0 0 12px', lineHeight: 1.2 }}>
-            找教練，<br />
-            <span style={{ color: ORANGE }}>不用再滑社團文章。</span>
-          </h2>
-          <p style={{ fontSize: 15, color: MUTED, margin: 0, lineHeight: 1.6 }}>
-            先看教學風格，再預約體驗課。<br />
-            少問 10 次，直接看時段。
-          </p>
-        </section>
-
-        {/* ── SEARCH ── */}
-        <section>
-          <div className="btn-press" onClick={() => router.push('/coaches')} style={{ 
-            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: '16px 20px',
-            display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', boxShadow: 'var(--shadow-sm)'
-          }}>
-            <Search size={20} color={MUTED} />
-            <span style={{ color: MUTED, fontSize: 15, fontWeight: 500 }}>想學什麼技能？</span>
+        {/* QUICK ACTIONS */}
+        <div className="quick-action-grid">
+          <div className="quick-action-btn" onClick={() => router.push('/coaches')}>
+            <Search className="quick-action-icon" />
+            <span className="quick-action-text">找教練</span>
           </div>
-        </section>
+          <div className="quick-action-btn" onClick={() => router.push('/dashboard/user/wallet')}>
+            <Wallet className="quick-action-icon" />
+            <span className="quick-action-text">我的點數</span>
+          </div>
+          <div className="quick-action-btn" onClick={() => router.push('/dashboard/user/edit')}>
+            <Settings className="quick-action-icon" />
+            <span className="quick-action-text">個人檔案</span>
+          </div>
+        </div>
 
-        {/* ── LEARNING ACTIVITY ── */}
-        <section>
-          <SectionLabel>學習活動 · learning activity</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, boxShadow: 'var(--shadow-card)' }}>
-              <p style={{ margin: '0 0 6px', color: MUTED, fontSize: 12, fontWeight: 650 }}>本週課程</p>
-              <strong style={{ color: TEXT_LIGHT, fontSize: 20, fontWeight: 760 }}>{bookings.length || 0}</strong>
-              <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 11 }}>以實際訂單為準</p>
-            </div>
-            <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, boxShadow: 'var(--shadow-card)' }}>
-              <p style={{ margin: '0 0 6px', color: MUTED, fontSize: 12, fontWeight: 650 }}>下次預約</p>
-              <strong style={{ color: TEXT_LIGHT, fontSize: 15, fontWeight: 720 }}>{nextBooking?.services?.title || '尚未安排'}</strong>
-              <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 11 }}>待確認時段會顯示於我的預約</p>
-            </div>
-            <div style={{ gridColumn: '1 / -1', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: 'var(--shadow-card)' }}>
-              <div>
-                <p style={{ margin: '0 0 4px', color: MUTED, fontSize: 12, fontWeight: 650 }}>最近觀看</p>
-                <strong style={{ color: TEXT_LIGHT, fontSize: 15, fontWeight: 720 }}>繼續比較適合的教練</strong>
+        {/* ACCORDION SECTIONS */}
+        <div className="accordion-wrapper">
+          
+          <AccordionItem title="學習活動與預約" icon={Calendar} defaultOpen={true}>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: 'var(--bg-card)', padding: 12, borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4 }}>下次預約</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{nextBooking?.services?.title || '尚未安排'}</div>
               </div>
-              <button onClick={() => router.push('/coaches')} style={{ padding: '8px 12px', borderRadius: 999, background: 'rgba(255,138,61,0.10)', color: ORANGE, fontSize: 12, fontWeight: 700 }}>
-                去探索
-              </button>
+              <div style={{ background: 'var(--bg-card)', padding: 12, borderRadius: 8 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4 }}>近期完成</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{bookings.length} 堂課程</div>
+              </div>
             </div>
-          </div>
-        </section>
+          </AccordionItem>
 
-        {/* ── CATEGORIES ── */}
-        <section>
-          <SectionLabel>探索領域</SectionLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            {[
-              { icon: Dumbbell, label: '運動健身', color: '#3B82F6' },
-              { icon: BookOpen, label: '語言學習', color: '#10B981' },
-              { icon: Palette, label: '音樂藝術', color: '#8B5CF6' },
-              { icon: Users, label: '商業職涯', color: ORANGE }
-            ].map((cat, i) => {
-              const Icon = cat.icon;
-              return (
-                <div key={i} className="hover-lift btn-press" onClick={() => router.push(`/coaches?category=${cat.label}`)} style={{ 
-                  background: CARD, border: `1px solid ${BORDER}`, borderRadius: 16, padding: 16,
-                  display: 'flex', flexDirection: 'column', gap: 12, cursor: 'pointer'
-                }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: `${cat.color}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: cat.color }}>
-                    <Icon size={18} strokeWidth={2.5} />
+          <AccordionItem title="推薦教練" icon={Star}>
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {recommendedCoaches.length > 0 ? recommendedCoaches.map((coach, idx) => (
+                <div key={idx} onClick={() => router.push(`/coaches/${coach.id}`)} style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', background: 'var(--bg-card)', padding: 8, borderRadius: 8 }}>
+                  <img src={coach.avatar_url || 'https://placehold.co/100x100/1e293b/fff?text=Coach'} alt="coach" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                  <div>
+                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 14 }}>{coach.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{coach.title || '專業教練'}</div>
                   </div>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: TEXT_LIGHT }}>{cat.label}</span>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── RECENT BOOKINGS ── */}
-        {bookings.length > 0 && (
-          <section>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <SectionLabel style={{ margin: 0 }}>近期預約</SectionLabel>
-              <span onClick={() => router.push('/dashboard/user/edit')} style={{ fontSize: 13, color: ORANGE, fontWeight: 600, cursor: 'pointer' }}>全部</span>
+              )) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>目前無推薦教練</div>
+              )}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {bookings.slice(0, 2).map((b, i) => (
-                <div key={i} className="hover-lift" style={{ 
-                  background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 20,
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                      <span style={{ fontSize: 11, color: MUTED, fontWeight: 700 }}>{new Date(b.booking_date).getMonth()+1}月</span>
-                      <span style={{ fontSize: 16, color: TEXT_LIGHT, fontWeight: 800 }}>{new Date(b.booking_date).getDate()}</span>
-                    </div>
-                    <div>
-                      <h4 style={{ fontSize: 15, fontWeight: 700, color: TEXT_LIGHT, margin: '0 0 4px' }}>{b.services?.title}</h4>
-                      <p style={{ fontSize: 13, color: MUTED, margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Clock size={12} /> {b.start_time} - {b.end_time}
-                      </p>
-                    </div>
-                  </div>
-                  <div style={{ 
-                    padding: '6px 12px', borderRadius: 100, fontSize: 12, fontWeight: 700,
-                    background: 'rgba(255, 138, 61, 0.1)', color: ORANGE
-                  }}>
-                    預約成功
-                  </div>
+          </AccordionItem>
+
+          <AccordionItem title="探索領域" icon={Dumbbell}>
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {['運動健身', '語言學習', '音樂藝術', '商業職涯'].map(cat => (
+                <div key={cat} onClick={() => router.push(`/coaches?category=${cat}`)} style={{ background: 'var(--bg-card)', padding: '12px 8px', borderRadius: 8, textAlign: 'center', fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
+                  {cat}
                 </div>
               ))}
             </div>
-          </section>
-        )}
+          </AccordionItem>
 
-        {/* ── RECOMMENDED COACHES ── */}
-        <section>
-          <SectionLabel>推薦教練</SectionLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {recommendedCoaches.map((coach, idx) => (
-              <div key={idx} className="hover-lift btn-press" onClick={() => router.push(`/coaches/${coach.id}`)} style={{ 
-                background: CARD, border: `1px solid ${BORDER}`, borderRadius: 20, padding: 16,
-                display: 'flex', gap: 16, cursor: 'pointer'
-              }}>
-                <img src={coach.avatar_url || 'https://placehold.co/100x100/1e293b/fff?text=Coach'} 
-                     alt="coach" style={{ width: 64, height: 64, borderRadius: 16, objectFit: 'cover' }} />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: TEXT_LIGHT, margin: 0 }}>{coach.name}</h3>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255, 138, 61, 0.15)', padding: '2px 8px', borderRadius: 100 }}>
-                      <Star size={10} color={ORANGE} fill={ORANGE} />
-                      <span style={{ fontSize: 11, fontWeight: 700, color: ORANGE }}>{coach.rating || '5.0'}</span>
-                    </div>
-                  </div>
-                  <p style={{ fontSize: 13, color: MUTED, margin: '0 0 8px' }}>{coach.title || '專業教練'}</p>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {coach.skills?.slice(0, 2).map((skill, si) => (
-                      <span key={si} style={{ fontSize: 11, color: MUTED, background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 6 }}>
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
+        </div>
+
+        {/* APP DOWNLOAD BUTTONS (Inverted for dark section look, but page is white. Let's make it fit.) */}
+        <div style={{ marginTop: 40, marginBottom: 20 }}>
+          <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 12 }}>
+            下載 UniteCoach 專屬 APP
           </div>
-        </section>
-      </div>
+          <button className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
+            <Apple size={20} /> iOS 下載
+          </button>
+          <button className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
+            <Smartphone size={20} /> Android 下載
+          </button>
+        </div>
 
-      {/* ── REFERRAL MODAL ── */}
+        {/* LOGOUT BUTTON */}
+        <button className="logout-btn-black" onClick={logout}>
+          登出
+        </button>
+
+      </main>
+
+      {/* REFERRAL MODAL */}
       {showReferralPrompt && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-          background: 'rgba(5, 8, 22, 0.85)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
-          padding: 24, animation: 'fadeIn 0.2s ease-out'
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+          display: 'flex', alignItems: 'center', justifyItems: 'center', zIndex: 9999, padding: 24
         }}>
           <div style={{
-            background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: '32px 24px',
-            width: '100%', maxWidth: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.4)', animation: 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+            background: 'var(--bg-card)', borderRadius: 24, padding: '32px 24px', width: '100%', maxWidth: 360,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16
           }}>
-            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: TEXT_LIGHT }}>有朋友推薦你嗎？</h3>
-            <p style={{ margin: 0, fontSize: 14, color: MUTED, textAlign: 'center', lineHeight: 1.5 }}>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>有朋友推薦你嗎？</h3>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
               可以輸入推薦碼，<br />也可以之後再補。
             </p>
             <div style={{ width: '100%', marginTop: 8 }}>
@@ -314,33 +249,22 @@ export default function UserDashboard() {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 style={{
-                  width: '100%', background: 'rgba(255,255,255,0.05)', border: `1px solid ${BORDER}`,
-                  borderRadius: 12, padding: '14px 16px', color: TEXT_LIGHT, fontSize: 16, textAlign: 'center',
-                  fontWeight: 700, letterSpacing: '2px', outline: 'none'
+                  width: '100%', background: '#F5F5F5', border: 'none',
+                  borderRadius: 12, padding: '14px 16px', color: 'var(--text-primary)', fontSize: 16, textAlign: 'center',
+                  fontWeight: 800, letterSpacing: '2px', outline: 'none'
                 }}
               />
               {bindError && <p style={{ margin: '8px 0 0', color: '#EF4444', fontSize: 13, textAlign: 'center', fontWeight: 600 }}>{bindError}</p>}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 12, marginTop: 8 }}>
-              <button
-                onClick={handleBindReferral}
-                disabled={binding || !referralCode.trim()}
-                style={{
-                  width: '100%', padding: 14, borderRadius: 12, border: 0,
-                  background: referralCode.trim() ? ORANGE : 'rgba(255,138,61,0.2)', color: referralCode.trim() ? '#000' : MUTED,
-                  fontWeight: 800, fontSize: 15, cursor: referralCode.trim() ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s'
-                }}
-              >
+              <button onClick={handleBindReferral} disabled={binding || !referralCode.trim()} style={{
+                width: '100%', padding: 14, borderRadius: 12, border: 0,
+                background: referralCode.trim() ? '#FF8A3D' : '#E5E5E5', color: referralCode.trim() ? '#000' : '#999',
+                fontWeight: 800, fontSize: 15, cursor: referralCode.trim() ? 'pointer' : 'not-allowed'
+              }}>
                 {binding ? '綁定中...' : '確認綁定'}
               </button>
-              <button
-                onClick={handleDismissReferral}
-                style={{
-                  width: '100%', padding: 14, borderRadius: 12, border: 0,
-                  background: 'transparent', color: MUTED, fontWeight: 700, fontSize: 14, cursor: 'pointer'
-                }}
-              >
+              <button onClick={handleDismissReferral} style={{ width: '100%', padding: 14, borderRadius: 12, border: 0, background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
                 (可略過)
               </button>
             </div>

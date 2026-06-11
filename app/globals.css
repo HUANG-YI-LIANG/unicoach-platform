@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /* ========================================= */
   /* PREMIUM DESIGN SYSTEM (P3 Core)           */
   /* ========================================= */
@@ -298,16 +298,15 @@ input:focus, textarea:focus, select:focus {
   padding-bottom: 40px;
 }
 
-/* 1. Hero 區塊 */
+/* 1. Hero ?憛?*/
 .premium-hero {
   position: relative;
-  height: 65vh;
-  min-height: 500px;
-  max-height: 700px;
+  height: auto;
+  min-height: max(100svh, 680px);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 40px 24px;
+  padding: max(72px, calc(48px + env(safe-area-inset-top, 0px))) 24px 40px;
   overflow: hidden;
   border-bottom-left-radius: 32px;
   border-bottom-right-radius: 32px;
@@ -317,7 +316,7 @@ input:focus, textarea:focus, select:focus {
 .premium-hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  /* 使用高質感真實教練教學圖片 */
+  /* 雿輻擃釭??撖行?蝺湔?摮詨???*/
   background-image: url('https://images.unsplash.com/photo-1526676537331-7af2b2264585?q=80&w=1000&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center 20%;
@@ -329,8 +328,8 @@ input:focus, textarea:focus, select:focus {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
   background:
-    linear-gradient(180deg, rgba(2,4,10,0.72) 0%, rgba(2,4,10,0.82) 42%, rgba(2,4,10,0.94) 72%, rgba(2,4,10,1) 100%),
-    radial-gradient(circle at 22% 48%, rgba(0,0,0,0.42), transparent 48%);
+    linear-gradient(180deg, rgba(2,4,10,0.78) 0%, rgba(2,4,10,0.88) 42%, rgba(2,4,10,0.96) 72%, rgba(2,4,10,1) 100%),
+    radial-gradient(circle at 24% 46%, rgba(0,0,0,0.64), rgba(0,0,0,0.30) 38%, transparent 58%);
 }
 
 .premium-hero-content {
@@ -357,6 +356,18 @@ input:focus, textarea:focus, select:focus {
   text-shadow: 0 2px 10px rgba(0,0,0,0.92);
 }
 
+.premium-eyebrow {
+  margin: 0 0 10px;
+  color: #FF8A3D !important;
+  -webkit-text-fill-color: #FF8A3D;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-shadow:
+    0 2px 4px rgba(0,0,0,0.95),
+    0 0 16px rgba(0,0,0,0.92);
+}
+
 .premium-title {
   color: #FFFFFF !important;
   -webkit-text-fill-color: #FFFFFF;
@@ -372,7 +383,8 @@ input:focus, textarea:focus, select:focus {
 }
 
 .premium-subtitle {
-  color: rgba(255,255,255,0.86);
+  color: rgba(255,255,255,0.92) !important;
+  -webkit-text-fill-color: rgba(255,255,255,0.92);
   font-size: 15px;
   font-weight: 650;
   line-height: 1.5;
@@ -426,7 +438,7 @@ input:focus, textarea:focus, select:focus {
   transform: scale(0.96);
 }
 
-/* 2. 三個信任點 */
+/* 2. 銝縑隞駁? */
 .premium-trust-section {
   padding: 32px 24px;
   display: flex;
@@ -476,7 +488,7 @@ input:focus, textarea:focus, select:focus {
   justify-content: center;
 }
 
-/* 3. 運動分類入口 */
+/* 3. ?????亙 */
 .premium-sports-section {
   padding: 16px 24px 40px 24px;
 }
@@ -781,7 +793,7 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
 }
 .philosophy-note::after {
-  content: '📌';
+  content: '??';
   position: absolute;
   top: -8px;
   right: -8px;
@@ -839,3 +851,170 @@ nextjs-portal,
   margin-bottom: var(--spacing-card);
   box-shadow: var(--shadow-card);
 }
+
+/* === METALLIC CARDS & ACCORDION (Dashboard Redesign) === */
+.metallic-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 24px 20px;
+  color: #000;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.metallic-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.6) 100%);
+  pointer-events: none;
+}
+.metallic-silver {
+  background: linear-gradient(135deg, #e2e2e2, #999999);
+}
+.metallic-gold {
+  background: linear-gradient(135deg, #FFDF73, #D4AF37);
+}
+.metallic-card-title {
+  font-size: 18px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+.metallic-progress-bg {
+  background: rgba(0,0,0,0.2);
+  height: 8px;
+  border-radius: 4px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 8px;
+}
+.metallic-progress-fill {
+  background: #000;
+  height: 100%;
+  border-radius: 4px;
+}
+.metallic-card-desc {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+.metallic-card-link {
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(0,0,0,0.1);
+  padding-top: 12px;
+  position: relative;
+  z-index: 1;
+  cursor: pointer;
+}
+
+/* === QUICK ACTION ICONS === */
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.quick-action-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  transition: transform 0.1s ease;
+}
+.quick-action-btn:active {
+  transform: scale(0.96);
+}
+.quick-action-icon {
+  font-size: 24px;
+}
+.quick-action-text {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* === ACCORDION LIST === */
+.accordion-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.accordion-item {
+  background: var(--bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.accordion-header {
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+}
+.accordion-content {
+  color: var(--text-primary);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+.accordion-content.open {
+  max-height: 2000px; /* arbitrary large value */
+}
+.accordion-inner {
+  padding: 0 20px 20px 20px;
+  border-top: 1px solid var(--border);
+}
+
+/* === APP DOWNLOAD BUTTONS === */
+.app-download-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border-radius: 100px;
+  border: 1px solid rgba(255,255,255,0.6);
+  background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0) 100%);
+  color: #FFF;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+.app-download-btn:active {
+  transform: scale(0.98);
+  background: rgba(255,255,255,0.15);
+}
+
+/* === BLACK LOGOUT BUTTON === */
+.logout-btn-black {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 18px;
+  border-radius: 100px;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: center;
+  margin-top: 24px;
+}
+

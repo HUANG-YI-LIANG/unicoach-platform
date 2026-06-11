@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FileText, MapPin, User, ChevronRight, Loader2, Search, PlaySquare, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
+import { getDashboardPathForRole } from '@/lib/authRedirects';
 
 const SPORT_IMAGES = {
   '籃球': 'https://images.unsplash.com/photo-1546519638-68e109498ffc?q=80&w=600&auto=format&fit=crop',
@@ -35,6 +36,12 @@ export default function Home() {
     // Phase 2 validation: let first-time students browse real coaches before asking them to register.
     return sport ? `/coaches?sport=${encodeURIComponent(sport)}` : '/coaches';
   };
+
+  useEffect(() => {
+    if (!loading && user?.role) {
+      router.replace(getDashboardPathForRole(user.role));
+    }
+  }, [loading, router, user?.role]);
 
   useEffect(() => {
     // Check if user came from a QR code (e.g. ?ref=XYZ or ?qrcode=1)
@@ -91,7 +98,7 @@ export default function Home() {
     router.push(sport === '幫我選' ? getCoachDiscoveryHref() : getCoachDiscoveryHref(sport));
   };
 
-  if (loading) {
+  if (loading || user?.role) {
     return (
       <div style={{ height: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-muted)' }}>
         <Loader2 style={{ animation: 'spin 1s linear infinite' }} size={32} />
@@ -150,7 +157,7 @@ export default function Home() {
         <div className="premium-hero-bg"></div>
         <div className="premium-hero-content">
           <div className="premium-brand">UniCoach</div>
-          <p style={{ margin: '0 0 10px', color: 'var(--color-accent)', fontSize: 13, fontWeight: 900, letterSpacing: '0.04em' }}>不用先註冊，先看看附近教練</p>
+          <p className="premium-eyebrow">不用先註冊，先看看附近教練</p>
           <h1 className="premium-title">你想找哪一種課？</h1>
           <p className="premium-subtitle">完全不會也可以，有人陪你從0開始練；不確定也可以先問，先聊聊再決定要不要預約。</p>
 

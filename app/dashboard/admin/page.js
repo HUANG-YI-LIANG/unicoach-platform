@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, MessageSquare
 } from 'lucide-react';
 
 const BLUE = 'var(--color-primary)';
@@ -78,7 +78,23 @@ export default function AdminDashboard() {
         gap: '16px',
         marginBottom: '24px'
       }}>
-        
+        {/* Support Inbox */}
+        <div 
+          onClick={() => router.push('/dashboard/admin/support')}
+          style={cardStyle('#FED7AA', '#EA580C')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#FED7AA', padding: '12px', borderRadius: '12px', color: '#EA580C' }}>
+              <MessageSquare size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>客服與金流收件夾</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>儲值發放與提領扣除</p>
+            </div>
+          </div>
+          <ArrowRight color="var(--border-input)" />
+        </div>
+
         {/* Verification */}
         <div 
           onClick={() => router.push('/admin/verification')}

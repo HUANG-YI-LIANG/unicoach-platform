@@ -17,6 +17,11 @@ function normalizePositiveNumber(value) {
   return Number.isFinite(number) && number > 0 ? number : null;
 }
 
+function formatOneDecimalRating(value) {
+  const rating = normalizePositiveNumber(value);
+  return rating ? Number(rating.toFixed(1)) : null;
+}
+
 const PUBLIC_SERVICE_LIST_SELECT = `
   id,
   category,
@@ -116,7 +121,7 @@ export async function GET(request) {
     // Formatting for frontend
     const formatted = filteredServices.map((service) => {
       const reviewCount = normalizePositiveNumber(service.coach_profiles.review_count) || 0;
-      const rating = reviewCount > 0 ? normalizePositiveNumber(service.coach_profiles.overall_rating) : null;
+      const rating = reviewCount > 0 ? formatOneDecimalRating(service.coach_profiles.overall_rating) : null;
       const completedLessons = normalizePositiveNumber(service.coach_profiles.completed_lessons);
 
       return ({

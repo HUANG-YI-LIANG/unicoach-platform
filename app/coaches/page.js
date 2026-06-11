@@ -36,6 +36,12 @@ function formatFirstLessonPrice(service) {
   return `第一堂 · NT$ ${price.toLocaleString('zh-TW')}`;
 }
 
+function formatCoachRating(value) {
+  const rating = Number(value);
+  if (!Number.isFinite(rating) || rating <= 0) return '尚無評價';
+  return rating.toFixed(1);
+}
+
 function DiscoverFeed() {
   const router = useRouter();
   const pathname = usePathname();
@@ -165,7 +171,7 @@ function DiscoverFeed() {
                   <div className="feed-metrics">
                     <div className="metric-pill">
                       <Star size={14} fill={hasRating ? 'currentColor' : 'none'} color="var(--accent)" />
-                      <span>{hasRating ? coach.overall_rating : '尚無評價'}</span>
+                      <span>{hasRating ? formatCoachRating(coach.overall_rating) : '尚無評價'}</span>
                     </div>
                     <div className="metric-pill">
                       <MapPin size={14} color="rgba(255,255,255,0.6)" />
