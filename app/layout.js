@@ -11,6 +11,14 @@ import { Toaster } from 'react-hot-toast';
 export const metadata = {
   title: 'UniCoach',
   description: '手機優先的教練與老師預約平台',
+  appleWebApp: {
+    capable: true,
+    title: 'UniCoach',
+    statusBarStyle: 'default',
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export const viewport = {

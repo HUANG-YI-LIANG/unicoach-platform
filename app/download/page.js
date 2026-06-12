@@ -1,9 +1,11 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { Apple, Smartphone, Globe } from 'lucide-react';
+import { Apple, Smartphone, Globe, Share, PlusSquare, X } from 'lucide-react';
+import { useState } from 'react';
 
 export default function DownloadAppPage() {
   const router = useRouter();
+  const [showIosGuide, setShowIosGuide] = useState(false);
 
   return (
     <div style={{
@@ -91,7 +93,7 @@ export default function DownloadAppPage() {
         {/* 下載按鈕群 */}
         <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <button 
-            onClick={() => alert('iOS APP 尚未上架，敬請期待！')}
+            onClick={() => setShowIosGuide(true)}
             style={{
               width: '100%',
               background: 'transparent',
@@ -113,7 +115,7 @@ export default function DownloadAppPage() {
           </button>
 
           <button 
-            onClick={() => alert('Android APP 尚未上架，敬請期待！')}
+            onClick={() => alert('Android 系統請點擊瀏覽器右上角的「三個點」，選擇「加到主畫面」即可安裝！')}
             style={{
               width: '100%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
@@ -160,6 +162,80 @@ export default function DownloadAppPage() {
           </button>
         </div>
       </div>
+
+      {/* iOS 安裝教學 Modal */}
+      {showIosGuide && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: '#1A1A1A',
+            width: '100%',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            padding: '32px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative'
+          }}>
+            <button 
+              onClick={() => setShowIosGuide(false)}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px', color: '#FFF' }}>如何安裝 iOS App？</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#2A2A2A', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Share size={20} color="#3B82F6" />
+                </div>
+                <div style={{ flex: 1, fontSize: '15px', color: '#DDD', lineHeight: 1.5 }}>
+                  1. 點擊 Safari 瀏覽器正下方的<br/>「<strong style={{color:'#FFF'}}>分享按鈕</strong>」
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#2A2A2A', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PlusSquare size={20} color="#FFF" />
+                </div>
+                <div style={{ flex: 1, fontSize: '15px', color: '#DDD', lineHeight: 1.5 }}>
+                  2. 往下滑動，選擇<br/>「<strong style={{color:'#FFF'}}>加入主畫面</strong>」
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowIosGuide(false)}
+              style={{
+                width: '100%',
+                background: '#FF8A3D',
+                border: 'none',
+                borderRadius: '100px',
+                padding: '16px',
+                color: '#FFF',
+                fontSize: '16px',
+                fontWeight: 800,
+                marginTop: '32px',
+                cursor: 'pointer'
+              }}
+            >
+              我知道了
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
