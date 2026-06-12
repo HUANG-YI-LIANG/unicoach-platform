@@ -33,6 +33,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [missionModal, setMissionModal] = useState({ isOpen: false, type: null, idx: null, data: {} });
+  const [perksModal, setPerksModal] = useState({ isOpen: false, type: null, idx: null, data: [] });
   const router = useRouter();
 
   useEffect(() => {
@@ -114,6 +115,27 @@ export default function AdminSettings() {
     }
     setSettings(newSettings);
     setMissionModal({ isOpen: false, type: null, idx: null, data: {} });
+  };
+
+  const openPerksBuilder = (type, idx, currentPerks) => {
+    setPerksModal({
+      isOpen: true,
+      type,
+      idx,
+      data: Array.isArray(currentPerks) ? [...currentPerks] : []
+    });
+  };
+
+  const savePerksBuilder = () => {
+    const { type, idx, data } = perksModal;
+    const newSettings = { ...settings };
+    if (type === 'coach') {
+      newSettings.coach_tier_rates[idx].perks = data;
+    } else {
+      newSettings.user_tier_discounts[idx].perks = data;
+    }
+    setSettings(newSettings);
+    setPerksModal({ isOpen: false, type: null, idx: null, data: [] });
   };
 
   const countConditions = (req) => {
@@ -227,8 +249,8 @@ export default function AdminSettings() {
 
             <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
               {settings.coach_tier_rates.map((tier, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ background: INPUT_BG, borderRadius: 12, width: 80, display: 'flex', alignItems: 'center' }}>
+                <div key={idx} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, display: 'flex', alignItems: 'center', width: 80 }}>
                     <input 
                       type="number" value={tier.level}
                       onChange={e => {
@@ -239,9 +261,21 @@ export default function AdminSettings() {
                       style={{ width: '100%', background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
                   </div>
-                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>名稱</span>
                     <input 
-                      type="number" value={tier.rate}
+                      type="text" value={tier.name || ''} placeholder="如: 見習教練"
+                      onChange={e => {
+                        const newTiers = [...settings.coach_tier_rates];
+                        newTiers[idx].name = e.target.value;
+                        setSettings({ ...settings, coach_tier_rates: newTiers });
+                      }}
+                      style={{ width: 100, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                    />
+                  </div>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
+                    <input 
+                      type="number" value={tier.rate} step="0.1"
                       onChange={e => {
                         const newTiers = [...settings.coach_tier_rates];
                         newTiers[idx].rate = Number(e.target.value);
@@ -253,10 +287,17 @@ export default function AdminSettings() {
                   </div>
                   <button
                     onClick={() => openMissionBuilder('coach', idx, tier.requirement)}
-                    style={{ flex: 2, background: 'rgba(79, 70, 229, 0.15)', color: '#818CF8', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ flex: 1, background: 'rgba(79, 70, 229, 0.15)', color: '#818CF8', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Target size={14} />
-                    {countConditions(tier.requirement) > 0 ? `設定組合 (${countConditions(tier.requirement)} 項)` : '設定任務組合'}
+                    {countConditions(tier.requirement) > 0 ? `升級條件 (${countConditions(tier.requirement)})` : '設定條件'}
+                  </button>
+                  <button
+                    onClick={() => openPerksBuilder('coach', idx, tier.perks)}
+                    style={{ flex: 1, background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
+                  >
+                    <Gift size={14} />
+                    {tier.perks && tier.perks.length > 0 ? `附帶權益 (${tier.perks.length})` : '設定附帶權益'}
                   </button>
                   <button 
                     onClick={() => setSettings(prev => ({ ...prev, coach_tier_rates: prev.coach_tier_rates.filter((_, i) => i !== idx) }))}
@@ -392,8 +433,8 @@ export default function AdminSettings() {
 
             <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
               {settings.user_tier_discounts.map((tier, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: 12 }}>
-                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
+                <div key={idx} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
                     <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>等級</span>
                     <input 
                       type="number" value={tier.level}
@@ -402,28 +443,47 @@ export default function AdminSettings() {
                         newTiers[idx].level = Number(e.target.value);
                         setSettings({ ...settings, user_tier_discounts: newTiers });
                       }}
+                      style={{ width: 60, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                    />
+                  </div>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>名稱</span>
+                    <input 
+                      type="text" value={tier.name || ''} placeholder="如: 第一梯"
+                      onChange={e => {
+                        const newTiers = [...settings.user_tier_discounts];
+                        newTiers[idx].name = e.target.value;
+                        setSettings({ ...settings, user_tier_discounts: newTiers });
+                      }}
                       style={{ width: 100, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
                   </div>
-                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
                     <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>折價</span>
                     <input 
-                      type="number" value={tier.discount}
+                      type="number" value={tier.discount} step="0.1"
                       onChange={e => {
                         const newTiers = [...settings.user_tier_discounts];
                         newTiers[idx].discount = Number(e.target.value);
                         setSettings({ ...settings, user_tier_discounts: newTiers });
                       }}
-                      style={{ width: 100, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                      style={{ width: 60, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800 }}>%</span>
                   </div>
                   <button
                     onClick={() => openMissionBuilder('user', idx, tier.requirement)}
-                    style={{ flex: 2, background: 'rgba(139, 92, 246, 0.15)', color: '#A78BFA', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    style={{ flex: 1, background: 'rgba(139, 92, 246, 0.15)', color: '#A78BFA', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Target size={14} />
-                    {countConditions(tier.requirement) > 0 ? `設定組合 (${countConditions(tier.requirement)} 項)` : '設定任務組合'}
+                    {countConditions(tier.requirement) > 0 ? `升級條件 (${countConditions(tier.requirement)})` : '設定條件'}
+                  </button>
+                  <button
+                    onClick={() => openPerksBuilder('user', idx, tier.perks)}
+                    style={{ flex: 1, background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
+                  >
+                    <Gift size={14} />
+                    {tier.perks && tier.perks.length > 0 ? `附帶權益 (${tier.perks.length})` : '設定附帶權益'}
                   </button>
                   <button 
                     onClick={() => setSettings(prev => ({ ...prev, user_tier_discounts: prev.user_tier_discounts.filter((_, i) => i !== idx) }))}
@@ -631,6 +691,62 @@ export default function AdminSettings() {
             </div>
           </div>
         </div>
+
+        {perksModal.isOpen && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+            <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, width: '100%', maxWidth: 500, overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
+              <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Gift size={20} color="#10B981" />
+                  編輯{perksModal.type === 'coach' ? '教練' : '學員'}階級附帶權益
+                </h3>
+                <button onClick={() => setPerksModal({ isOpen: false, type: null, idx: null, data: [] })} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>
+                  <X size={24} />
+                </button>
+              </div>
+              <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
+                {perksModal.data.map((perk, i) => (
+                  <div key={i} style={{ display: 'flex', gap: 8 }}>
+                    <input 
+                      type="text" 
+                      value={perk}
+                      onChange={e => {
+                        const newData = [...perksModal.data];
+                        newData[i] = e.target.value;
+                        setPerksModal({ ...perksModal, data: newData });
+                      }}
+                      placeholder="如: 儲值滿 3,000 送 300 點"
+                      style={{ flex: 1, background: INPUT_BG, border: '1px solid rgba(255,255,255,0.05)', padding: '12px 16px', fontSize: 14, fontWeight: 800, color: DARK, borderRadius: 12, outline: 'none' }}
+                    />
+                    <button 
+                      onClick={() => {
+                        const newData = perksModal.data.filter((_, index) => index !== i);
+                        setPerksModal({ ...perksModal, data: newData });
+                      }}
+                      style={{ width: 48, background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: 'none', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+                <button 
+                  onClick={() => setPerksModal({ ...perksModal, data: [...perksModal.data, ''] })}
+                  style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: 'none', padding: '12px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', marginTop: 8 }}
+                >
+                  + 新增一筆權益項目
+                </button>
+              </div>
+              <div style={{ padding: '20px 24px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12 }}>
+                <button 
+                  onClick={savePerksBuilder}
+                  style={{ flex: 1, background: '#10B981', color: '#FFF', border: 'none', padding: '14px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}
+                >
+                  確認儲存權益清單
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {missionModal.isOpen && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>

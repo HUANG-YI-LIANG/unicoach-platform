@@ -35,17 +35,18 @@ export function UserTiers({ settings }) {
           if (tier.requirement?.completed_sessions) reqText.push(`累積完課 ${tier.requirement.completed_sessions} 堂`);
           const reqStr = reqText.length > 0 ? reqText.join(' + ') : '無特殊門檻';
           
-          let perks = ['基本客服支援'];
-          // Find if there's a deposit bonus that matches or is close to this level (for illustration)
-          const bonus = depositBonus[idx] || depositBonus[depositBonus.length - 1];
-          if (bonus) {
-            perks.push(`單筆儲值滿 ${bonus.deposit} 送 ${bonus.bonus} 點`);
+          let perks = tier.perks && tier.perks.length > 0 ? tier.perks : ['基本客服支援'];
+          if (!tier.perks || tier.perks.length === 0) {
+            const bonus = depositBonus[idx] || depositBonus[depositBonus.length - 1];
+            if (bonus) {
+              perks.push(`單筆儲值滿 ${bonus.deposit} 送 ${bonus.bonus} 點`);
+            }
           }
 
           return (
             <TierCard 
               key={idx}
-              level={tierNames[idx % tierNames.length]} 
+              level={tier.name || tierNames[idx % tierNames.length]} 
               requirement={reqStr}
               benefit={`${tier.discount}% 消費回饋`}
               perks={perks}
@@ -107,14 +108,16 @@ export function CoachTiers({ settings }) {
           if (tier.requirement?.required_title) reqText.push(`需有「${tier.requirement.required_title}」`);
           const reqStr = reqText.length > 0 ? reqText.join(' + ') : '無特殊門檻';
 
+          let perks = tier.perks && tier.perks.length > 0 ? tier.perks : ['搜尋排序權重提升'];
+
           return (
             <CoachTierCard 
               key={idx}
-              level={tierNames[idx % tierNames.length]} 
+              level={tier.name || tierNames[idx % tierNames.length]} 
               requirement={reqStr}
               fee={`${tier.rate}%`}
               pioneerFee={`${Math.max(0, Number(tier.rate) - Number(topSettings.bonus_discount))}%`}
-              perks={['搜尋排序權重提升']}
+              perks={perks}
               color={tierColors[idx % tierColors.length]}
             />
           );
