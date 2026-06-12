@@ -213,19 +213,19 @@ function RegisterForm() {
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--color-text)' }}>
                   <input type="checkbox" checked={termsChecked} onChange={e => setTermsChecked(e.target.checked)}
                     style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                  <span>我同意 <span style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>服務使用條款</span></span>
+                  <span>我同意 <Link href="/terms" target="_blank" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>服務使用條款</Link></span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--color-text)' }}>
                   <input type="checkbox" checked={form.privacyConsent} onChange={e => setForm({ ...form, privacyConsent: e.target.checked })}
                     style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                  <span>我同意 <span style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>隱私權保護政策</span></span>
+                  <span>我同意 <Link href="/privacy" target="_blank" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>隱私權保護政策</Link></span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--color-text)' }}>
                   <input type="checkbox" checked={disclaimerChecked} onChange={e => setDisclaimerChecked(e.target.checked)}
                     style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} />
-                  <span>我已閱讀並同意 <Link href="/disclaimer" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>免責聲明</Link></span>
+                  <span>我已閱讀並同意 <Link href="/disclaimer" target="_blank" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>免責聲明</Link></span>
                 </label>
 
                 {form.age < 18 && (
