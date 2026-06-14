@@ -533,7 +533,7 @@ export default function AdminSettings() {
                         newTiers[idx].deposit = Number(e.target.value);
                         setSettings({ ...settings, deposit_bonus_tiers: newTiers });
                       }}
-                      style={{ flex: 1, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                      style={{ flex: 1, minWidth: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>元</span>
                   </div>
@@ -546,7 +546,7 @@ export default function AdminSettings() {
                         newTiers[idx].bonus = Number(e.target.value);
                         setSettings({ ...settings, deposit_bonus_tiers: newTiers });
                       }}
-                      style={{ flex: 1, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                      style={{ flex: 1, minWidth: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>點</span>
                   </div>
