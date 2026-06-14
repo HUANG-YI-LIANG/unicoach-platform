@@ -471,6 +471,19 @@ export default function AdminSettings() {
                     />
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800 }}>%</span>
                   </div>
+                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>贈點倍率</span>
+                    <input 
+                      type="number" value={tier.bonus_multiplier ?? 1.0} step="0.1"
+                      onChange={e => {
+                        const newTiers = [...settings.user_tier_discounts];
+                        newTiers[idx].bonus_multiplier = Number(e.target.value);
+                        setSettings({ ...settings, user_tier_discounts: newTiers });
+                      }}
+                      style={{ width: 60, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
+                    />
+                    <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800 }}>x</span>
+                  </div>
                   <button
                     onClick={() => openMissionBuilder('user', idx, tier.requirement)}
                     style={{ flex: 1, background: 'rgba(139, 92, 246, 0.15)', color: '#A78BFA', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}

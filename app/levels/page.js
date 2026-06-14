@@ -1,73 +1,39 @@
-'use client';
+import { unstable_cache } from 'next/cache';
+import { getAdminSupabase } from '@/lib/supabase';
+import LevelsClient from './LevelsClient';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import { UserTiers, CoachTiers, AmbassadorTiers } from './components/Tiers';
+const getCachedSettings = unstable_cache(
+  async () => {
+    const supabase = getAdminSupabase();
+    const { data: rows, error } = await supabase.from('platform_settings').select('key, value');
+    
+    if (error || !rows) return {};
 
-export default function LevelsPage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState('coach'); // 'user', 'coach', 'ambassador'
-  const [settings, setSettings] = useState(null);
+    const settingsObj = {};
+    rows.forEach(row => { settingsObj[row.key] = row.value; });
 
-  useEffect(() => {
-    fetch('/api/settings/public')
-      .then(res => res.json())
-      .then(data => {
-        if (data.settings) {
-          setSettings(data.settings);
-        }
-      })
-      .catch(err => console.error('Error fetching settings:', err));
-  }, []);
+    const parseIfJSON = (val) => {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch(e) { return val; }
+      }
+      return val;
+    };
 
-  return (
-    <div style={{ padding: '16px', marginTop: '-16px', paddingBottom: '100px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button 
-          onClick={() => router.back()}
-          style={{ background: 'transparent', border: 'none', color: 'var(--color-text)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
-        >
-          <ArrowLeft size={24} />
-        </button>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 900, color: 'var(--color-text)' }}>會員權益中心</h1>
-      </div>
+    return {
+      user_rebate_discount: settingsObj.user_rebate_discount || '5',
+      user_tier_discounts: parseIfJSON(settingsObj.user_tier_discounts) || [],
+      top_coach_settings: parseIfJSON(settingsObj.top_coach_settings) || { top_n: 50, bonus_discount: 5 },
+      coach_tier_rates: parseIfJSON(settingsObj.coach_tier_rates) || [],
+      ambassador_tiers: parseIfJSON(settingsObj.ambassador_tiers) || [],
+      deposit_bonus_tiers: parseIfJSON(settingsObj.deposit_bonus_tiers) || []
+    };
+  },
+  ['platform-settings-key'],
+  { tags: ['platform-settings'] }
+);
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', background: 'var(--color-surface)', borderRadius: '12px', padding: '6px', marginBottom: '24px', border: '1px solid var(--color-border)' }}>
-        <TabButton active={activeTab === 'user'} onClick={() => setActiveTab('user')}>學員權益</TabButton>
-        <TabButton active={activeTab === 'coach'} onClick={() => setActiveTab('coach')}>教練抽成</TabButton>
-        <TabButton active={activeTab === 'ambassador'} onClick={() => setActiveTab('ambassador')}>推廣分潤</TabButton>
-      </div>
-
-      {/* Content */}
-      {activeTab === 'user' && <UserTiers settings={settings} />}
-      {activeTab === 'coach' && <CoachTiers settings={settings} />}
-      {activeTab === 'ambassador' && <AmbassadorTiers settings={settings} />}
-      
-    </div>
-  );
-}
-
-function TabButton({ active, onClick, children }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: '12px 0',
-        borderRadius: '8px',
-        border: 'none',
-        background: active ? 'var(--color-primary)' : 'transparent',
-        color: active ? '#FFF' : 'var(--color-text-muted)',
-        fontSize: '14px',
-        fontWeight: 800,
-        cursor: 'pointer',
-        transition: 'all 0.2s ease'
-      }}
-    >
-      {children}
-    </button>
-  );
+export default async function LevelsPage() {
+  const settings = await getCachedSettings();
+  
+  return <LevelsClient settings={settings} />;
 }
