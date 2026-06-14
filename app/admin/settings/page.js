@@ -433,8 +433,9 @@ export default function AdminSettings() {
 
             <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
               {settings.user_tier_discounts.map((tier, idx) => (
-                <div key={idx} style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 16 }}>
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                    <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
                     <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>等級</span>
                     <input 
                       type="number" value={tier.level}
@@ -484,6 +485,34 @@ export default function AdminSettings() {
                     />
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800 }}>x</span>
                   </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 150 }}>
+                    <span style={{ paddingLeft: 16, color: '#3B82F6', fontWeight: 800, fontSize: 14 }}>每月發放紅利</span>
+                    <input 
+                      type="number" value={tier.monthly_bonus ?? 0}
+                      onChange={e => {
+                        const newTiers = [...settings.user_tier_discounts];
+                        newTiers[idx].monthly_bonus = Number(e.target.value);
+                        setSettings({ ...settings, user_tier_discounts: newTiers });
+                      }}
+                      style={{ width: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: '#3B82F6', outline: 'none', textAlign: 'center' }}
+                    />
+                    <span style={{ paddingRight: 16, color: '#3B82F6', fontWeight: 800 }}>點</span>
+                  </div>
+                  <div style={{ background: 'rgba(239, 68, 68, 0.1)', borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 150 }}>
+                    <span style={{ paddingLeft: 16, color: '#EF4444', fontWeight: 800, fontSize: 14 }}>最高抵扣上限</span>
+                    <input 
+                      type="number" value={tier.monthly_bonus_max_percent ?? 0}
+                      onChange={e => {
+                        const newTiers = [...settings.user_tier_discounts];
+                        newTiers[idx].monthly_bonus_max_percent = Number(e.target.value);
+                        setSettings({ ...settings, user_tier_discounts: newTiers });
+                      }}
+                      style={{ width: 60, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: '#EF4444', outline: 'none', textAlign: 'center' }}
+                    />
+                    <span style={{ paddingRight: 16, color: '#EF4444', fontWeight: 800 }}>%</span>
+                  </div>
                   <button
                     onClick={() => openMissionBuilder('user', idx, tier.requirement)}
                     style={{ flex: 1, background: 'rgba(139, 92, 246, 0.15)', color: '#A78BFA', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
@@ -505,6 +534,7 @@ export default function AdminSettings() {
                     <Trash2 size={18} />
                   </button>
                 </div>
+              </div>
               ))}
             </div>
 
