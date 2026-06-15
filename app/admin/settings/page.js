@@ -433,7 +433,7 @@ export default function AdminSettings() {
 
             <div style={{ display: 'grid', gap: 12, marginBottom: 24 }}>
               {settings.user_tier_discounts.map((tier, idx) => (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 16 }}>
+                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16 }}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
                     <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>等級</span>
