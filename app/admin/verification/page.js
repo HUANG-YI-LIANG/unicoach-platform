@@ -6,6 +6,7 @@ import {
   ExternalLink, User, Calendar, FileText, Loader2,
   AlertCircle
 } from 'lucide-react';
+import UserDetailExpanded from '@/components/admin/UserDetailExpanded';
 
 export default function VerificationAdmin() {
   const [activeTab, setActiveTab] = useState('coaches'); // 'pending' or 'coaches'
@@ -13,6 +14,8 @@ export default function VerificationAdmin() {
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [expandedRows, setExpandedRows] = useState(new Set());
   const router = useRouter();
 
   const fetchData = async () => {
@@ -48,7 +51,6 @@ export default function VerificationAdmin() {
     }
 
     const actionText = { approve: '批准', reject: '拒絕', suspend: '停用', delete_coach: '刪除' }[action];
-    // if (!confirm(`確定要 ${actionText} 此${fileId ? '文件' : '教練'}嗎？`)) return;
 
     setProcessingId(fileId || coachUserId);
     try {
@@ -78,6 +80,24 @@ export default function VerificationAdmin() {
     </div>
   );
 
+  const handleSelectAll = (e) => {
+    if (e.target.checked) setSelectedIds(coaches.map(c => c.id));
+    else setSelectedIds([]);
+  };
+
+  const handleSelect = (id) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const toggleExpand = (id) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) newSet.delete(id);
+      else newSet.add(id);
+      return newSet;
+    });
+  };
+
   return (
     <div className="admin-trust-center">
       {/* Header */}
@@ -92,19 +112,21 @@ export default function VerificationAdmin() {
           </div>
         </div>
         
-        <div className="tab-control">
-          <button 
-            className={`tab-btn ${activeTab === 'coaches' ? 'active' : ''}`}
-            onClick={() => setActiveTab('coaches')}
-          >
-            教練帳號審核與管理
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
-            onClick={() => setActiveTab('pending')}
-          >
-            待審核補充文件 ({pendingFiles.length})
-          </button>
+        <div className="tab-control-wrapper">
+          <div className="tab-control">
+            <button 
+              className={`tab-btn ${activeTab === 'coaches' ? 'active' : ''}`}
+              onClick={() => setActiveTab('coaches')}
+            >
+              教練帳號管理
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+              onClick={() => setActiveTab('pending')}
+            >
+              待審核文件 ({pendingFiles.length})
+            </button>
+          </div>
         </div>
       </header>
 
@@ -176,63 +198,126 @@ export default function VerificationAdmin() {
             ))
           )
         ) : (
-          <div className="coach-list-full">
-            <table className="admin-table">
+          <div className="table-wrapper">
+            <table className="dense-table">
               <thead>
                 <tr>
-                  <th>教練</th>
-                  <th>聯絡方式</th>
-                  <th>目前狀態</th>
-                  <th>操作</th>
+                  <th className="sticky-col checkbox-col">
+                    <input 
+                      type="checkbox" 
+                      onChange={handleSelectAll} 
+                      checked={selectedIds.length === coaches.length && coaches.length > 0} 
+                    />
+                  </th>
+                  <th className="sticky-col action-col">操作</th>
+                  <th>組織路徑</th>
+                  <th>帳號 / 名稱</th>
+                  <th>錢包數據 (餘額/完課/出金/儲值)</th>
+                  <th>最後登入與註冊時間</th>
                 </tr>
               </thead>
               <tbody>
-                {coaches.map(coach => (
-                  <tr key={coach.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {coach.user?.avatar_url ? (
-                          <img src={coach.user.avatar_url} style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
-                        ) : (
-                          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold' }}>
-                            {coach.user?.name?.charAt(0)}
-                          </div>
-                        )}
-                        <span style={{ fontWeight: 'bold' }}>{coach.user?.name}</span>
-                      </div>
-                    </td>
-                    <td><span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{coach.user?.email}</span></td>
-                    <td>
-                      <span className={`status-badge ${coach.approval_status}`}>
-                        {coach.approval_status === 'approved' ? '已核准' : 
-                         coach.approval_status === 'pending' ? '待審核' :
-                         coach.approval_status === 'rejected' ? '已拒絕' : '已停用'}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {coach.approval_status !== 'approved' && (
-                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} style={{ fontSize: '12px', color: '#4ade80', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>核准</button>
-                        )}
-                        {coach.approval_status !== 'suspended' ? (
-                          <button onClick={() => handleReview(null, coach.user_id, 'suspend')} style={{ fontSize: '12px', color: '#ef4444', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>停用</button>
-                        ) : (
-                          <button onClick={() => handleReview(null, coach.user_id, 'approve')} style={{ fontSize: '12px', color: '#60a5fa', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>恢復權限</button>
-                        )}
-                        <button 
-                          onClick={() => {
-                            if(window.confirm('確定要刪除這位教練的資格嗎？他們將會被降級為一般學員。')) {
-                              handleReview(null, coach.user_id, 'delete_coach');
-                            }
-                          }} 
-                          style={{ fontSize: '12px', color: 'var(--color-text-muted)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' }}
-                        >
-                          刪除
-                        </button>
-                      </div>
+                {coaches.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="text-center py-8 text-[var(--color-text-muted)]">
+                      找不到符合條件的教練
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  coaches.reduce((acc, coach) => {
+                    acc.push(
+                      <tr key={coach.id} className={selectedIds.includes(coach.id) ? 'selected-row' : ''}>
+                        <td className="sticky-col checkbox-col">
+                          <input 
+                            type="checkbox" 
+                            checked={selectedIds.includes(coach.id)}
+                            onChange={() => handleSelect(coach.id)}
+                          />
+                        </td>
+                        <td className="sticky-col action-col">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <button 
+                              onClick={() => toggleExpand(coach.user_id)}
+                              className="detail-btn"
+                            >
+                              {expandedRows.has(coach.user_id) ? '收起' : '詳細'}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="path-col">
+                          <div className="path-box">
+                            <span>&gt; 教練</span>
+                            <span className="path-sub">/ 系統</span>
+                          </div>
+                        </td>
+                        <td className="account-col">
+                          <div className="account-info">
+                            <span className="account-id">{coach.user?.email}</span>
+                            <div className="account-name-row">
+                              <span className="account-name">{coach.user?.name}</span>
+                            </div>
+                            <span className={`status-badge ${coach.approval_status}`}>
+                              {coach.approval_status === 'approved' ? '已核准' : 
+                               coach.approval_status === 'pending' ? '待審核' :
+                               coach.approval_status === 'rejected' ? '已拒絕' : '已停用'}
+                            </span>
+                            {coach.average_rating && Number(coach.average_rating) < 4.5 && (
+                              <span style={{ fontSize: '11px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', width: 'fit-content' }}>
+                                <AlertCircle size={12} /> 評分過低警告
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="wallet-col">
+                          <div className="wallet-grid">
+                            <div className="wallet-item">
+                              <span className="label">錢包總餘額</span>
+                              <span className="value highlight">{coach.wallet_balance?.toLocaleString() || '0'}</span>
+                            </div>
+                            <div className="wallet-item">
+                              <span className="label">總完課金額</span>
+                              <span className="value">{coach.total_classes_amount?.toLocaleString() || '0'}</span>
+                            </div>
+                            <div className="wallet-item">
+                              <span className="label">總出金</span>
+                              <span className="value">{coach.total_withdrawal?.toLocaleString() || '0'}</span>
+                            </div>
+                            <div className="wallet-item">
+                              <span className="label">總儲值</span>
+                              <span className="value">{coach.total_deposit?.toLocaleString() || '0'}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="time-col">
+                          <div className="time-info">
+                            <div className="time-row">
+                              <span className="label">登入 :</span>
+                              <span className="value">{new Date(coach.created_at || Date.now()).toLocaleString()}</span>
+                            </div>
+                            <div className="time-row">
+                              <span className="label">IP :</span>
+                              <span className="value ip">{coach.last_login_ip || '2001:b011:7007::'}</span>
+                            </div>
+                            <div className="time-row mt-2">
+                              <span className="label">註冊 :</span>
+                              <span className="value">{new Date(coach.created_at || Date.now()).toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                    if (expandedRows.has(coach.user_id)) {
+                      acc.push(
+                        <tr key={`expanded-${coach.user_id}`} className="expanded-row-container">
+                          <td colSpan="6" style={{ padding: 0 }}>
+                            <UserDetailExpanded userId={coach.user_id} />
+                          </td>
+                        </tr>
+                      );
+                    }
+                    return acc;
+                  }, [])
+                )}
               </tbody>
             </table>
           </div>
@@ -240,24 +325,33 @@ export default function VerificationAdmin() {
       </div>
 
       <style jsx>{`
+        .tab-control-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          padding-bottom: 4px;
+        }
         .tab-control {
-          display: flex;
+          display: inline-flex;
           background: rgba(255, 255, 255, 0.05);
-          padding: 4px;
-          border-radius: 12px;
+          padding: 6px;
+          border-radius: 16px;
           gap: 4px;
+          white-space: nowrap;
         }
         .tab-btn {
-          padding: 8px 16px;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 700;
+          padding: 10px 20px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 800;
           color: var(--color-text-muted);
           transition: 0.2s;
+          border: 1px solid transparent;
         }
         .tab-btn.active {
-          background: #4cc9f0;
-          color: var(--color-text);
+          background: rgba(76, 201, 240, 0.15);
+          color: #4cc9f0;
+          border-color: rgba(76, 201, 240, 0.3);
         }
         .user-avatar-img {
           width: 40px;
@@ -266,39 +360,161 @@ export default function VerificationAdmin() {
           object-fit: cover;
           border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .coach-list-full {
-          grid-column: 1 / -1;
+        
+        /* New Coach Card Styles */
+        .coach-card {
           background: var(--color-surface);
           border: 1px solid var(--color-border);
-          border-radius: 24px;
-          overflow-x: auto;
+          border-radius: 20px;
+          padding: 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
         }
-        .admin-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
+        .coach-card-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
         }
-        .admin-table th {
-          text-align: left;
-          padding: 16px 24px;
-          background: rgba(255, 255, 255, 0.02);
-          color: var(--color-text-muted);
-          font-weight: 500;
+        .coach-card-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding-top: 12px;
+          border-top: 1px dashed rgba(255,255,255,0.1);
         }
-        .admin-table td {
-          padding: 16px 24px;
-          border-top: 1px solid var(--color-border);
+        .action-btn {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          border: 1px solid transparent;
+          white-space: nowrap;
+          min-width: fit-content;
+        }
+        .action-btn.approve {
+          background: rgba(74, 222, 128, 0.1);
+          color: #4ade80;
+          border-color: rgba(74, 222, 128, 0.2);
+        }
+        .action-btn.recover {
+          background: rgba(96, 165, 250, 0.1);
+          color: #60a5fa;
+          border-color: rgba(96, 165, 250, 0.2);
+        }
+        .action-btn.suspend {
+          background: rgba(250, 204, 21, 0.1);
+          color: #facc15;
+          border-color: rgba(250, 204, 21, 0.2);
+        }
+        .action-btn.delete {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.2);
         }
         .status-badge {
           padding: 4px 10px;
           border-radius: 6px;
           font-size: 12px;
           font-weight: 700;
+          white-space: nowrap;
+          flex-shrink: 0;
         }
         .status-badge.approved { background: rgba(6, 214, 160, 0.1); color: #06d6a0; }
         .status-badge.pending { background: rgba(255, 140, 66, 0.1); color: #ff8c42; }
         .status-badge.rejected { background: rgba(255, 59, 92, 0.1); color: #ff3b5c; }
         .status-badge.suspended { background: rgba(136, 136, 153, 0.1); color: var(--color-text-muted); }
+
+        /* Dense Table Styles */
+        .table-wrapper {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          border-radius: 20px;
+        }
+        .dense-table {
+          width: 100%;
+          min-width: 1000px;
+          border-collapse: collapse;
+          font-size: 13px;
+        }
+        .dense-table th {
+          background: rgba(0, 0, 0, 0.2);
+          color: #4cc9f0;
+          font-weight: 700;
+          padding: 16px 20px;
+          text-align: left;
+          border-bottom: 2px solid var(--color-border);
+          white-space: nowrap;
+        }
+        .dense-table td {
+          padding: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+          vertical-align: top;
+        }
+        .dense-table tr:hover {
+          background: rgba(255, 255, 255, 0.02);
+        }
+        .dense-table tr.selected-row {
+          background: rgba(96, 165, 250, 0.05);
+        }
+        .sticky-col {
+          position: sticky;
+          background: var(--color-surface);
+          z-index: 10;
+        }
+        .dense-table tr:hover .sticky-col { background: #1a1e27; }
+        .dense-table tr.selected-row .sticky-col { background: #1a2233; }
+        .dense-table th.sticky-col { background: #151821; z-index: 11; }
+        .checkbox-col { left: 0; width: 50px; text-align: center; }
+        .action-col { left: 50px; width: 80px; border-right: 1px solid var(--color-border); }
+        .detail-btn {
+          display: inline-block;
+          background: rgba(255, 255, 255, 0.1);
+          color: var(--text-light);
+          padding: 6px 16px;
+          border-radius: 6px;
+          font-weight: 700;
+          text-decoration: none;
+          transition: 0.2s;
+          text-align: center;
+          width: 100%;
+        }
+        .detail-btn:hover { background: #4cc9f0; color: #000; }
+        .path-box {
+          background: rgba(255,255,255,0.03);
+          padding: 10px;
+          border-radius: 8px;
+          display: inline-flex;
+          flex-direction: column;
+          gap: 4px;
+          font-weight: 700;
+          color: var(--text-light);
+        }
+        .path-sub { color: #fbbf24; padding-left: 12px; }
+        .account-info { display: flex; flex-direction: column; gap: 6px; }
+        .account-id { color: #f472b6; font-family: monospace; font-size: 14px; }
+        .account-name-row { display: flex; alignItems: center; gap: 6px; color: var(--text-light); font-weight: bold; }
+        .wallet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+        .wallet-item { display: flex; flex-direction: column; gap: 4px; }
+        .wallet-item .label { color: #4cc9f0; font-weight: 700; }
+        .wallet-item .value { color: var(--color-text-muted); font-family: monospace; font-size: 14px; }
+        .wallet-item .value.highlight { color: var(--text-light); font-weight: bold; }
+        .time-info { display: flex; flex-direction: column; gap: 4px; }
+        .time-row { display: flex; gap: 8px; }
+        .time-row .label { color: var(--color-text-muted); width: 40px; }
+        .time-row .value { color: var(--text-light); }
+        .time-row .ip { color: #f472b6; font-family: monospace; }
+        .mt-2 { margin-top: 8px; }
 
         .admin-trust-center {
           min-height: 100vh;
@@ -309,10 +525,18 @@ export default function VerificationAdmin() {
         }
         .page-header {
           display: flex;
-          justify-content: space-between;
-          align-items: center;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
           max-width: 1200px;
-          margin: 0 auto 40px;
+          margin: 0 auto 30px;
+        }
+        @media (min-width: 768px) {
+          .page-header {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
         }
         .header-content {
           display: flex;

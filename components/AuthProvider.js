@@ -41,6 +41,14 @@ export function AuthProvider({ children, initialSession }) {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (user?.force_password_reset) {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/force-reset-password') {
+        window.location.replace('/force-reset-password');
+      }
+    }
+  }, [user]);
+
   const logout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);

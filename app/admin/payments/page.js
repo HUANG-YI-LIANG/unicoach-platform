@@ -19,6 +19,7 @@ export default function AdminPaymentsPage() {
   const [confirmingId, setConfirmingId] = useState(null);
   const [settings, setSettings] = useState({ bank_code: '', bank_account_number: '' });
   const [savingSettings, setSavingSettings] = useState(false);
+  const [topupHistory, setTopupHistory] = useState([]);
 
   const fetchBookings = async () => {
     try {
@@ -57,6 +58,18 @@ export default function AdminPaymentsPage() {
     }
   };
 
+  const fetchTopupHistory = async () => {
+    try {
+      const res = await fetch('/api/admin/topup-history');
+      if (res.ok) {
+        const data = await res.json();
+        setTopupHistory(data.history || []);
+      }
+    } catch (err) {
+      console.error('[FETCH TOPUP HISTORY ERROR]', err);
+    }
+  };
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -69,6 +82,7 @@ export default function AdminPaymentsPage() {
     }
     fetchBookings();
     fetchSettings();
+    fetchTopupHistory();
   }, [authLoading, router, user]);
 
   const handleConfirmPayment = async (bookingId) => {
@@ -293,6 +307,50 @@ export default function AdminPaymentsPage() {
             ))}
           </div>
         )}
+
+        {/* Topup History Section */}
+        <div style={{ marginTop: 40 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            📝 客服手動發點 / 儲值紀錄
+          </h2>
+          {topupHistory.length === 0 ? (
+            <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: '48px 24px', textAlign: 'center', boxShadow: '0 6px 20px rgba(15,23,42,0.05)', color: MUTED }}>
+              目前沒有發點紀錄
+            </div>
+          ) : (
+            <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.04)', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>時間</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>學員</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>發放額度</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>備註 / 原因</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topupHistory.map(history => (
+                    <tr key={history.id} style={{ borderBottom: '1px solid var(--color-border)' }}>
+                      <td style={{ padding: '16px', fontSize: 14, color: DARK }}>
+                        {new Date(history.created_at).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                      <td style={{ padding: '16px', fontSize: 14, color: DARK, fontWeight: 700 }}>
+                        {history.student_name}
+                      </td>
+                      <td style={{ padding: '16px', fontSize: 15, color: '#10B981', fontWeight: 900 }}>
+                        +{history.amount} 點
+                      </td>
+                      <td style={{ padding: '16px', fontSize: 14, color: MUTED }}>
+                        {history.description || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );

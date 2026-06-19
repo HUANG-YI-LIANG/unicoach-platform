@@ -14,7 +14,7 @@ function RegisterForm() {
   const [referralCode, setReferralCode] = useState(initialRef);
 
   const [form, setForm] = useState({
-    email: '',
+    username: '',
     password: '',
     name: '',
     phone: '',
@@ -164,11 +164,15 @@ function RegisterForm() {
             </div>
 
             <div>
-              <label style={labelStyle}>信箱 Email</label>
+              <label style={labelStyle}>帳號名稱 (僅限英數字，至少 4 碼)</label>
               <input
-                type="email" value={form.email}
-                onChange={e => setForm({ ...form, email: e.target.value })}
-                required style={inputStyle}
+                type="text" value={form.username || ''}
+                onChange={e => {
+                  const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                  setForm({ ...form, username: val });
+                }}
+                required minLength={4} style={inputStyle}
+                placeholder="例如：yulun123"
               />
             </div>
 

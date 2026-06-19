@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -9,16 +9,36 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refresh } = useAuth();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // 初始化時讀取儲存的帳號
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedUsername = localStorage.getItem('unicoach_saved_username');
+        if (savedUsername) {
+          setUsername(savedUsername);
+        }
+      } catch (err) {}
+    }
+  });
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (rememberMe) {
+      localStorage.setItem('unicoach_saved_username', username);
+    } else {
+      localStorage.removeItem('unicoach_saved_username');
+    }
+
     const res = await fetch('/api/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ username, password, rememberMe }),
       headers: { 'Content-Type': 'application/json' }
     });
     const data = await res.json();
@@ -53,11 +73,14 @@ function LoginForm() {
         )}
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>信箱 Email</label>
+            <label style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text-muted)', display: 'block', marginBottom: '6px' }}>帳號名稱</label>
             <input
-              type="email" value={email}
-              onChange={e => setEmail(e.target.value)}
-              required placeholder="請輸入 Email"
+              type="text" value={username}
+              onChange={e => {
+                const val = e.target.value.replace(/[^a-zA-Z0-9]/g, '');
+                setUsername(val);
+              }}
+              required placeholder="請輸入帳號"
               style={{
                 width: '100%', padding: '12px', borderRadius: '12px',
                 border: '1px solid var(--color-border)',
@@ -80,6 +103,17 @@ function LoginForm() {
               }}
             />
           </div>
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--color-text-muted)' }}>
+            <input 
+              type="checkbox" 
+              checked={rememberMe} 
+              onChange={e => setRememberMe(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: 'var(--color-primary)' }} 
+            />
+            <span>記住我的帳號與登入狀態</span>
+          </label>
+
           <button type="submit" style={{
             width: '100%', padding: '14px',
             background: 'var(--color-accent)',
@@ -97,7 +131,7 @@ function LoginForm() {
           </Link>
         </p>
         <p style={{ marginTop: '8px', textAlign: 'center', fontSize: '13px', color: 'var(--color-text-muted)' }}>
-          <Link href="/reset-password" style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
+          <Link href="/forgot-password" style={{ color: 'var(--color-text-muted)', textDecoration: 'none' }}>
             忘記密碼？
           </Link>
         </p>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, MessageSquare
+  ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, MessageSquare, Users
 } from 'lucide-react';
 
 const BLUE = 'var(--color-primary)';
@@ -129,22 +129,6 @@ export default function AdminDashboard() {
           <ArrowRight color="var(--border-input)" />
         </div>
 
-        {/* Settlements */}
-        <div 
-          onClick={() => router.push('/admin/settlements')}
-          style={cardStyle('#D1FAE5', '#059669')}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ background: '#D1FAE5', padding: '12px', borderRadius: '12px', color: '#059669' }}>
-              <Wallet size={28} />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>結算管理</h3>
-              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>產生與確認教練撥款</p>
-            </div>
-          </div>
-          <ArrowRight color="var(--border-input)" />
-        </div>
 
         {/* Payments */}
         <div
@@ -175,6 +159,23 @@ export default function AdminDashboard() {
             <div>
               <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>抽成與折扣</h3>
               <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>個別教練抽成與全站通知</p>
+            </div>
+          </div>
+          <ArrowRight color="var(--border-input)" />
+        </div>
+
+        {/* User Management */}
+        <div
+          onClick={() => router.push('/admin/users')}
+          style={cardStyle('#E0E7FF', '#4F46E5')}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ background: '#E0E7FF', padding: '12px', borderRadius: '12px', color: '#4F46E5' }}>
+              <Users size={28} />
+            </div>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 800, color: DARK }}>會員管理中心</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: MUTED }}>管理教練與學員金流與登入紀錄</p>
             </div>
           </div>
           <ArrowRight color="var(--border-input)" />

@@ -18,9 +18,11 @@ export default function PointsCenterPage() {
   const router = useRouter();
   
   const [balance, setBalance] = useState(0);
+  const [bonusBalance, setBonusBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [bankInfo, setBankInfo] = useState(null);
   const [bindCode, setBindCode] = useState('');
   const [binding, setBinding] = useState(false);
   const [bindError, setBindError] = useState('');
@@ -44,7 +46,11 @@ export default function PointsCenterPage() {
       if (walletRes.ok) {
         const data = await walletRes.json();
         setBalance(data.balance || 0);
+        setBonusBalance(data.bonusBalance || 0);
         setTransactions(data.transactions || []);
+        if (data.bankInfo) {
+          setBankInfo(data.bankInfo);
+        }
       }
 
       if (profileRes.ok) {
@@ -119,9 +125,14 @@ export default function PointsCenterPage() {
               </div>
               <div>
                 <p style={{ margin: '0 0 4px', fontSize: 14, color: MUTED }}>錢包餘額</p>
-                <div style={{ fontSize: 32, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                <div style={{ fontSize: 48, fontWeight: 900, color: TEXT_LIGHT, fontFamily: 'monospace', letterSpacing: '-1px' }}>
                   <span style={{ fontSize: 24 }}>$</span> {balance.toLocaleString()}
                 </div>
+                {bonusBalance > 0 && (
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#3B82F6', marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>每月紅利餘額 (月底歸零): {bonusBalance.toLocaleString()} 點</span>
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -132,11 +143,43 @@ export default function PointsCenterPage() {
                 cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              提領 / 儲值
+              聯絡客服儲值
             </button>
           </div>
 
           <div style={{ height: 1, background: BORDER, margin: '0 0 24px' }} />
+
+          {/* Bank Info Topup Section */}
+          {bankInfo && (
+            <div style={{ background: 'rgba(255, 138, 61, 0.08)', borderRadius: 16, padding: 16, border: '1px solid rgba(255, 138, 61, 0.2)', marginBottom: 24 }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: ORANGE, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Wallet size={18} /> 銀行匯款儲值資訊
+              </h3>
+              <p style={{ margin: '0 0 16px', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>
+                請透過網銀或實體 ATM 將款項匯至以下帳戶，匯款完成後點擊右上方「聯絡客服儲值」，由客服為您將點數入帳。
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, border: `1px solid rgba(255,255,255,0.05)` }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 12, color: MUTED }}>銀行代碼</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_LIGHT, letterSpacing: '1px' }}>{bankInfo.bank_code}</div>
+                    <button onClick={() => copyToClipboard(bankInfo.bank_code)} style={{ background: 'transparent', border: 'none', color: ORANGE, cursor: 'pointer', padding: 4 }}>
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div style={{ flex: 2, background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 12, border: `1px solid rgba(255,255,255,0.05)` }}>
+                  <p style={{ margin: '0 0 4px', fontSize: 12, color: MUTED }}>銀行帳號</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: TEXT_LIGHT, letterSpacing: '1px' }}>{bankInfo.bank_account_number}</div>
+                    <button onClick={() => copyToClipboard(bankInfo.bank_account_number)} style={{ background: 'transparent', border: 'none', color: ORANGE, cursor: 'pointer', padding: 4 }}>
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 中部：推廣碼 / 優惠碼輸入 */}
           <div style={{ display: 'flex', gap: 12, marginBottom: 32 }}>

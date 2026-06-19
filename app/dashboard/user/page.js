@@ -138,7 +138,7 @@ export default function UserDashboard() {
             <div className="metallic-progress-fill" style={{ width: '40%' }}></div>
           </div>
           <div className="metallic-card-desc">再消費 NT$5400 即可成為黃金會員等級</div>
-          <div className="metallic-card-link">
+          <div className="metallic-card-link" onClick={() => router.push('/levels')}>
             <span>了解會員等級權益</span>
             <ChevronRight size={16} />
           </div>

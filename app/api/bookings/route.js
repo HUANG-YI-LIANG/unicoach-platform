@@ -206,7 +206,7 @@ async function createBookingsSafely(adminSupabase, { bookingsToInsert, userId, c
   return { ok: true, bookings: normalizedBookings, bookingIds };
 }
 
-async function createWalletBookingsSafely(adminSupabase, { bookingsToInsert, userId, couponId, totalPoints }) {
+async function createWalletBookingsSafely(adminSupabase, { bookingsToInsert, userId, couponId, totalPoints, maxBonusAllowed = 0 }) {
   validateRequiredBookingSafetyFields(bookingsToInsert, REQUIRED_WALLET_BOOKING_SAFETY_FIELDS);
 
   const { data, error } = await adminSupabase.rpc('create_wallet_booking_safe', {
@@ -214,6 +214,7 @@ async function createWalletBookingsSafely(adminSupabase, { bookingsToInsert, use
     p_total_points: totalPoints,
     p_coupon_id: couponId || null,
     p_bookings: bookingsToInsert,
+    p_max_bonus_allowed: maxBonusAllowed
   });
 
   if (error) {
@@ -607,15 +608,17 @@ export async function POST(request) {
     const isFirst = (userBookingsCount || 0) === 0;
     const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
 
-    const { data: commissionSetting, error: commissionSettingError } = await adminSupabase
+    const { data: platformSettings, error: settingsError } = await adminSupabase
       .from('platform_settings')
-      .select('value')
-      .eq('key', 'commission_rate')
-      .maybeSingle();
+      .select('key, value')
+      .in('key', ['commission_rate', 'user_tier_discounts']);
 
-    if (commissionSettingError) throw commissionSettingError;
+    if (settingsError) throw settingsError;
 
-    const parsedGlobalCommission = Number(commissionSetting?.value);
+    const commissionSetting = platformSettings.find(s => s.key === 'commission_rate')?.value;
+    const tierSettings = platformSettings.find(s => s.key === 'user_tier_discounts')?.value || [];
+
+    const parsedGlobalCommission = Number(commissionSetting);
     const globalCommission = Number.isFinite(parsedGlobalCommission)
       ? clampPercent(parsedGlobalCommission, 20)
       : 20;
@@ -623,6 +626,14 @@ export async function POST(request) {
     const coachCommission = coach.commission_rate !== null && coach.commission_rate !== undefined
       ? coach.commission_rate
       : globalCommission;
+
+    let maxBonusPercent = 0;
+    if (userData?.level) {
+      const userTier = tierSettings.find(t => t.level === userData.level);
+      if (userTier && userTier.monthly_bonus_max_percent) {
+        maxBonusPercent = Number(userTier.monthly_bonus_max_percent);
+      }
+    }
 
     const couponDiscountPercent = couponResult.percent;
     const pricing = calculateBookingPrice({
@@ -691,11 +702,14 @@ export async function POST(request) {
       });
     }
 
+    const maxBonusAllowed = Math.floor(totalPointsToPay * (maxBonusPercent / 100));
+
     const bookingCreation = await createWalletBookingsSafely(adminSupabase, {
       bookingsToInsert,
       userId,
       couponId: couponResult.couponId,
       totalPoints: totalPointsToPay,
+      maxBonusAllowed
     });
 
     if (!bookingCreation.ok) {

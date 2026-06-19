@@ -47,7 +47,8 @@ const PUBLIC_SERVICE_DETAIL_SELECT = `
 export async function GET(request, { params }) {
   try {
     const adminSupabase = getAdminSupabase();
-    const serviceId = params.id;
+    const resolvedParams = await params;
+    const serviceId = resolvedParams.id;
 
     if (!serviceId) {
       return NextResponse.json({ error: 'Service ID is required' }, { status: 400 });

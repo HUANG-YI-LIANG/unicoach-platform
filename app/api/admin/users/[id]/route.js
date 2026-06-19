@@ -1,76 +1,72 @@
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
-import { safeErrorDetails } from '@/lib/safeLogging';
 
-const ADMIN_USER_UPDATE_FIELDS = new Set(['level', 'custom_discount']);
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-function normalizeCustomDiscountForUpdate(value) {
-  if (value === '' || value === null) return null;
-
-  const discount = Number(value);
-  if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
-    return undefined;
-  }
-
-  return discount;
-}
-
-export async function PATCH(request, { params }) {
+export async function GET(request, { params }) {
   try {
     const auth = await requireAuth(['admin']);
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
-    const { id: targetUserId } = await params;
-    const body = await request.json();
+    const resolvedParams = await params;
+    const userId = resolvedParams.id;
+    if (!userId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
     const adminSupabase = getAdminSupabase();
 
-    const requestedFields = Object.keys(body || {});
-    const unsupportedFields = requestedFields.filter((field) => !ADMIN_USER_UPDATE_FIELDS.has(field));
-    if (unsupportedFields.length > 0) {
-      return NextResponse.json({ error: '包含不允許更新的欄位' }, { status: 400 });
+    // Fetch user with their transactions
+    const { data: user, error } = await adminSupabase
+      .from('users')
+      .select(`
+        *,
+        wallet_transactions(*),
+        coaches(*)
+      `)
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // 1. Update users table (level)
-    if (body.level !== undefined) {
-      const levelNum = Number(body.level);
-      if (!Number.isFinite(levelNum) || levelNum < 1) {
-        return NextResponse.json({ error: '無效的會員等級' }, { status: 400 });
-      }
+    const txs = user.wallet_transactions || [];
+    
+    const totalDeposit = txs
+      .filter(t => t.transaction_type === 'deposit' || t.amount > 0)
+      .reduce((sum, t) => sum + t.amount, 0);
 
-      const { data: updatedUser, error: userError } = await adminSupabase
-        .from('users')
-        .update({ level: levelNum })
-        .eq('id', targetUserId)
-        .select('id, level')
-        .maybeSingle();
+    const totalWithdrawal = txs
+      .filter(t => t.transaction_type === 'withdrawal' || t.amount < 0)
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-      if (userError) throw userError;
-      if (!updatedUser) {
-        return NextResponse.json({ error: '找不到該使用者' }, { status: 404 });
-      }
-    }
+    const totalClassesAmount = txs
+      .filter(t => t.transaction_type === 'class_payment' || t.transaction_type === 'coach_payout')
+      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-    // 2. Update narrowly scoped user metadata (custom_discount)
-    if (body.custom_discount !== undefined) {
-      const normalizedDiscount = normalizeCustomDiscountForUpdate(body.custom_discount);
-      if (normalizedDiscount === undefined) {
-        return NextResponse.json({ error: '無效的客製化折扣比例' }, { status: 400 });
-      }
+    const responseData = {
+      id: user.id,
+      account: user.email,
+      name: user.name || '未命名',
+      role: user.role,
+      level: user.role === 'coach' ? '認證教練' : '標準學員',
+      phone: user.phone || '無',
+      email: user.email,
+      coach_info: user.coaches?.[0] || null,
+      wallet_balance: user.wallet_balance || 0,
+      total_deposit: totalDeposit,
+      total_withdrawal: totalWithdrawal,
+      total_classes_amount: totalClassesAmount,
+      created_at: user.created_at,
+      transactions: txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), // Latest first
+    };
 
-      const { error: authUpdateError } = await adminSupabase.auth.admin.updateUserById(targetUserId, {
-        user_metadata: { custom_discount: normalizedDiscount },
-      });
-
-      if (authUpdateError) throw authUpdateError;
-    }
-
-    return NextResponse.json({ success: true, message: '使用者設定已更新' });
-  } catch (error) {
-    console.error('[ADMIN USERS UPDATE ERROR]', safeErrorDetails(error));
-    return NextResponse.json({ error: '更新失敗' }, { status: 500 });
+    return NextResponse.json({ user: responseData });
+  } catch (err) {
+    console.error('[ADMIN USER DETAIL ERROR]', err);
+    return NextResponse.json({ error: '無法獲取會員詳細資料' }, { status: 500 });
   }
 }

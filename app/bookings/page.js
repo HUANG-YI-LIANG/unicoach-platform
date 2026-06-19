@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet } from 'lucide-react';
+import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet, BookOpen, Star, X } from 'lucide-react';
 
 const BLUE  = 'var(--color-primary)';
 const DARK  = 'var(--color-text)';
@@ -241,6 +241,43 @@ export default function BookingsPage() {
   const [adjustingId, setAdjustingId] = useState(null);
   const [adjustmentValue, setAdjustmentValue] = useState(0);
   const [adjusting, setAdjusting] = useState(false);
+  const [portfolioModal, setPortfolioModal] = useState({ isOpen: false, studentId: null, studentName: '', reviews: [], loading: false });
+
+  const openPortfolioModal = async (studentId, studentName) => {
+    setPortfolioModal({ isOpen: true, studentId, studentName, reviews: [], loading: true });
+    try {
+      const res = await fetch(`/api/student/${studentId}/portfolio`);
+      const data = await res.json();
+      setPortfolioModal(prev => ({ ...prev, reviews: data.reviews || [], loading: false }));
+    } catch (err) {
+      setPortfolioModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const submitReviewScore = async (reviewId, score) => {
+    try {
+      const res = await fetch(`/api/reviews/${reviewId}/score`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score })
+      });
+      if (res.ok) {
+        setPortfolioModal(prev => ({
+          ...prev,
+          reviews: prev.reviews.map(r => {
+            if (r.id === reviewId) {
+              const newCount = (r.score_count || 0) + 1;
+              const newTotal = ((r.avg_score || 0) * (r.score_count || 0)) + score;
+              return { ...r, avg_score: newTotal / newCount, score_count: newCount, my_score: score };
+            }
+            return r;
+          })
+        }));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleConfirmPayment = async (bookingId) => {
     const res = await fetch(`/api/bookings/${bookingId}/confirm-payment`, {
@@ -717,6 +754,12 @@ export default function BookingsPage() {
                       </button>
                     )}
                     <button
+                      onClick={() => openPortfolioModal(b.student_id, b.student_name || '學員')}
+                      style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'rgba(79, 70, 229, 0.15)', color: '#818CF8', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                    >
+                      <BookOpen size={14} /> 學習履歷
+                    </button>
+                    <button
                       onClick={() => setExpandedBookingId(expandedBookingId === b.id ? null : b.id)}
                       style={{ flex: '1 1 120px', padding: '10px', borderRadius: 12, border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: DARK, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                     >
@@ -1028,6 +1071,72 @@ export default function BookingsPage() {
                 {(uploadingReceipt || reportingPayment) ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
                 {uploadingReceipt ? '上傳中...' : reportingPayment ? '送出中...' : '送出全額付款資訊'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Portfolio Modal */}
+      {portfolioModal.isOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--color-surface)', borderRadius: 24, width: '100%', maxWidth: 500, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ padding: 20, borderBottom: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <BookOpen size={20} color="#818CF8" />
+                {portfolioModal.studentName} 的學習履歷
+              </h3>
+              <button onClick={() => setPortfolioModal({ ...portfolioModal, isOpen: false })} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div style={{ padding: 20, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {portfolioModal.loading ? (
+                <div style={{ padding: 40, textAlign: 'center', color: MUTED }}><Loader2 className="animate-spin" size={32} style={{ margin: '0 auto' }} /></div>
+              ) : portfolioModal.reviews.length === 0 ? (
+                <div style={{ padding: 40, textAlign: 'center', color: MUTED, fontWeight: 800, fontSize: 14 }}>目前尚無任何評價紀錄</div>
+              ) : (
+                portfolioModal.reviews.map(review => (
+                  <div key={review.id} style={{ background: 'var(--color-surface-soft)', borderRadius: 16, padding: 16, border: '1px solid var(--color-border)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ fontSize: 14, fontWeight: 900, color: DARK }}>{review.coach_name} 教練</div>
+                      <div style={{ color: '#EAB308', fontWeight: 900, fontSize: 14 }}>★ {review.rating?.toFixed(1) || '5.0'}</div>
+                    </div>
+                    {review.titles && review.titles.length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+                        {review.titles.map(t => (
+                          <span key={t} style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#A78BFA', padding: '4px 8px', borderRadius: 8, fontSize: 11, fontWeight: 800 }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 14, color: MUTED, lineHeight: 1.6, marginBottom: 16 }}>
+                      {review.comment || '無詳細評語'}
+                    </div>
+                    
+                    <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ fontSize: 12, color: MUTED, fontWeight: 800 }}>
+                        評語公信力: {review.score_count > 0 ? `${review.avg_score.toFixed(1)} 星 (${review.score_count} 人認同)` : '尚無評分'}
+                      </div>
+                      
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {[1, 2, 3, 4, 5].map(star => (
+                          <button
+                            key={star}
+                            onClick={() => submitReviewScore(review.id, star)}
+                            disabled={review.my_score !== undefined}
+                            style={{ 
+                              background: 'transparent', border: 'none', padding: 0, cursor: review.my_score !== undefined ? 'default' : 'pointer',
+                              color: (review.my_score || 0) >= star ? '#EAB308' : 'var(--color-border)'
+                            }}
+                          >
+                            <Star size={16} fill={(review.my_score || 0) >= star ? '#EAB308' : 'none'} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ const TASK_FLOW_ROUTES = [
   '/login',
   '/register',
   '/reset-password',
+  '/force-reset-password',
   '/onboarding',
   '/welcome',
   '/role-select',

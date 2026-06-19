@@ -24,13 +24,42 @@ export async function GET(request) {
       throw error;
     }
 
-    // Calculate sum for balance
-    const balance = transactions ? transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0) : 0;
+    // Fetch user balances
+    const { data: userData, error: userError } = await adminSupabase
+      .from('users')
+      .select('wallet_balance, monthly_bonus_balance')
+      .eq('id', auth.user.id)
+      .single();
+
+    if (userError) {
+      console.error('Error fetching user balances:', userError);
+      throw userError;
+    }
+
+    const balance = userData?.wallet_balance || 0;
+    const bonusBalance = userData?.monthly_bonus_balance || 0;
+
+    // Fetch bank settings
+    const { data: bankSettingsData } = await adminSupabase
+      .from('platform_settings')
+      .select('key, value')
+      .in('key', ['bank_code', 'bank_account_number']);
+
+    let bankInfo = null;
+    if (bankSettingsData && bankSettingsData.length > 0) {
+      const code = bankSettingsData.find(s => s.key === 'bank_code')?.value;
+      const account = bankSettingsData.find(s => s.key === 'bank_account_number')?.value;
+      if (code && account) {
+        bankInfo = { bank_code: code, bank_account_number: account };
+      }
+    }
 
     return NextResponse.json({ 
       success: true,
       balance,
-      transactions: transactions || []
+      bonusBalance,
+      transactions: transactions || [],
+      bankInfo
     });
 
   } catch (err) {

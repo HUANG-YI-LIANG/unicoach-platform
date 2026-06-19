@@ -18,7 +18,7 @@ export async function POST(request) {
     }
 
     const { 
-      email, 
+      username, 
       password, 
       name, 
       role: requestedRole = 'user',
@@ -36,9 +36,12 @@ export async function POST(request) {
     const role = normalizeRegistrationRole(requestedRole);
 
     // 1. 基本驗證
-    if (!email || !password || !name) {
-      return NextResponse.json({ error: '請填寫必要欄位：Email、密碼、姓名' }, { status: 400 });
+    if (!username || !password || !name) {
+      return NextResponse.json({ error: '請填寫必要欄位：帳號、密碼、姓名' }, { status: 400 });
     }
+    
+    // 將帳號轉換為虛擬 Email 格式供 Supabase 使用
+    const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@unicoach.app`;
     if (password.length < 8) {
       return NextResponse.json({ error: '密碼長度至少需 8 個字元' }, { status: 400 });
     }

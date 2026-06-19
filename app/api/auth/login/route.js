@@ -9,7 +9,7 @@ import { strictLimiter, getClientIp } from '@/lib/rateLimit';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
-const USER_SESSION_SELECT = 'id, email, name, role, level, is_frozen';
+const USER_SESSION_SELECT = 'id, email, name, role, level, is_frozen, force_password_reset';
 
 export async function POST(request) {
   try {
@@ -19,8 +19,11 @@ export async function POST(request) {
       return NextResponse.json({ error: '請求過於頻繁，請稍後再試。' }, { status: 429 });
     }
 
-    const { email, password } = await request.json();
-    if (!email || !password) return NextResponse.json({ error: '請輸入帳號和密碼' }, { status: 400 });
+    const { username, password, rememberMe } = await request.json();
+    if (!username || !password) return NextResponse.json({ error: '請輸入帳號和密碼' }, { status: 400 });
+
+    // 將帳號轉換為虛擬 Email 格式供 Supabase 使用
+    const email = `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@unicoach.app`;
 
     // 1. 驗證 Supabase Auth (核心驗證)
     const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -78,18 +81,23 @@ export async function POST(request) {
       email: user.email, 
       name: user.name, 
       role: user.role, 
-      level: user.level 
+      level: user.level,
+      force_password_reset: user.force_password_reset || false
     };
     const sessionToken = await encrypt(sessionData);
     
-    const cookieStore = await cookies();
-    cookieStore.set('session', sessionToken, { 
+    const cookieOptions = { 
       httpOnly: true, 
       secure: process.env.NODE_ENV === 'production', 
       sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 // 1天
-    });
+      path: '/'
+    };
+    if (rememberMe) {
+      cookieOptions.maxAge = 60 * 60 * 24 * 30; // 30天
+    }
+
+    const cookieStore = await cookies();
+    cookieStore.set('session', sessionToken, cookieOptions);
 
     return NextResponse.json({ user: sessionData });
   } catch (err) {

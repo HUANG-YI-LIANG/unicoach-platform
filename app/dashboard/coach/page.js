@@ -185,7 +185,7 @@ export default function CoachDashboard() {
             <div className="metallic-progress-fill" style={{ width: '80%' }}></div>
           </div>
           <div className="metallic-card-desc">再完成 3 堂課即可晉升鑽石教練等級</div>
-          <div className="metallic-card-link" onClick={() => router.push('/support')}>
+          <div className="metallic-card-link" onClick={() => router.push('/levels')}>
             <span>了解教練抽成權益</span>
             <ChevronRight size={16} />
           </div>
