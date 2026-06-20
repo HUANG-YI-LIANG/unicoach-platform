@@ -331,9 +331,9 @@ export default function UserDetailPage() {
       </div>
 
       {mounted && isEditing && createPortal(
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h3>修改基本資料</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 99999 }}>
+          <div style={{ background: '#1A1D24', padding: '24px', borderRadius: '16px', width: '90%', maxWidth: '400px', border: '1px solid #2A2E35', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#FFF' }}>修改基本資料</h3>
             <div className="form-group">
               <label>名稱</label>
               <input 
