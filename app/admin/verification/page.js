@@ -242,6 +242,26 @@ export default function VerificationAdmin() {
                             >
                               {expandedRows.has(coach.user_id) ? '收起' : '詳細'}
                             </button>
+                            {coach.approval_status === 'pending' && (
+                              <>
+                                <button 
+                                  className="btn-approve" 
+                                  style={{ padding: '4px 8px', fontSize: '12px' }}
+                                  onClick={() => handleReview(null, coach.user_id, 'approve')}
+                                  disabled={processingId === coach.user_id}
+                                >
+                                  {processingId === coach.user_id ? '處理中' : '批准'}
+                                </button>
+                                <button 
+                                  className="btn-reject" 
+                                  style={{ padding: '4px 8px', fontSize: '12px' }}
+                                  onClick={() => handleReview(null, coach.user_id, 'reject')}
+                                  disabled={processingId === coach.user_id}
+                                >
+                                  拒絕
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                         <td className="path-col">
