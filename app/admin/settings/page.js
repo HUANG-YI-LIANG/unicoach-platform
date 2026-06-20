@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -26,8 +26,8 @@ export default function AdminSettings() {
     user_tier_discounts: [{ level: 1, discount: 5, requirement: {} }, { level: 2, discount: 10, requirement: { spent_points: 10000 } }],
     top_coach_settings: { enabled: true, top_n: 50, bonus_discount: 5 },
     deposit_bonus_tiers: [{ deposit: 10000, bonus: 1000 }],
-    coach_review_titles: ['?芾?葦', '蝝啣???', '撟賡?憸刻閎'],
-    student_review_titles: ['?芾釭摮貊?', '皞??箏葉', '隤?摮貊?']
+    coach_review_titles: ['優良教師', '細心指導', '幽默風趣'],
+    student_review_titles: ['優質學生', '準時出席', '認真學習']
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,8 +59,8 @@ export default function AdminSettings() {
             user_tier_discounts: parseJSON(data.settings.user_tier_discounts, [{ level: 1, discount: 5, requirement: {} }, { level: 2, discount: 10, requirement: { spent_points: 10000 } }]),
             top_coach_settings: parseJSON(data.settings.top_coach_settings, { enabled: true, top_n: 50, bonus_discount: 5 }),
             deposit_bonus_tiers: parseJSON(data.settings.deposit_bonus_tiers, [{ deposit: 10000, bonus: 1000 }]),
-            coach_review_titles: parseJSON(data.settings.coach_review_titles, ['?芾?葦', '蝝啣???', '撟賡?憸刻閎']),
-            student_review_titles: parseJSON(data.settings.student_review_titles, ['?芾釭摮貊?', '皞??箏葉', '隤?摮貊?'])
+            coach_review_titles: parseJSON(data.settings.coach_review_titles, ['優良教師', '細心指導', '幽默風趣']),
+            student_review_titles: parseJSON(data.settings.student_review_titles, ['優質學生', '準時出席', '認真學習'])
           });
         }
       } else if (res.status === 403) {
@@ -84,13 +84,13 @@ export default function AdminSettings() {
       });
       if (res.ok) {
         setSettings(prev => ({ ...prev, [key]: value }));
-        setMessage({ type: 'success', text: '閮剖?撌脫?? });
+        setMessage({ type: 'success', text: '設定已更新' });
         setTimeout(() => setMessage(null), 3000);
       } else {
-        setMessage({ type: 'error', text: '?湔憭望?' });
+        setMessage({ type: 'error', text: '更新失敗' });
       }
     } catch (e) {
-      setMessage({ type: 'error', text: '蝟餌絞?航炊' });
+      setMessage({ type: 'error', text: '系統錯誤' });
     } finally {
       setSaving(false);
     }
@@ -146,7 +146,7 @@ export default function AdminSettings() {
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: BG, color: MUTED }}>
       <Loader2 className="animate-spin" size={40} style={{ marginBottom: 16 }} />
-      頛銝?..
+      載入中...
     </div>
   );
 
@@ -162,8 +162,8 @@ export default function AdminSettings() {
             <ArrowLeft size={20} />
           </button>
           <div className="header-content">
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: DARK }}>?典??蝞∠?</h1>
-            <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 14 }}>閮剖?撟喳???敹?雿???/p>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: DARK }}>全域參數管理</h1>
+            <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 14 }}>設定平台的各項核心運作參數</p>
           </div>
         </header>
 
@@ -180,14 +180,14 @@ export default function AdminSettings() {
 
         <div className="settings-section" style={{ display: 'grid', gap: 24 }}>
           
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
+          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: BLUE, flexShrink: 0 }}>
                 <Clock size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>?脣 / ?玨撖祇???/h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>閮剖?隤脩???敺??摰寡迂?脣??????迨???唾??箸?隤脯?/p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>遲到 / 曠課寬限期</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>設定課程開始後，雙方容許遲到的分鐘數。超過此時間即視為曠課。</p>
               </div>
             </div>
 
@@ -199,31 +199,31 @@ export default function AdminSettings() {
                 style={{ flex: 1, background: 'transparent', border: 'none', padding: '16px 20px', fontSize: 20, fontWeight: 900, color: DARK, outline: 'none' }}
               />
               <span style={{ paddingRight: 20, fontSize: 16, fontWeight: 900, color: MUTED }}>
-                ??
+                分鐘
               </span>
             </div>
             <button 
-              onClick={() => handleSave('no_show_threshold', settings.no_show_threshold, '?脣/?玨撖祇???)}
+              onClick={() => handleSave('no_show_threshold', settings.no_show_threshold, '遲到/曠課寬限期')}
               disabled={saving}
               style={{ background: BLUE, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              ?脣?
+              儲存
             </button>
           </div>
 
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
                 <Settings size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>?毀?賣?蝞∠?</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>閮剖??毀?像?唳??祥嚗?嚗?隞亙????典誨??撠梯圾??瘚桀??賣???/p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>教練抽成管理</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>設定教練的平台服務費（%），以及因應推廣、成就解鎖的浮動抽成。</p>
               </div>
             </div>
 
-            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>?芸?蝝?/ ?唳??身?賣?</p>
+            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>未分級 / 新手預設抽成</p>
             <div style={{ background: INPUT_BG, borderRadius: 12, position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 24 }}>
               <input 
                 type="number"
@@ -235,7 +235,7 @@ export default function AdminSettings() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>?０撘?蝝?”</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>階梯式等級抽成表</p>
               <button 
                 onClick={() => setSettings(prev => ({ 
                   ...prev, 
@@ -243,7 +243,7 @@ export default function AdminSettings() {
                 }))}
                 style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', border: 'none', padding: '6px 12px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
               >
-                <Plus size={14} /> ?啣?蝑?
+                <Plus size={14} /> 新增等級
               </button>
             </div>
 
@@ -262,9 +262,9 @@ export default function AdminSettings() {
                     />
                   </div>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>?迂</span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>名稱</span>
                     <input 
-                      type="text" value={tier.name || ''} placeholder="憒? 閬??毀"
+                      type="text" value={tier.name || ''} placeholder="如: 見習教練"
                       onChange={e => {
                         const newTiers = [...settings.coach_tier_rates];
                         newTiers[idx].name = e.target.value;
@@ -290,14 +290,14 @@ export default function AdminSettings() {
                     style={{ flex: 1, background: 'rgba(79, 70, 229, 0.15)', color: '#818CF8', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Target size={14} />
-                    {countConditions(tier.requirement) > 0 ? `??璇辣 (${countConditions(tier.requirement)})` : '閮剖?璇辣'}
+                    {countConditions(tier.requirement) > 0 ? `升級條件 (${countConditions(tier.requirement)})` : '設定條件'}
                   </button>
                   <button
                     onClick={() => openPerksBuilder('coach', idx, tier.perks)}
                     style={{ flex: 1, background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Gift size={14} />
-                    {tier.perks && tier.perks.length > 0 ? `?葆甈? (${tier.perks.length})` : '閮剖??葆甈?'}
+                    {tier.perks && tier.perks.length > 0 ? `附帶權益 (${tier.perks.length})` : '設定附帶權益'}
                   </button>
                   <button 
                     onClick={() => setSettings(prev => ({ ...prev, coach_tier_rates: prev.coach_tier_rates.filter((_, i) => i !== idx) }))}
@@ -312,20 +312,20 @@ export default function AdminSettings() {
             <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: 24, marginBottom: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                 <Trophy size={18} color="#EAB308" />
-                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: DARK }}>?萄??毀 / ?拚野??璁??/h4>
+                <h4 style={{ margin: 0, fontSize: 16, fontWeight: 900, color: DARK }}>創始教練 / 早鳥排行榜優惠</h4>
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
-                  <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>??/span>
+                  <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>前</span>
                   <input 
                     type="number" value={settings.top_coach_settings.top_n}
                     onChange={e => setSettings({ ...settings, top_coach_settings: { ...settings.top_coach_settings, top_n: Number(e.target.value) } })}
                     style={{ flex: 1, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                   />
-                  <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>?酉??蝺?/span>
+                  <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>名註冊教練</span>
                 </div>
                 <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
-                  <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>憭???/span>
+                  <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>多折扣</span>
                   <input 
                     type="number" value={settings.top_coach_settings.bonus_discount}
                     onChange={e => setSettings({ ...settings, top_coach_settings: { ...settings.top_coach_settings, bonus_discount: Number(e.target.value) } })}
@@ -338,29 +338,30 @@ export default function AdminSettings() {
 
             <button 
               onClick={() => {
-                handleSave('commission_rate', settings.commission_rate, '?毀?箸??賣?');
-                handleSave('coach_tier_rates', settings.coach_tier_rates, '?毀?０?賣?銵?);
-                handleSave('top_coach_settings', settings.top_coach_settings, '?萄??毀??璁??);
+                handleSave('commission_rate', settings.commission_rate, '教練基準抽成');
+                handleSave('coach_tier_rates', settings.coach_tier_rates, '教練階梯抽成表');
+                handleSave('top_coach_settings', settings.top_coach_settings, '創始教練排行榜優惠');
               }}
               disabled={saving}
               style={{ background: '#059669', color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              ?脣??賣??曈亥身摰?            </button>
+              儲存抽成與早鳥設定
+            </button>
           </div>
 
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F97316', flexShrink: 0 }}>
                 <Percent size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>?典誨?賣?蝞∠?</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>閮剖??典誨鈭箏隞亙?閮銝剜??瘥?嚗?嚗?/p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>推廣抽成管理</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>設定推廣人可以從訂單中抽取的比例（%）</p>
               </div>
             </div>
 
-            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>?桅??典誨嚗?銝?寞??典誨鈭綽?</p>
+            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>單邊推廣（僅一方有推廣人）</p>
             <div style={{ background: INPUT_BG, borderRadius: 12, position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 16 }}>
               <input 
                 type="number" step="0.1"
@@ -371,7 +372,7 @@ export default function AdminSettings() {
               <span style={{ paddingRight: 20, fontSize: 16, fontWeight: 900, color: MUTED }}>%</span>
             </div>
 
-            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8, marginTop: 16 }}>???典誨嚗?蝺渲?摮詨???典誨鈭綽??桅??嚗?/p>
+            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8, marginTop: 16 }}>雙邊推廣（教練與學員皆有推廣人，單邊各抽）</p>
             <div style={{ background: INPUT_BG, borderRadius: 12, position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 16 }}>
               <input 
                 type="number" step="0.1"
@@ -384,29 +385,29 @@ export default function AdminSettings() {
 
             <button 
               onClick={() => {
-                handleSave('referral_commission_rate', settings.referral_commission_rate, '?桅??典誨?賣?瘥?');
-                handleSave('double_referral_commission_rate', settings.double_referral_commission_rate, '???典誨?賣?瘥?');
+                handleSave('referral_commission_rate', settings.referral_commission_rate, '單邊推廣抽成比例');
+                handleSave('double_referral_commission_rate', settings.double_referral_commission_rate, '雙邊推廣抽成比例');
               }}
               disabled={saving}
               style={{ background: '#F97316', color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              ?脣??典誨閮剖?
+              儲存推廣設定
             </button>
           </div>
 
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B5CF6', flexShrink: 0 }}>
                 <Gift size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>?冽?脣潸????</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>閮剖??冽鞎瑕???蝑?擖?靘?隞亙??脣潮?璇舐???/p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>用戶儲值與回饋折價</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>設定用戶買多送小等回饋比例，以及儲值階梯獎勵</p>
               </div>
             </div>
 
-            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>?芸?蝝?/ ?唳??身?</p>
+            <p style={{ fontSize: 14, fontWeight: 800, color: DARK, marginBottom: 8 }}>未分級 / 新手預設折價</p>
             <div style={{ background: INPUT_BG, borderRadius: 12, position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 24 }}>
               <input 
                 type="number"
@@ -418,7 +419,7 @@ export default function AdminSettings() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>摮詨?０撘??寡”</p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>學員階梯式折價表</p>
               <button 
                 onClick={() => setSettings(prev => ({ 
                   ...prev, 
@@ -426,7 +427,7 @@ export default function AdminSettings() {
                 }))}
                 style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6', border: 'none', padding: '6px 12px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
               >
-                <Plus size={14} /> ?啣?蝑?
+                <Plus size={14} /> 新增等級
               </button>
             </div>
 
@@ -435,7 +436,7 @@ export default function AdminSettings() {
                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 16, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 16 }}>
                   <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                     <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>蝑?</span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>等級</span>
                     <input 
                       type="number" value={tier.level}
                       onChange={e => {
@@ -447,9 +448,9 @@ export default function AdminSettings() {
                     />
                   </div>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>?迂</span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>名稱</span>
                     <input 
-                      type="text" value={tier.name || ''} placeholder="憒? 蝚砌?璇?
+                      type="text" value={tier.name || ''} placeholder="如: 第一梯"
                       onChange={e => {
                         const newTiers = [...settings.user_tier_discounts];
                         newTiers[idx].name = e.target.value;
@@ -459,7 +460,7 @@ export default function AdminSettings() {
                     />
                   </div>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 100 }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>?</span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>折價</span>
                     <input 
                       type="number" value={tier.discount} step="0.1"
                       onChange={e => {
@@ -472,7 +473,7 @@ export default function AdminSettings() {
                     <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800 }}>%</span>
                   </div>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 120 }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>韐???</span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>贈點倍率</span>
                     <input 
                       type="number" value={tier.bonus_multiplier ?? 1.0} step="0.1"
                       onChange={e => {
@@ -487,7 +488,7 @@ export default function AdminSettings() {
                 </div>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 8 }}>
                   <div style={{ background: 'rgba(59, 130, 246, 0.1)', borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 150 }}>
-                    <span style={{ paddingLeft: 16, color: '#3B82F6', fontWeight: 800, fontSize: 14 }}>瘥??潭蝝</span>
+                    <span style={{ paddingLeft: 16, color: '#3B82F6', fontWeight: 800, fontSize: 14 }}>每月發放紅利</span>
                     <input 
                       type="number" value={tier.monthly_bonus ?? 0}
                       onChange={e => {
@@ -497,10 +498,10 @@ export default function AdminSettings() {
                       }}
                       style={{ width: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: '#3B82F6', outline: 'none', textAlign: 'center' }}
                     />
-                    <span style={{ paddingRight: 16, color: '#3B82F6', fontWeight: 800 }}>暺?/span>
+                    <span style={{ paddingRight: 16, color: '#3B82F6', fontWeight: 800 }}>點</span>
                   </div>
                   <div style={{ background: 'rgba(239, 68, 68, 0.1)', borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center', minWidth: 150 }}>
-                    <span style={{ paddingLeft: 16, color: '#EF4444', fontWeight: 800, fontSize: 14 }}>?擃?????/span>
+                    <span style={{ paddingLeft: 16, color: '#EF4444', fontWeight: 800, fontSize: 14 }}>最高抵扣上限</span>
                     <input 
                       type="number" value={tier.monthly_bonus_max_percent ?? 0}
                       onChange={e => {
@@ -517,14 +518,14 @@ export default function AdminSettings() {
                     style={{ flex: 1, background: 'rgba(139, 92, 246, 0.15)', color: '#A78BFA', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Target size={14} />
-                    {countConditions(tier.requirement) > 0 ? `??璇辣 (${countConditions(tier.requirement)})` : '閮剖?璇辣'}
+                    {countConditions(tier.requirement) > 0 ? `升級條件 (${countConditions(tier.requirement)})` : '設定條件'}
                   </button>
                   <button
                     onClick={() => openPerksBuilder('user', idx, tier.perks)}
                     style={{ flex: 1, background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Gift size={14} />
-                    {tier.perks && tier.perks.length > 0 ? `?葆甈? (${tier.perks.length})` : '閮剖??葆甈?'}
+                    {tier.perks && tier.perks.length > 0 ? `附帶權益 (${tier.perks.length})` : '設定附帶權益'}
                   </button>
                   <button 
                     onClick={() => setSettings(prev => ({ ...prev, user_tier_discounts: prev.user_tier_discounts.filter((_, i) => i !== idx) }))}
@@ -538,7 +539,7 @@ export default function AdminSettings() {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>?脣潭遛憿??０銵?/p>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: DARK }}>儲值滿額贈階梯表</p>
               <button 
                 onClick={() => setSettings(prev => ({ 
                   ...prev, 
@@ -546,7 +547,7 @@ export default function AdminSettings() {
                 }))}
                 style={{ background: 'rgba(139, 92, 246, 0.1)', color: '#8B5CF6', border: 'none', padding: '6px 12px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
               >
-                <Plus size={14} /> ?啣?蝝?
+                <Plus size={14} /> 新增級距
               </button>
             </div>
 
@@ -554,7 +555,7 @@ export default function AdminSettings() {
               {settings.deposit_bonus_tiers.map((tier, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: 12 }}>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>皛?/span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>滿</span>
                     <input 
                       type="number" value={tier.deposit}
                       onChange={e => {
@@ -564,10 +565,10 @@ export default function AdminSettings() {
                       }}
                       style={{ flex: 1, minWidth: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
-                    <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>??/span>
+                    <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>元</span>
                   </div>
                   <div style={{ background: INPUT_BG, borderRadius: 12, flex: 1, display: 'flex', alignItems: 'center' }}>
-                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>??/span>
+                    <span style={{ paddingLeft: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>送</span>
                     <input 
                       type="number" value={tier.bonus}
                       onChange={e => {
@@ -577,7 +578,7 @@ export default function AdminSettings() {
                       }}
                       style={{ flex: 1, minWidth: 80, background: 'transparent', border: 'none', padding: '12px 8px', fontSize: 16, fontWeight: 900, color: DARK, outline: 'none', textAlign: 'center' }}
                     />
-                    <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>暺?/span>
+                    <span style={{ paddingRight: 16, color: MUTED, fontWeight: 800, fontSize: 14 }}>點</span>
                   </div>
                   <button 
                     onClick={() => setSettings(prev => ({ ...prev, deposit_bonus_tiers: prev.deposit_bonus_tiers.filter((_, i) => i !== idx) }))}
@@ -591,38 +592,38 @@ export default function AdminSettings() {
 
             <button 
               onClick={() => {
-                handleSave('user_rebate_discount', settings.user_rebate_discount, '?身摮詨?瘥?');
-                handleSave('user_tier_discounts', settings.user_tier_discounts, '摮詨?０撘??寡”');
-                handleSave('deposit_bonus_tiers', settings.deposit_bonus_tiers, '?脣潭遛憿??０銵?);
+                handleSave('user_rebate_discount', settings.user_rebate_discount, '預設學員折價比例');
+                handleSave('user_tier_discounts', settings.user_tier_discounts, '學員階梯式折價表');
+                handleSave('deposit_bonus_tiers', settings.deposit_bonus_tiers, '儲值滿額贈階梯表');
               }}
               disabled={saving}
               style={{ background: '#8B5CF6', color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              ?脣??冽??閮剖?
+              儲存用戶回饋設定
             </button>
           </div>
 
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#EC4899', flexShrink: 0 }}>
                 <Award size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>???寡蝔梯?憿澈</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>閮剖?隤脣?閰??摮貊???蝺游鈭蝯虫??旨霅賜迂??/p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>雙向特色稱號題庫</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>設定課後評價時，學生與教練可互相給予的榮譽稱號。</p>
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
               <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 16, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#38BDF8' }}>?毀蝔梯?</h4>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#38BDF8' }}>教練稱號</h4>
                   <button 
-                    onClick={() => setSettings(prev => ({ ...prev, coach_review_titles: [...prev.coach_review_titles, '?啁迂??] }))}
+                    onClick={() => setSettings(prev => ({ ...prev, coach_review_titles: [...prev.coach_review_titles, '新稱號'] }))}
                     style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38BDF8', border: 'none', padding: '4px 10px', borderRadius: 6, fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
                   >
-                    + ?啣?
+                    + 新增
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -650,12 +651,12 @@ export default function AdminSettings() {
 
               <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: 16, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#A78BFA' }}>摮詨蝔梯?</h4>
+                  <h4 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#A78BFA' }}>學員稱號</h4>
                   <button 
-                    onClick={() => setSettings(prev => ({ ...prev, student_review_titles: [...prev.student_review_titles, '?啁迂??] }))}
+                    onClick={() => setSettings(prev => ({ ...prev, student_review_titles: [...prev.student_review_titles, '新稱號'] }))}
                     style={{ background: 'rgba(167, 139, 250, 0.1)', color: '#A78BFA', border: 'none', padding: '4px 10px', borderRadius: 6, fontWeight: 800, cursor: 'pointer', fontSize: 12 }}
                   >
-                    + ?啣?
+                    + 新增
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -684,25 +685,25 @@ export default function AdminSettings() {
 
             <button 
               onClick={() => {
-                handleSave('coach_review_titles', settings.coach_review_titles, '?毀鈭??寡蝔梯?');
-                handleSave('student_review_titles', settings.student_review_titles, '摮詨鈭??寡蝔梯?');
+                handleSave('coach_review_titles', settings.coach_review_titles, '教練互評特色稱號');
+                handleSave('student_review_titles', settings.student_review_titles, '學員互評特色稱號');
               }}
               disabled={saving}
               style={{ background: '#EC4899', color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              ?脣?蝔梯?憿澈
+              儲存稱號題庫
             </button>
           </div>
 
-          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24 }}>
             <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981', flexShrink: 0 }}>
                 <Eye size={24} />
               </div>
               <div style={{ paddingTop: 4 }}>
-                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>?甈?銝剖??汗</h3>
-                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>?單??汗?????蝝?甈??批捆</p>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>會員權益中心預覽</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>即時預覽前台會員看到的等級與權益內容</p>
               </div>
             </div>
 
@@ -721,7 +722,7 @@ export default function AdminSettings() {
                     cursor: 'pointer'
                   }}
                 >
-                  {tab === 'coach' ? '?毀?賣??汗' : tab === 'user' ? '摮詨甈??汗' : '?典誨?膜?汗'}
+                  {tab === 'coach' ? '教練抽成預覽' : tab === 'user' ? '學員權益預覽' : '推廣分潤預覽'}
                 </button>
               ))}
             </div>
@@ -740,7 +741,7 @@ export default function AdminSettings() {
               <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Gift size={20} color="#10B981" />
-                  蝺刻摩{perksModal.type === 'coach' ? '?毀' : '摮詨'}???葆甈?
+                  編輯{perksModal.type === 'coach' ? '教練' : '學員'}階級附帶權益
                 </h3>
                 <button onClick={() => setPerksModal({ isOpen: false, type: null, idx: null, data: [] })} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>
                   <X size={24} />
@@ -757,7 +758,7 @@ export default function AdminSettings() {
                         newData[i] = e.target.value;
                         setPerksModal({ ...perksModal, data: newData });
                       }}
-                      placeholder="憒? ?脣潭遛 3,000 ??300 暺?
+                      placeholder="如: 儲值滿 3,000 送 300 點"
                       style={{ flex: 1, background: INPUT_BG, border: '1px solid rgba(255,255,255,0.05)', padding: '12px 16px', fontSize: 14, fontWeight: 800, color: DARK, borderRadius: 12, outline: 'none' }}
                     />
                     <button 
@@ -775,14 +776,15 @@ export default function AdminSettings() {
                   onClick={() => setPerksModal({ ...perksModal, data: [...perksModal.data, ''] })}
                   style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: 'none', padding: '12px', borderRadius: 12, fontWeight: 800, cursor: 'pointer', marginTop: 8 }}
                 >
-                  + ?啣?銝蝑?????                </button>
+                  + 新增一筆權益項目
+                </button>
               </div>
               <div style={{ padding: '20px 24px', background: 'rgba(0,0,0,0.2)', borderTop: '1px solid rgba(255,255,255,0.05)', display: 'flex', gap: 12 }}>
                 <button 
                   onClick={savePerksBuilder}
                   style={{ flex: 1, background: '#10B981', color: '#FFF', border: 'none', padding: '14px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}
                 >
-                  蝣箄??脣?甈?皜
+                  確認儲存權益清單
                 </button>
               </div>
             </div>
@@ -795,7 +797,7 @@ export default function AdminSettings() {
               <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Target size={20} color="#818CF8" />
-                  蝺刻摩{missionModal.type === 'coach' ? '?毀' : '摮詨'}銴?隞餃?璇辣
+                  編輯{missionModal.type === 'coach' ? '教練' : '學員'}複合任務條件
                 </h3>
                 <button onClick={() => setMissionModal({ isOpen: false, type: null, idx: null, data: {} })} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer' }}>
                   <X size={24} />
@@ -803,7 +805,7 @@ export default function AdminSettings() {
               </div>
               <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>蝝舐?摰?銝玨??(??</label>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>累積完/上課數 (堂)</label>
                   <input 
                     type="number" 
                     value={missionModal.data.completed_sessions || ''}
@@ -812,7 +814,7 @@ export default function AdminSettings() {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>蝝舐?{missionModal.type === 'coach' ? '?' : '瘨祥'} (暺?</label>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>累積{missionModal.type === 'coach' ? '營收' : '消費'} (點)</label>
                   <input 
                     type="number" 
                     value={missionModal.data.revenue || ''}
@@ -822,7 +824,7 @@ export default function AdminSettings() {
                 </div>
                 {missionModal.type === 'coach' && (
                   <div>
-                    <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>?雿??寞?蝑?瘙?(??</label>
+                    <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>最低評價星等要求 (星)</label>
                     <input 
                       type="number" step="0.1" min="0" max="5"
                       value={missionModal.data.min_rating || ''}
@@ -837,13 +839,13 @@ export default function AdminSettings() {
                   </div>
                 )}
                 <div>
-                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>敹???蝔梯?</label>
+                  <label style={{ display: 'block', fontSize: 14, fontWeight: 800, color: MUTED, marginBottom: 8 }}>必備指定稱號</label>
                   <select
                     value={missionModal.data.required_title || ''}
                     onChange={e => setMissionModal({ ...missionModal, data: { ...missionModal.data, required_title: e.target.value || undefined }})}
                     style={{ width: '100%', background: INPUT_BG, border: '1px solid rgba(255,255,255,0.05)', padding: '12px 16px', fontSize: 16, fontWeight: 800, color: DARK, borderRadius: 12, appearance: 'none', cursor: 'pointer' }}
                   >
-                    <option value="" style={{ background: '#11141A' }}>-- 銝???--</option>
+                    <option value="" style={{ background: '#11141A' }}>-- 不限制 --</option>
                     {(missionModal.type === 'coach' ? settings.coach_review_titles : settings.student_review_titles).map(t => (
                       <option key={t} value={t} style={{ background: '#11141A' }}>{t}</option>
                     ))}
@@ -855,7 +857,7 @@ export default function AdminSettings() {
                   onClick={saveMissionBuilder}
                   style={{ flex: 1, background: '#4F46E5', color: '#FFF', border: 'none', padding: '14px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}
                 >
-                  蝣箄??脣?蝯?
+                  確認儲存組合
                 </button>
               </div>
             </div>
@@ -865,4 +867,3 @@ export default function AdminSettings() {
     </div>
   );
 }
-
