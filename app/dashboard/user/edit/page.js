@@ -194,7 +194,7 @@ export default function UserProfileEdit() {
             <p style={{ fontSize: 11, fontWeight: 700, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 12, paddingLeft: 4 }}>帳號資訊</p>
             <div className="premium-card" style={{ display:'flex', flexDirection:'column', gap: 16 }}>
               <div><label style={labelStyle}><User size={14} color={ORANGE} /> 真實姓名</label><input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="請輸入姓名" style={inputStyle} required /></div>
-              <div><label style={{ ...labelStyle, color: MUTED }}><Mail size={14} /> 電子信箱</label><input value={formData.email} readOnly style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }} /></div>
+              <div><label style={labelStyle}><Mail size={14} color={ORANGE} /> 電子信箱</label><input type="email" value={formData.email || ''} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="請輸入電子信箱" style={inputStyle} required /></div>
               <div><label style={labelStyle}><Phone size={14} color={ORANGE} /> 聯絡電話</label><input value={formData.phone || ''} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="請輸入電話" style={inputStyle} /></div>
             </div>
           </section>

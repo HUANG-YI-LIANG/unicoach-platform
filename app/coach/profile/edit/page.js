@@ -425,13 +425,16 @@ export default function CoachProfileEdit() {
               </div>
 
               <div>
-                <label style={{ ...labelStyle, color: MUTED }}>
-                  <Mail size={14} /> 電子信箱 (無法修改)
+                <label style={labelStyle}>
+                  <Mail size={14} color={ORANGE} /> 電子信箱
                 </label>
                 <input
+                  type="email"
                   value={formData.email}
-                  readOnly
-                  style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: MUTED }}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  placeholder="請輸入電子信箱"
+                  style={inputStyle}
+                  required
                 />
               </div>
 

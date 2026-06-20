@@ -142,6 +142,25 @@ export async function POST(request) {
 
     // 1. 動態構建更新物件 (users 表)，避免 null/undefined 覆蓋現有資料
     const userUpdates = {};
+    
+    if (body.email && body.email.trim() !== '') {
+      const newEmail = body.email.trim();
+      const { data: userRecord } = await adminSupabase.from('users').select('email').eq('id', userId).single();
+      
+      if (userRecord && userRecord.email !== newEmail) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+          return NextResponse.json({ error: '信箱格式不正確' }, { status: 400 });
+        }
+        const { data: existingUser } = await adminSupabase.from('users').select('id').eq('email', newEmail).maybeSingle();
+        if (existingUser && existingUser.id !== userId) {
+          return NextResponse.json({ error: '此信箱已被其他帳號使用' }, { status: 400 });
+        }
+        const { error: authError } = await adminSupabase.auth.admin.updateUserById(userId, { email: newEmail });
+        if (authError) throw authError;
+        userUpdates.email = newEmail;
+      }
+    }
+
     if (body.name !== undefined) userUpdates.name = body.name?.trim();
     if (body.phone !== undefined) userUpdates.phone = body.phone;
     if (body.address !== undefined) userUpdates.address = body.address;
