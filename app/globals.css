@@ -1194,3 +1194,42 @@ nextjs-portal,
   width: 100% !important;
   margin-top: 16px !important;
 }
+
+/* FORCE FULL WIDTH ON ALL MAJOR CONTAINERS */
+.admin-desktop-container .admin-trust-center,
+.admin-desktop-container .admin-user-center,
+.admin-desktop-container .admin-settings-center,
+.admin-desktop-container .admin-payments-center,
+.admin-desktop-container .promo-container {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.admin-desktop-container .admin-grid {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.admin-desktop-container .page-header {
+  width: 100% !important;
+  max-width: none !important;
+  margin-bottom: 24px !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* FORCE REMOVE ALL MAX-WIDTHS & CENTERING ON TABLES AND GRIDS */
+.admin-desktop-container .table-container,
+.admin-desktop-container .table-wrapper {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.admin-desktop-container .admin-grid {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
