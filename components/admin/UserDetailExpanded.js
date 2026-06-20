@@ -17,6 +17,8 @@ export default function UserDetailExpanded({ userId, onClose }) {
   const [isBankEditing, setIsBankEditing] = useState(false);
   const [bankEditForm, setBankEditForm] = useState({ bank_code: '', bank_account_number: '' });
   const [savingBank, setSavingBank] = useState(false);
+
+  const [warningLoading, setWarningLoading] = useState(false);
   
   const [mounted, setMounted] = useState(false);
 
@@ -110,7 +112,6 @@ export default function UserDetailExpanded({ userId, onClose }) {
       });
       if (res.ok) {
         setUser({ ...user, bank_info: bankEditForm });
-        setIsBankEditing(true); // close wait I mean false
         setIsBankEditing(false);
       } else {
         alert('儲存銀行資訊失敗');
@@ -119,6 +120,27 @@ export default function UserDetailExpanded({ userId, onClose }) {
       alert('發生錯誤');
     } finally {
       setSavingBank(false);
+    }
+  };
+
+  const handleWarning = async () => {
+    if (!confirm('確定要發送警告給此使用者嗎？這會透過客服訊息發送警告。若滿三次將會凍結帳號。')) return;
+    setWarningLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/warning`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUser({ ...user, warning_count: data.count, is_frozen: data.is_frozen });
+        alert(`警告發送成功！目前累計警告次數：${data.count}/3${data.is_frozen ? ' (帳號已凍結)' : ''}`);
+      } else {
+        alert('發送警告失敗: ' + (data.error || '未知錯誤'));
+      }
+    } catch (err) {
+      alert('發生錯誤');
+    } finally {
+      setWarningLoading(false);
     }
   };
 
@@ -313,6 +335,39 @@ export default function UserDetailExpanded({ userId, onClose }) {
               <div className="data-row">
                 <span className="label">目前層級別名</span>
                 <span className="value">{user.level}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section: Warnings */}
+        <section className="info-section" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
+          <div className="section-header">
+            <h2 style={{ color: '#ef4444' }}>平台規範與警告</h2>
+            <div className="section-actions">
+              <button 
+                className="action-btn" 
+                onClick={handleWarning} 
+                disabled={warningLoading || user.is_frozen}
+                style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.2)' }}
+              >
+                {warningLoading ? '發送中...' : '發出警告通知'}
+              </button>
+            </div>
+          </div>
+          <div className="section-content">
+            <div className="data-list">
+              <div className="data-row">
+                <span className="label">累計警告次數</span>
+                <span className="value" style={{ color: user.warning_count >= 2 ? '#ef4444' : '#fff' }}>
+                  {user.warning_count || 0} / 3
+                </span>
+              </div>
+              <div className="data-row">
+                <span className="label">帳號狀態</span>
+                <span className="value" style={{ color: user.is_frozen ? '#ef4444' : '#22c55e' }}>
+                  {user.is_frozen ? '已凍結 (被踢出)' : '正常'}
+                </span>
               </div>
             </div>
           </div>

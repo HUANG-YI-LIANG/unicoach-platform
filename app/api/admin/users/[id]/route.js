@@ -53,11 +53,22 @@ export async function GET(request, { params }) {
       .eq('key', `user_bank_${userId}`)
       .single();
 
+    const { data: warningSetting } = await adminSupabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', `user_warnings_${userId}`)
+      .single();
+
     let bank_info = null;
     if (bankSetting?.value) {
       try {
         bank_info = JSON.parse(bankSetting.value);
       } catch (e) {}
+    }
+
+    let warning_count = 0;
+    if (warningSetting?.value) {
+      warning_count = parseInt(warningSetting.value, 10) || 0;
     }
 
     const responseData = {
@@ -74,6 +85,8 @@ export async function GET(request, { params }) {
       total_withdrawal: totalWithdrawal,
       total_classes_amount: totalClassesAmount,
       created_at: user.created_at,
+      is_frozen: user.is_frozen,
+      warning_count,
       transactions: txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), // Latest first
       bank_info
     };
