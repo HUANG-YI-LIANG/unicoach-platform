@@ -10,6 +10,7 @@ export default function UserDetailExpanded({ userId, onClose }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('deposit'); // deposit, withdrawal, class
   const [activeBookingTab, setActiveBookingTab] = useState('student'); // student, coach
+  const [activeReviewTab, setActiveReviewTab] = useState('received'); // received, given
   const [processing, setProcessing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '' });
@@ -239,6 +240,41 @@ export default function UserDetailExpanded({ userId, onClose }) {
     </div>
   );
 
+  const renderReviewTable = (reviews) => (
+    <div className="tx-table-wrapper">
+      {reviews.length === 0 ? (
+        <p className="no-data">尚無任何評價</p>
+      ) : (
+        <table className="tx-table">
+          <thead>
+            <tr>
+              <th>時間</th>
+              <th>課程</th>
+              <th>評分</th>
+              <th>內容</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reviews.slice(0, 5).map((r, idx) => (
+              <tr key={idx}>
+                <td style={{ whiteSpace: 'nowrap' }}>{new Date(r.created_at).toLocaleDateString()}</td>
+                <td style={{ maxWidth: '150px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.booking?.plan_title || r.booking?.service_title || '未知課程'}
+                </td>
+                <td className="text-yellow-400 font-bold">
+                  ★ {r.rating}
+                </td>
+                <td className="text-gray-400" style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.comment || '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
   return (
     <div className="expanded-detail-container">
       <div className="info-sections">
@@ -455,6 +491,31 @@ export default function UserDetailExpanded({ userId, onClose }) {
             <div className="tx-content">
               {activeBookingTab === 'student' && renderBookingTable(user.student_bookings || [])}
               {activeBookingTab === 'coach' && user.role === 'coach' && renderBookingTable(user.coach_bookings || [])}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 4.5: Class Reviews */}
+        <section className="info-section">
+          <div className="section-header">
+            <h2>上課評價明細 (顯示近五筆紀錄)</h2>
+          </div>
+          <div className="section-content no-padding">
+            <div className="tx-tabs">
+              {user.role === 'coach' && (
+                <button 
+                  className={`tx-tab ${activeReviewTab === 'received' ? 'active' : ''}`}
+                  onClick={() => setActiveReviewTab('received')}
+                >收到的評價 (作為教練)</button>
+              )}
+              <button 
+                className={`tx-tab ${activeReviewTab === 'given' ? 'active' : ''}`}
+                onClick={() => setActiveReviewTab('given')}
+              >給出的評價 (作為學員)</button>
+            </div>
+            <div className="tx-content">
+              {activeReviewTab === 'received' && user.role === 'coach' && renderReviewTable(user.received_reviews || [])}
+              {activeReviewTab === 'given' && renderReviewTable(user.given_reviews || [])}
             </div>
           </div>
         </section>

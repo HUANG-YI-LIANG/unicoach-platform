@@ -24,7 +24,9 @@ export async function GET(request, { params }) {
         wallet_transactions(*),
         coaches(*),
         student_bookings:bookings!user_id(*),
-        coach_bookings:bookings!coach_id(*)
+        coach_bookings:bookings!coach_id(*),
+        received_reviews:reviews!reviewee_id(*, booking:bookings!booking_id(plan_title, service_title)),
+        given_reviews:reviews!reviewer_id(*, booking:bookings!booking_id(plan_title, service_title))
       `)
       .eq('id', userId)
       .single();
@@ -91,6 +93,8 @@ export async function GET(request, { params }) {
       warning_count,
       student_bookings: user.student_bookings || [],
       coach_bookings: user.coach_bookings || [],
+      received_reviews: (user.received_reviews || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
+      given_reviews: (user.given_reviews || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)),
       transactions: txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), // Latest first
       bank_info
     };
