@@ -22,7 +22,9 @@ export async function GET(request, { params }) {
       .select(`
         *,
         wallet_transactions(*),
-        coaches(*)
+        coaches(*),
+        student_bookings:bookings!user_id(*),
+        coach_bookings:bookings!coach_id(*)
       `)
       .eq('id', userId)
       .single();
@@ -87,6 +89,8 @@ export async function GET(request, { params }) {
       created_at: user.created_at,
       is_frozen: user.is_frozen,
       warning_count,
+      student_bookings: user.student_bookings || [],
+      coach_bookings: user.coach_bookings || [],
       transactions: txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), // Latest first
       bank_info
     };

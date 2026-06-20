@@ -9,6 +9,7 @@ export default function UserDetailExpanded({ userId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('deposit'); // deposit, withdrawal, class
+  const [activeBookingTab, setActiveBookingTab] = useState('student'); // student, coach
   const [processing, setProcessing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '' });
@@ -195,6 +196,41 @@ export default function UserDetailExpanded({ userId, onClose }) {
                   {t.amount > 0 ? '+' : ''}{t.amount.toLocaleString()}
                 </td>
                 <td className="text-gray-400">{t.description || '-'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+
+  const renderBookingTable = (bookings) => (
+    <div className="tx-table-wrapper">
+      {bookings.length === 0 ? (
+        <p className="no-data">尚無任何紀錄</p>
+      ) : (
+        <table className="tx-table">
+          <thead>
+            <tr>
+              <th>上課時間</th>
+              <th>課程名稱</th>
+              <th>狀態</th>
+              <th>時長</th>
+              <th>實收/應付</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.slice(0, 5).map((b, idx) => (
+              <tr key={idx}>
+                <td>{new Date(b.expected_time).toLocaleString()}</td>
+                <td>{b.plan_title || b.service_title || '-'}</td>
+                <td>
+                  <span className={`status-badge ${b.status === 'completed' ? 'approved' : b.status === 'cancelled' ? 'rejected' : 'pending'}`} style={{ padding: '2px 6px', fontSize: '11px' }}>
+                    {b.status === 'completed' ? '已完成' : b.status === 'cancelled' ? '已取消' : '未完成'}
+                  </span>
+                </td>
+                <td>{b.duration_minutes} 分鐘</td>
+                <td>$ {b.final_price?.toLocaleString() || 0}</td>
               </tr>
             ))}
           </tbody>
@@ -398,7 +434,32 @@ export default function UserDetailExpanded({ userId, onClose }) {
           </div>
         </section>
 
-        {/* Section 4: Transactions */}
+        {/* Section 4: Class Details */}
+        <section className="info-section">
+          <div className="section-header">
+            <h2>上課明細 (顯示近五筆紀錄)</h2>
+          </div>
+          <div className="section-content no-padding">
+            <div className="tx-tabs">
+              <button 
+                className={`tx-tab ${activeBookingTab === 'student' ? 'active' : ''}`}
+                onClick={() => setActiveBookingTab('student')}
+              >作為學員</button>
+              {user.role === 'coach' && (
+                <button 
+                  className={`tx-tab ${activeBookingTab === 'coach' ? 'active' : ''}`}
+                  onClick={() => setActiveBookingTab('coach')}
+                >作為教練</button>
+              )}
+            </div>
+            <div className="tx-content">
+              {activeBookingTab === 'student' && renderBookingTable(user.student_bookings || [])}
+              {activeBookingTab === 'coach' && user.role === 'coach' && renderBookingTable(user.coach_bookings || [])}
+            </div>
+          </div>
+        </section>
+
+        {/* Section 5: Transactions */}
         <section className="info-section">
           <div className="section-header">
             <h2>申請與轉點紀錄 (顯示近五筆紀錄)</h2>
