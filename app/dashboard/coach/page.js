@@ -313,10 +313,10 @@ export default function CoachDashboard() {
           <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 12 }}>
             下載 UniteCoach 專屬教練 APP
           </div>
-          <button className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
+          <button onClick={() => router.push('/download')} className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
             <Apple size={20} /> iOS 下載
           </button>
-          <button className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
+          <button onClick={() => router.push('/download')} className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
             <Smartphone size={20} /> Android 下載
           </button>
         </div>
