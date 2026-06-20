@@ -440,6 +440,7 @@ export default function VerificationAdmin() {
           background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: 20px;
+          grid-column: 1 / -1;
         }
         .dense-table {
           width: 100%;
