@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
 
 export default function UserDetailExpanded({ userId, onClose }) {
@@ -13,7 +14,14 @@ export default function UserDetailExpanded({ userId, onClose }) {
   const [editForm, setEditForm] = useState({ name: '', phone: '' });
   const [saving, setSaving] = useState(false);
 
+  const [isBankEditing, setIsBankEditing] = useState(false);
+  const [bankEditForm, setBankEditForm] = useState({ bank_code: '', bank_account_number: '' });
+  const [savingBank, setSavingBank] = useState(false);
+  
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
     const fetchDetail = async () => {
       try {
         const res = await fetch(`/api/admin/users/${userId}`);
@@ -81,6 +89,36 @@ export default function UserDetailExpanded({ userId, onClose }) {
       alert('發生錯誤');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openBankEditModal = () => {
+    setBankEditForm({ 
+      bank_code: user?.bank_info?.bank_code || '', 
+      bank_account_number: user?.bank_info?.bank_account_number || '' 
+    });
+    setIsBankEditing(true);
+  };
+
+  const handleBankEditSave = async () => {
+    setSavingBank(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bank_info: bankEditForm })
+      });
+      if (res.ok) {
+        setUser({ ...user, bank_info: bankEditForm });
+        setIsBankEditing(true); // close wait I mean false
+        setIsBankEditing(false);
+      } else {
+        alert('儲存銀行資訊失敗');
+      }
+    } catch (err) {
+      alert('發生錯誤');
+    } finally {
+      setSavingBank(false);
     }
   };
 
@@ -283,9 +321,25 @@ export default function UserDetailExpanded({ userId, onClose }) {
         <section className="info-section">
           <div className="section-header">
             <h2>銀行帳戶</h2>
+            <div className="section-actions">
+              <button className="action-btn" onClick={openBankEditModal}>編輯銀行帳戶</button>
+            </div>
           </div>
           <div className="section-content">
-            <div className="text-gray-400">目前尚未有任何銀行存摺資料</div>
+            {user.bank_info ? (
+              <div className="data-list">
+                <div className="data-row">
+                  <span className="label">銀行代碼</span>
+                  <span className="value">{user.bank_info.bank_code}</span>
+                </div>
+                <div className="data-row">
+                  <span className="label">帳號</span>
+                  <span className="value">{user.bank_info.bank_account_number}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-gray-400">目前尚未有任何銀行存摺資料</div>
+            )}
           </div>
         </section>
 
@@ -318,7 +372,7 @@ export default function UserDetailExpanded({ userId, onClose }) {
         </section>
       </div>
 
-      {isEditing && (
+      {mounted && isEditing && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>修改基本資料</h3>
@@ -345,7 +399,39 @@ export default function UserDetailExpanded({ userId, onClose }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {mounted && isBankEditing && createPortal(
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>編輯銀行帳戶</h3>
+            <div className="form-group">
+              <label>銀行代碼</label>
+              <input 
+                type="text" 
+                value={bankEditForm.bank_code} 
+                onChange={e => setBankEditForm({ ...bankEditForm, bank_code: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>銀行帳號</label>
+              <input 
+                type="text" 
+                value={bankEditForm.bank_account_number} 
+                onChange={e => setBankEditForm({ ...bankEditForm, bank_account_number: e.target.value })}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setIsBankEditing(false)}>取消</button>
+              <button className="save-btn" onClick={handleBankEditSave} disabled={savingBank}>
+                {savingBank ? '儲存中...' : '儲存'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       <style jsx>{`

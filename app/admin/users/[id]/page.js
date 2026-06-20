@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, User as UserIcon, Loader2, Building, CreditCard, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -16,8 +17,11 @@ export default function UserDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '' });
   const [saving, setSaving] = useState(false);
+  
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const fetchDetail = async () => {
       try {
         const res = await fetch(`/api/admin/users/${id}`);
@@ -326,7 +330,7 @@ export default function UserDetailPage() {
         </div>
       </div>
 
-      {isEditing && (
+      {mounted && isEditing && createPortal(
         <div className="modal-overlay">
           <div className="modal-content">
             <h3>修改基本資料</h3>
@@ -353,7 +357,8 @@ export default function UserDetailPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style jsx>{`

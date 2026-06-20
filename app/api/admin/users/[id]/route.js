@@ -47,6 +47,19 @@ export async function GET(request, { params }) {
       .filter(t => t.transaction_type === 'class_payment' || t.transaction_type === 'coach_payout')
       .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
+    const { data: bankSetting } = await adminSupabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', `user_bank_${userId}`)
+      .single();
+
+    let bank_info = null;
+    if (bankSetting?.value) {
+      try {
+        bank_info = JSON.parse(bankSetting.value);
+      } catch (e) {}
+    }
+
     const responseData = {
       id: user.id,
       account: user.email,
@@ -62,6 +75,7 @@ export async function GET(request, { params }) {
       total_classes_amount: totalClassesAmount,
       created_at: user.created_at,
       transactions: txs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)), // Latest first
+      bank_info
     };
 
     return NextResponse.json({ user: responseData });
@@ -81,18 +95,38 @@ export async function PATCH(request, { params }) {
     if (!userId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
     const body = await request.json();
-    const { name, phone } = body;
+    const { name, phone, bank_info } = body;
 
     const adminSupabase = getAdminSupabase();
 
-    const { error } = await adminSupabase
-      .from('users')
-      .update({ name, phone })
-      .eq('id', userId);
+    if (name !== undefined || phone !== undefined) {
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (phone !== undefined) updateData.phone = phone;
 
-    if (error) {
-      console.error('Update user error:', error);
-      return NextResponse.json({ error: '更新失敗: ' + error.message }, { status: 500 });
+      const { error } = await adminSupabase
+        .from('users')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Update user error:', error);
+        return NextResponse.json({ error: '更新失敗: ' + error.message }, { status: 500 });
+      }
+    }
+
+    if (bank_info !== undefined) {
+      const { error: bankError } = await adminSupabase
+        .from('platform_settings')
+        .upsert({
+          key: `user_bank_${userId}`,
+          value: JSON.stringify(bank_info)
+        });
+      
+      if (bankError) {
+        console.error('Update bank error:', bankError);
+        return NextResponse.json({ error: '更新銀行帳戶失敗: ' + bankError.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ success: true });
