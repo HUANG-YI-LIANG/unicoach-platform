@@ -528,8 +528,7 @@ export default function VerificationAdmin() {
           flex-direction: column;
           align-items: flex-start;
           gap: 20px;
-          max-width: 1200px;
-          margin: 0 auto 30px;
+          margin-bottom: 30px;
         }
         @media (min-width: 768px) {
           .page-header {
@@ -568,8 +567,6 @@ export default function VerificationAdmin() {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
           gap: 24px;
-          max-width: 1200px;
-          margin: 0 auto;
         }
         .empty-state {
           grid-column: 1 / -1;

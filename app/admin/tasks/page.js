@@ -177,7 +177,7 @@ export default function TasksAdmin() {
 
   return (
     <div style={{ minHeight: '100vh', background: BG, padding: '40px 20px' }}>
-      <div style={{ maxWidth: 800, margin: '0 auto' }}>
+      <div className="content-wrapper" style={{ width: '100%' }}>
         
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>

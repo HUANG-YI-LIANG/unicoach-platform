@@ -226,9 +226,9 @@ export default function UserManagementAdmin() {
         .page-header {
           display: flex;
           flex-direction: column;
+          align-items: flex-start;
           gap: 20px;
-          max-width: 1400px;
-          margin: 0 auto 30px;
+          margin-bottom: 30px;
         }
         @media (min-width: 768px) {
           .page-header {
@@ -293,12 +293,10 @@ export default function UserManagementAdmin() {
         }
 
         .table-container {
-          max-width: 1400px;
-          margin: 0 auto;
           background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: 20px;
-          overflow: hidden;
+          overflow-x: auto;
         }
         .loading-state {
           height: 400px;

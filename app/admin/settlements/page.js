@@ -92,7 +92,7 @@ export default function AdminSettlementsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 24 }}>
-      <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div className="content-wrapper" style={{ width: '100%' }}>
         <button onClick={() => router.push('/dashboard/admin')} style={linkButtonStyle}>← 回管理後台</button>
         <header style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 22 }}>
           <div>
