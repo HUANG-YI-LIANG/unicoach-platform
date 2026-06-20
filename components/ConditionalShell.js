@@ -22,7 +22,7 @@ const isTaskFlowRoute = (pathname) => TASK_FLOW_ROUTES.some((route) => pathname 
 const isStandaloneMobileRoute = (pathname) => (
   isChatRoomRoute(pathname) || isCoachDetailRoute(pathname) || pathname === '/ambassador' || pathname?.startsWith('/ambassador/') || pathname === '/seed'
 );
-const isAdminRoute = (pathname) => pathname === '/dashboard/admin' || pathname?.startsWith('/dashboard/admin/');
+const isAdminRoute = (pathname) => pathname === '/dashboard/admin' || pathname?.startsWith('/dashboard/admin/') || pathname?.startsWith('/admin/');
 
 // Wraps children in the global shell (header + padded main + nav-space)
 // OR renders children bare on standalone mobile pages.
