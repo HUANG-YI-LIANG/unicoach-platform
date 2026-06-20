@@ -9,6 +9,9 @@ export default function UserDetailExpanded({ userId, onClose }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [activeTab, setActiveTab] = useState('deposit'); // deposit, withdrawal, class
   const [processing, setProcessing] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', phone: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -52,6 +55,32 @@ export default function UserDetailExpanded({ userId, onClose }) {
       alert('操作失敗');
     } finally {
       setProcessing(false);
+    }
+  };
+
+  const openEditModal = () => {
+    setEditForm({ name: user?.name || '', phone: user?.phone || '' });
+    setIsEditing(true);
+  };
+
+  const handleEditSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editForm)
+      });
+      if (res.ok) {
+        setUser({ ...user, name: editForm.name, phone: editForm.phone });
+        setIsEditing(false);
+      } else {
+        alert('儲存失敗');
+      }
+    } catch (err) {
+      alert('發生錯誤');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -122,8 +151,8 @@ export default function UserDetailExpanded({ userId, onClose }) {
           <div className="section-header">
             <h2>帳號資訊</h2>
             <div className="section-actions">
-              <button className="action-btn">修改基本資料</button>
-              <button className="action-btn">重設密碼</button>
+              <button className="action-btn" onClick={openEditModal}>修改基本資料</button>
+              <button className="action-btn" onClick={() => alert('重設密碼功能開發中')}>重設密碼</button>
             </div>
           </div>
           <div className="section-content">
@@ -289,7 +318,104 @@ export default function UserDetailExpanded({ userId, onClose }) {
         </section>
       </div>
 
+      {isEditing && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>修改基本資料</h3>
+            <div className="form-group">
+              <label>名稱</label>
+              <input 
+                type="text" 
+                value={editForm.name} 
+                onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+              />
+            </div>
+            <div className="form-group">
+              <label>手機號碼</label>
+              <input 
+                type="text" 
+                value={editForm.phone} 
+                onChange={e => setEditForm({ ...editForm, phone: e.target.value })}
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="cancel-btn" onClick={() => setIsEditing(false)}>取消</button>
+              <button className="save-btn" onClick={handleEditSave} disabled={saving}>
+                {saving ? '儲存中...' : '儲存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
+        /* === Edit Modal Styles === */
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+        }
+        .modal-content {
+          background: var(--color-surface);
+          border: 1px solid var(--color-border);
+          padding: 24px;
+          border-radius: 16px;
+          width: 100%;
+          max-width: 400px;
+        }
+        .modal-content h3 {
+          margin-top: 0;
+          margin-bottom: 20px;
+          color: var(--color-text);
+        }
+        .form-group {
+          margin-bottom: 16px;
+        }
+        .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          color: var(--color-text-muted);
+          font-size: 14px;
+        }
+        .form-group input {
+          width: 100%;
+          padding: 10px;
+          border-radius: 8px;
+          border: 1px solid var(--color-border);
+          background: rgba(0,0,0,0.2);
+          color: var(--color-text);
+        }
+        .modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 24px;
+        }
+        .cancel-btn {
+          background: transparent;
+          border: 1px solid var(--color-border);
+          color: var(--color-text);
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .save-btn {
+          background: var(--color-primary);
+          border: none;
+          color: #000;
+          font-weight: bold;
+          padding: 8px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+
         .expanded-detail-container {
           background: #11141A; /* slightly different from surface */
           padding: 30px;
