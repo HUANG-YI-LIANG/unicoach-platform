@@ -70,3 +70,34 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: '無法獲取會員詳細資料' }, { status: 500 });
   }
 }
+
+export async function PATCH(request, { params }) {
+  try {
+    const auth = await requireAuth(['admin']);
+    if (auth.error) return NextResponse.json(auth, { status: auth.status });
+
+    const resolvedParams = await params;
+    const userId = resolvedParams.id;
+    if (!userId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
+    const body = await request.json();
+    const { name, phone } = body;
+
+    const adminSupabase = getAdminSupabase();
+
+    const { error } = await adminSupabase
+      .from('users')
+      .update({ name, phone })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Update user error:', error);
+      return NextResponse.json({ error: '更新失敗: ' + error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('[ADMIN USER UPDATE ERROR]', err);
+    return NextResponse.json({ error: '發生未預期錯誤' }, { status: 500 });
+  }
+}
