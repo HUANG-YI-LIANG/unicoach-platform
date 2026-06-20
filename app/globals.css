@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   /* ========================================= */
   /* PREMIUM DESIGN SYSTEM (P3 Core)           */
   /* ========================================= */
@@ -315,7 +315,7 @@ option {
   padding-bottom: 40px;
 }
 
-/* 1. Hero ?憛?*/
+/* 1. Hero ????*/
 .premium-hero {
   position: relative;
   height: auto;
@@ -333,7 +333,7 @@ option {
 .premium-hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  /* 雿輻擃釭??撖行?蝺湔?摮詨???*/
+  /* ?輯撒??謢寥?賹?????箸???株岳???*/
   background-image: url('https://images.unsplash.com/photo-1526676537331-7af2b2264585?q=80&w=1000&auto=format&fit=crop'); 
   background-size: cover;
   background-position: center 20%;
@@ -455,7 +455,7 @@ option {
   transform: scale(0.96);
 }
 
-/* 2. 銝縑隞駁? */
+/* 2. ??????? */
 .premium-trust-section {
   padding: 32px 24px;
   display: flex;
@@ -505,7 +505,7 @@ option {
   justify-content: center;
 }
 
-/* 3. ?????亙 */
+/* 3. ???????鈭 */
 .premium-sports-section {
   padding: 16px 24px 40px 24px;
 }
@@ -1036,32 +1036,161 @@ nextjs-portal,
 }
 
 
+
 /* ========================================= */
-/* ADMIN DESKTOP CONTAINER                   */
+/* HIGH DENSITY ADMIN DESKTOP OVERRIDES      */
 /* ========================================= */
 .admin-desktop-container {
   width: 100%;
   min-height: 100dvh;
-  margin: 0 auto;
+  margin: 0;
   background: var(--bg-primary);
+  display: flex;
+  flex-direction: row; /* Sidebar on left, main on right */
+}
+
+.admin-desktop-main {
+  flex: 1;
+  height: 100dvh;
+  overflow-y: auto;
   position: relative;
+  background: var(--bg-secondary);
+}
+
+/* Override inner constraints to use full width */
+.admin-desktop-container .content,
+.admin-desktop-container .admin-trust-center,
+.admin-desktop-container .admin-user-center,
+.admin-desktop-container .admin-settings-center {
+  max-width: 100%;
+  padding: 32px 40px !important;
   display: flex;
   flex-direction: column;
 }
 
-/* Adjust navigation behavior in admin desktop mode */
-.admin-desktop-container .bottom-nav {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
-  width: min(calc(100vw - 16px), 800px); /* wider on desktop */
+/* Fix title stacking */
+.admin-desktop-container .page-header {
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin-bottom: 24px !important;
 }
 
-/* Let the inner grid expand */
-.admin-desktop-container .content {
-  max-width: 1200px;
-  margin: 0 auto;
+.admin-desktop-container .header-content {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.admin-desktop-container .header-content h1 {
+  white-space: nowrap !important;
+  font-size: 24px !important;
+}
+
+/* Force grids to use more columns */
+.admin-desktop-container .admin-grid {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)) !important;
+  max-width: 100% !important;
+}
+
+.admin-desktop-container .settings-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+}
+
+.admin-desktop-container .form-group {
+  margin-bottom: 0 !important;
+}
+
+/* Table Expansion */
+.admin-desktop-container .table-wrapper {
+  width: 100% !important;
+  overflow-x: auto;
+}
+
+.admin-desktop-container table {
+  width: 100% !important;
+  min-width: 800px;
+}
+
+/* Hide Bottom Nav & Tab Controls that use flex-column */
+.admin-desktop-container .tab-control-wrapper {
+  max-width: 600px !important;
+  align-self: flex-end;
+}
+/* ========================================= */
+/* FIX DESKTOP TEXT WRAPPING & WIDTH ISSUES  */
+/* ========================================= */
+.admin-desktop-main {
+  min-width: 0; /* Fix flexbox blowout */
   width: 100%;
+}
+
+.admin-desktop-container h1, 
+.admin-desktop-container h2, 
+.admin-desktop-container h3, 
+.admin-desktop-container p {
+  white-space: nowrap !important;
+  text-align: left !important;
+}
+
+/* Let the content wrap naturally if it needs to, but headers shouldn't wrap into vertical letters */
+.admin-desktop-container .header-content div {
+  flex-shrink: 0;
+  min-width: max-content;
+}
+
+/* Fix Tables */
+.admin-desktop-container .table-container,
+.admin-desktop-container .table-wrapper {
+  width: 100% !important;
+  overflow-x: auto !important;
+}
+
+/* Override all dense tables to take up full width instead of fixed mobile widths */
+.admin-desktop-container table.dense-table {
+  width: 100% !important;
+  table-layout: auto !important; 
+}
+.admin-desktop-container table.dense-table th,
+.admin-desktop-container table.dense-table td {
+  white-space: nowrap !important;
+  padding: 16px !important;
+}
+
+/* Settings Cards to Grid */
+.admin-desktop-container .settings-section {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)) !important;
+  gap: 24px !important;
+}
+.admin-desktop-container .setting-card {
+  margin-bottom: 0 !important;
+  height: 100%;
+}
+
+/* Promotions/Notifications */
+.admin-desktop-container .promo-container,
+.admin-desktop-container .notifications-center {
+  max-width: 100% !important;
+  padding: 32px !important;
+}
+
+/* Remove bottom nav padding */
+.admin-desktop-container {
+  padding-bottom: 0 !important;
+}
+
+/* Fix Admin User Center Action Headers */
+.admin-desktop-container .header-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 16px !important;
+  width: 100% !important;
+  margin-top: 16px !important;
 }

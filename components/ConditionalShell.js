@@ -2,6 +2,7 @@
 import { usePathname } from 'next/navigation';
 
 import { useAdminMode } from '@/components/AdminModeContext';
+import AdminSidebar from '@/components/admin/AdminSidebar';
 
 const TASK_FLOW_ROUTES = [
   '/login',
@@ -33,13 +34,24 @@ export default function ConditionalShell({ children, header, navigation }) {
 
   let content;
 
-  if (isTaskFlowRoute(pathname)) {
+  if (isAdminDesktop) {
+    // Admin Desktop Layout
+    content = (
+      <>
+        <AdminSidebar />
+        <main className="admin-desktop-main">
+          {children}
+        </main>
+      </>
+    );
+  } else if (isTaskFlowRoute(pathname)) {
     // Single-task flow mode: no global header/nav, but keep a scroll container for long mobile forms.
     content = <main className="task-flow-content">{children}</main>;
   } else if (isStandaloneMobileRoute(pathname)) {
     // Full-screen mode: no global header, no padding, no duplicated nav
     content = <>{children}</>;
   } else {
+    // Normal mobile layout
     content = (
       <>
         {header}

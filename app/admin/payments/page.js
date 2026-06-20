@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -25,7 +25,7 @@ export default function AdminPaymentsPage() {
     try {
       const res = await fetch('/api/bookings');
       if (!res.ok) {
-        throw new Error('無法取得訂單資料');
+        throw new Error('?⊥???閮鞈?');
       }
 
       const data = await res.json();
@@ -35,7 +35,7 @@ export default function AdminPaymentsPage() {
       setBookings(pendingReceipts);
     } catch (error) {
       console.error('[ADMIN PAYMENTS FETCH ERROR]', error);
-      alert('無法取得付款審核列表');
+      alert('?⊥???隞狡撖拇?”');
     } finally {
       setLoading(false);
     }
@@ -93,11 +93,11 @@ export default function AdminPaymentsPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || '確認付款失敗');
+        throw new Error(data.error || '蝣箄?隞狡憭望?');
       }
       await fetchBookings();
     } catch (error) {
-      alert(error.message || '確認付款失敗');
+      alert(error.message || '蝣箄?隞狡憭望?');
     } finally {
       setConfirmingId(null);
     }
@@ -109,18 +109,18 @@ export default function AdminPaymentsPage() {
       const res1 = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'bank_code', value: settings.bank_code, description: '平台收款銀行代碼' })
+        body: JSON.stringify({ key: 'bank_code', value: settings.bank_code, description: '撟喳?嗆狡?銵誨蝣? })
       });
       const res2 = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'bank_account_number', value: settings.bank_account_number, description: '平台收款帳號' })
+        body: JSON.stringify({ key: 'bank_account_number', value: settings.bank_account_number, description: '撟喳?嗆狡撣唾?' })
       });
       
-      if (!res1.ok || !res2.ok) throw new Error('更新失敗');
-      alert('收款帳號已成功更新！');
+      if (!res1.ok || !res2.ok) throw new Error('?湔憭望?');
+      alert('?嗆狡撣唾?撌脫???堆?');
     } catch (error) {
-      alert(error.message || '更新失敗');
+      alert(error.message || '?湔憭望?');
     } finally {
       setSavingSettings(false);
     }
@@ -135,10 +135,10 @@ export default function AdminPaymentsPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: BG, padding: '24px 16px 96px' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div className="admin-payments-center promo-container" style={{ minHeight: '100vh', background: BG, padding: '24px 16px 96px' }}>
+      <div className="content-wrapper" style={{ margin: '0 auto' }}>
+        <header className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12 }}>
+          <div className="header-content" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button
               onClick={() => router.push('/dashboard/admin')}
               style={{ border: 'none', background: 'var(--color-surface)', width: 44, height: 44, borderRadius: 14, cursor: 'pointer', boxShadow: '0 2px 10px rgba(15,23,42,0.06)' }}
@@ -148,36 +148,35 @@ export default function AdminPaymentsPage() {
             <div>
               <h1 style={{ margin: 0, color: DARK, fontSize: 26, fontWeight: 900, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Wallet size={24} color={BLUE} />
-                訂單付款審核
+                閮隞狡撖拇
               </h1>
               <p style={{ margin: '6px 0 0', color: MUTED, fontSize: 13 }}>
-                檢查學員上傳的轉帳截圖，確認後將訂單切換為正式排程。
-              </p>
+                瑼Ｘ摮詨銝??撣單??蝣箄?敺?閮???箸迤撘?蝔?              </p>
             </div>
           </div>
         </header>
 
         {/* Bank Account Settings */}
         <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: 24, marginBottom: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.04)', border: '1px solid var(--color-border)' }}>
-          <h2 style={{ margin: '0 0 16px', color: DARK, fontSize: 16, fontWeight: 900 }}>設定學員匯款專用的平台收款帳號</h2>
+          <h2 style={{ margin: '0 0 16px', color: DARK, fontSize: 16, fontWeight: 900 }}>閮剖?摮詨?舀狡撠?像?唳甈曉董??/h2>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ flex: 1, minWidth: 200 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 800, color: MUTED }}>銀行代碼</label>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 800, color: MUTED }}>?銵誨蝣?/label>
               <input
                 type="text"
                 value={settings.bank_code}
                 onChange={(e) => setSettings({ ...settings, bank_code: e.target.value })}
-                placeholder="例如：013"
+                placeholder="靘?嚗?13"
                 style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 14, fontWeight: 700, color: DARK }}
               />
             </div>
             <div style={{ flex: 2, minWidth: 200 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 800, color: MUTED }}>銀行帳號</label>
+              <label style={{ display: 'block', marginBottom: 8, fontSize: 13, fontWeight: 800, color: MUTED }}>?銵董??/label>
               <input
                 type="text"
                 value={settings.bank_account_number}
                 onChange={(e) => setSettings({ ...settings, bank_account_number: e.target.value })}
-                placeholder="例如：0123-4567-8910"
+                placeholder="靘?嚗?123-4567-8910"
                 style={{ width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--color-border)', fontSize: 14, fontWeight: 700, color: DARK }}
               />
             </div>
@@ -199,16 +198,16 @@ export default function AdminPaymentsPage() {
               }}
             >
               {savingSettings ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-              儲存設定
+              ?脣?閮剖?
             </button>
           </div>
         </div>
 
         {bookings.length === 0 ? (
           <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: '48px 24px', textAlign: 'center', boxShadow: '0 6px 20px rgba(15,23,42,0.05)' }}>
-            <div style={{ fontSize: 42, marginBottom: 10 }}>🧾</div>
-            <div style={{ color: DARK, fontWeight: 900, fontSize: 18 }}>目前沒有待審核匯款</div>
-            <p style={{ color: MUTED, margin: '8px 0 0', fontSize: 13 }}>待付款且已上傳截圖的訂單會顯示在這裡。</p>
+            <div style={{ fontSize: 42, marginBottom: 10 }}>?屁</div>
+            <div style={{ color: DARK, fontWeight: 900, fontSize: 18 }}>?桀?瘝?敺祟?詨甈?/div>
+            <p style={{ color: MUTED, margin: '8px 0 0', fontSize: 13 }}>敺?甈曆?撌脖??單??閮?＊蝷箏?ㄐ??/p>
           </div>
         ) : (
           <div style={{ display: 'grid', gap: 16 }}>
@@ -228,14 +227,14 @@ export default function AdminPaymentsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <div style={{ display: 'grid', gap: 6 }}>
                     <div style={{ color: DARK, fontWeight: 900, fontSize: 16 }}>
-                      {booking.user_name || '學員'} {'->'} {booking.coach_name || '教練'}
+                      {booking.user_name || '摮詨'} {'->'} {booking.coach_name || '?毀'}
                     </div>
-                    <div style={{ color: MUTED, fontSize: 12 }}>訂單 #{booking.id.slice(0, 8)}</div>
+                    <div style={{ color: MUTED, fontSize: 12 }}>閮 #{booking.id.slice(0, 8)}</div>
                     <div style={{ color: MUTED, fontSize: 12 }}>
-                      上課時間：{booking.expected_time ? new Date(booking.expected_time).toLocaleString('zh-TW') : '未設定'}
+                      銝玨??嚗booking.expected_time ? new Date(booking.expected_time).toLocaleString('zh-TW') : '?芾身摰?}
                     </div>
                     <div style={{ color: DARK, fontSize: 14, fontWeight: 800 }}>
-                      訂單金額：NT${booking.final_price?.toLocaleString() ?? '--'}
+                      閮??嚗T${booking.final_price?.toLocaleString() ?? '--'}
                     </div>
                   </div>
 
@@ -260,8 +259,7 @@ export default function AdminPaymentsPage() {
                     }}
                   >
                     {confirmingId === booking.id ? <Loader2 className="animate-spin" size={16} /> : <CheckCircle2 size={16} />}
-                    確認已收款
-                  </button>
+                    蝣箄?撌脫甈?                  </button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 320px) 1fr', gap: 16, alignItems: 'start' }}>
@@ -279,17 +277,17 @@ export default function AdminPaymentsPage() {
                   >
                     <img
                       src={booking.payment_reference}
-                      alt="付款截圖"
+                      alt="隞狡?芸?"
                       style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }}
                     />
                   </a>
 
                   <div style={{ display: 'grid', gap: 10 }}>
                     <div style={{ background: 'var(--color-bg)', borderRadius: 18, padding: 16, color: DARK, fontSize: 13, lineHeight: 1.6 }}>
-                      <div style={{ fontWeight: 900, marginBottom: 8 }}>審核重點</div>
-                      <div>1. 確認截圖金額與訂單金額一致。</div>
-                      <div>2. 確認匯款時間仍在保留時段內。</div>
-                      <div>3. 確認收款帳戶與平台設定一致。</div>
+                      <div style={{ fontWeight: 900, marginBottom: 8 }}>撖拇??</div>
+                      <div>1. 蝣箄??芸??????桅?憿??氬?/div>
+                      <div>2. 蝣箄??舀狡??隞靽??挾?扼?/div>
+                      <div>3. 蝣箄??嗆狡撣單?像?啗身摰??氬?/div>
                     </div>
 
                     <a
@@ -299,7 +297,7 @@ export default function AdminPaymentsPage() {
                       style={{ display: 'inline-flex', alignItems: 'center', gap: 8, color: BLUE, fontWeight: 800, textDecoration: 'none' }}
                     >
                       <ExternalLink size={16} />
-                      開啟原始截圖
+                      ?????芸?
                     </a>
                   </div>
                 </div>
@@ -311,21 +309,19 @@ export default function AdminPaymentsPage() {
         {/* Topup History Section */}
         <div style={{ marginTop: 40 }}>
           <h2 style={{ fontSize: 18, fontWeight: 900, color: DARK, display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            📝 客服手動發點 / 儲值紀錄
-          </h2>
+            ?? 摰Ｘ????潮? / ?脣潛???          </h2>
           {topupHistory.length === 0 ? (
             <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: '48px 24px', textAlign: 'center', boxShadow: '0 6px 20px rgba(15,23,42,0.05)', color: MUTED }}>
-              目前沒有發點紀錄
-            </div>
+              ?桀?瘝??潮?蝝??            </div>
           ) : (
             <div style={{ background: 'var(--color-surface)', borderRadius: 24, padding: 24, boxShadow: '0 4px 16px rgba(15,23,42,0.04)', border: '1px solid var(--color-border)', overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: 600, borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>時間</th>
-                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>學員</th>
-                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>發放額度</th>
-                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>備註 / 原因</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>??</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>摮詨</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>?潭憿漲</th>
+                    <th style={{ padding: '12px 16px', color: MUTED, fontWeight: 800, fontSize: 13 }}>?酉 / ??</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -338,8 +334,7 @@ export default function AdminPaymentsPage() {
                         {history.student_name}
                       </td>
                       <td style={{ padding: '16px', fontSize: 15, color: '#10B981', fontWeight: 900 }}>
-                        +{history.amount} 點
-                      </td>
+                        +{history.amount} 暺?                      </td>
                       <td style={{ padding: '16px', fontSize: 14, color: MUTED }}>
                         {history.description || '-'}
                       </td>
@@ -355,3 +350,4 @@ export default function AdminPaymentsPage() {
     </div>
   );
 }
+
