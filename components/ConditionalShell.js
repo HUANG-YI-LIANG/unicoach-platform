@@ -1,6 +1,8 @@
 'use client';
 import { usePathname } from 'next/navigation';
 
+import { useAdminMode } from '@/components/AdminModeContext';
+
 const TASK_FLOW_ROUTES = [
   '/login',
   '/register',
@@ -19,27 +21,37 @@ const isTaskFlowRoute = (pathname) => TASK_FLOW_ROUTES.some((route) => pathname 
 const isStandaloneMobileRoute = (pathname) => (
   isChatRoomRoute(pathname) || isCoachDetailRoute(pathname) || pathname === '/ambassador' || pathname?.startsWith('/ambassador/') || pathname === '/seed'
 );
+const isAdminRoute = (pathname) => pathname === '/dashboard/admin' || pathname?.startsWith('/dashboard/admin/');
 
 // Wraps children in the global shell (header + padded main + nav-space)
 // OR renders children bare on standalone mobile pages.
 export default function ConditionalShell({ children, header, navigation }) {
   const pathname = usePathname();
+  const { isDesktopMode } = useAdminMode();
+
+  const isAdminDesktop = isAdminRoute(pathname) && isDesktopMode;
+
+  let content;
 
   if (isTaskFlowRoute(pathname)) {
     // Single-task flow mode: no global header/nav, but keep a scroll container for long mobile forms.
-    return <main className="task-flow-content">{children}</main>;
-  }
-
-  if (isStandaloneMobileRoute(pathname)) {
+    content = <main className="task-flow-content">{children}</main>;
+  } else if (isStandaloneMobileRoute(pathname)) {
     // Full-screen mode: no global header, no padding, no duplicated nav
-    return <>{children}</>;
+    content = <>{children}</>;
+  } else {
+    content = (
+      <>
+        {header}
+        <main className="content">{children}</main>
+        {navigation}
+      </>
+    );
   }
 
   return (
-    <>
-      {header}
-      <main className="content">{children}</main>
-      {navigation}
-    </>
+    <div className={isAdminDesktop ? 'admin-desktop-container' : 'mobile-container'}>
+      {content}
+    </div>
   );
 }

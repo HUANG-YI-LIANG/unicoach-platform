@@ -1035,3 +1035,33 @@ nextjs-portal,
   margin-top: 24px;
 }
 
+
+/* ========================================= */
+/* ADMIN DESKTOP CONTAINER                   */
+/* ========================================= */
+.admin-desktop-container {
+  width: 100%;
+  min-height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg-primary);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Adjust navigation behavior in admin desktop mode */
+.admin-desktop-container .bottom-nav {
+  position: fixed;
+  bottom: env(safe-area-inset-bottom, 0px);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+  width: min(calc(100vw - 16px), 800px); /* wider on desktop */
+}
+
+/* Let the inner grid expand */
+.admin-desktop-container .content {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}

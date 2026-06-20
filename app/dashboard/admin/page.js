@@ -7,6 +7,8 @@ import {
   ShieldCheck, ArrowRight, Activity, Settings, Wallet, Receipt, LogOut, MessageSquare, Users
 } from 'lucide-react';
 
+import { useAdminMode } from '@/components/AdminModeContext';
+
 const BLUE = 'var(--color-primary)';
 const DARK = 'var(--color-text)';
 const MUTED = 'var(--color-text-muted)';
@@ -19,6 +21,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { logout } = useAuth();
+  const { isDesktopMode, toggleDesktopMode } = useAdminMode();
 
   useEffect(() => {
     Promise.all([
@@ -48,27 +51,50 @@ export default function AdminDashboard() {
     <div style={{ padding: '16px', marginTop: '-16px', position: 'relative', zIndex: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
         <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800, color: DARK }}>管理員中心</h1>
-        <button
-          onClick={logout}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '8px 16px',
-            background: '#FEE2E2',
-            color: '#DC2626',
-            border: 'none',
-            borderRadius: '8px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseOver={e => e.currentTarget.style.background = '#FECACA'}
-          onMouseOut={e => e.currentTarget.style.background = '#FEE2E2'}
-        >
-          <LogOut size={18} />
-          登出
-        </button>
+        
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={toggleDesktopMode}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 12px',
+              background: 'var(--color-surface)',
+              color: 'var(--color-primary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontSize: '14px'
+            }}
+          >
+            {isDesktopMode ? '📱 手機版' : '🖥️ 電腦版'}
+          </button>
+
+          <button
+            onClick={logout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              background: '#FEE2E2',
+              color: '#DC2626',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseOver={e => e.currentTarget.style.background = '#FECACA'}
+            onMouseOut={e => e.currentTarget.style.background = '#FEE2E2'}
+          >
+            <LogOut size={18} />
+            <span style={{ display: isDesktopMode ? 'inline' : 'none' }}>登出</span>
+          </button>
+        </div>
       </div>
 
       {/* -- Admin Management Center -- */}

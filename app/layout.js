@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import ConditionalShell from '@/components/ConditionalShell';
 import SupportChatWidget from '@/components/SupportChatWidget';
 import { ThemeProvider } from '@/components/ThemeProvider';
+import { AdminModeProvider } from '@/components/AdminModeContext';
 import { Suspense } from 'react';
 import { Toaster } from 'react-hot-toast';
 
@@ -51,7 +52,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ThemeProvider>
-          <div className="mobile-container">
+          <AdminModeProvider>
             <AuthProvider initialSession={session}>
               <ConditionalShell header={headerEl} navigation={navigationEl}>
                 <Suspense fallback={null}>
@@ -61,7 +62,7 @@ export default function RootLayout({ children }) {
               <SupportChatWidget />
               <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
             </AuthProvider>
-          </div>
+          </AdminModeProvider>
         </ThemeProvider>
       </body>
     </html>
