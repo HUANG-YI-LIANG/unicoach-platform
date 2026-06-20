@@ -6,6 +6,7 @@ import { useState } from 'react';
 export default function DownloadAppPage() {
   const router = useRouter();
   const [showIosGuide, setShowIosGuide] = useState(false);
+  const [showAndroidGuide, setShowAndroidGuide] = useState(false);
 
   return (
     <div style={{
@@ -115,7 +116,7 @@ export default function DownloadAppPage() {
           </button>
 
           <button 
-            onClick={() => alert('Android 系統請點擊瀏覽器右上角的「三個點」，選擇「加到主畫面」即可安裝！')}
+            onClick={() => setShowAndroidGuide(true)}
             style={{
               width: '100%',
               background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
@@ -221,6 +222,80 @@ export default function DownloadAppPage() {
               style={{
                 width: '100%',
                 background: '#FF8A3D',
+                border: 'none',
+                borderRadius: '100px',
+                padding: '16px',
+                color: '#FFF',
+                fontSize: '16px',
+                fontWeight: 800,
+                marginTop: '32px',
+                cursor: 'pointer'
+              }}
+            >
+              我知道了
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Android 安裝教學 Modal */}
+      {showAndroidGuide && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          zIndex: 99999,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: '#1A1A1A',
+            width: '100%',
+            borderTopLeftRadius: '24px',
+            borderTopRightRadius: '24px',
+            padding: '32px 24px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            position: 'relative'
+          }}>
+            <button 
+              onClick={() => setShowAndroidGuide(false)}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: '#999', cursor: 'pointer' }}
+            >
+              <X size={24} />
+            </button>
+            
+            <h2 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '24px', color: '#FFF' }}>如何安裝 Android App？</h2>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#2A2A2A', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#FFF' }}>⋮</span>
+                </div>
+                <div style={{ flex: 1, fontSize: '15px', color: '#DDD', lineHeight: 1.5 }}>
+                  1. 點擊瀏覽器右上角的<br/>「<strong style={{color:'#FFF'}}>三個點 (選單)</strong>」
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', background: '#2A2A2A', padding: '16px', borderRadius: '12px' }}>
+                <div style={{ width: '40px', height: '40px', background: '#333', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PlusSquare size={20} color="#FFF" />
+                </div>
+                <div style={{ flex: 1, fontSize: '15px', color: '#DDD', lineHeight: 1.5 }}>
+                  2. 選擇列表中的<br/>「<strong style={{color:'#FFF'}}>加到主畫面</strong>」或「<strong style={{color:'#FFF'}}>安裝應用程式</strong>」
+                </div>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setShowAndroidGuide(false)}
+              style={{
+                width: '100%',
+                background: '#3B82F6',
                 border: 'none',
                 borderRadius: '100px',
                 padding: '16px',
