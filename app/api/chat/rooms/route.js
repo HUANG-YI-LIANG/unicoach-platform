@@ -181,11 +181,11 @@ export async function POST(request) {
       }
     }
 
-    const chatRoomInsert = buildChatRoomInsert({ studentId, coachId: coachIdFinal });
     const { data: existing, error: existingError } = await adminSupabase
       .from('chat_rooms')
       .select('id')
-      .eq('pair_key', chatRoomInsert.pair_key)
+      .eq('user_id', studentId)
+      .eq('coach_id', coachIdFinal)
       .maybeSingle();
 
     if (existingError) throw existingError;
@@ -193,24 +193,25 @@ export async function POST(request) {
       return NextResponse.json({ success: true, roomId: existing.id, coachId: coachIdFinal });
     }
 
-    const { data: newRoom, error: upsertError } = await adminSupabase
+    const { data: newRoom, error: insertError } = await adminSupabase
       .from('chat_rooms')
-      .upsert(chatRoomInsert, buildChatRoomUpsertOptions())
+      .insert({ user_id: studentId, coach_id: coachIdFinal })
       .select('id')
       .single();
 
-    if (upsertError) {
-      if (isDuplicateChatRoomError(upsertError)) {
+    if (insertError) {
+      if (isDuplicateChatRoomError(insertError)) {
         const { data: fallbackRoom, error: fallbackError } = await adminSupabase
           .from('chat_rooms')
           .select('id')
-          .eq('pair_key', chatRoomInsert.pair_key)
+          .eq('user_id', studentId)
+          .eq('coach_id', coachIdFinal)
           .single();
 
         if (fallbackError) throw fallbackError;
         return NextResponse.json({ success: true, roomId: fallbackRoom.id, coachId: coachIdFinal });
       }
-      throw upsertError;
+      throw insertError;
     }
 
     return NextResponse.json({ success: true, roomId: newRoom.id, coachId: coachIdFinal });

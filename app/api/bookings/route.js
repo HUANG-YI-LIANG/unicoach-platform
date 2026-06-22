@@ -311,35 +311,55 @@ function getServiceBasePrice(service, servicePriceType) {
 
 async function syncBookingChatRoom(adminSupabase, { userId, coachId, bookingId }) {
   try {
-    const chatRoomInsert = buildChatRoomInsert({ studentId: userId, coachId });
-
-    const { data: room, error } = await adminSupabase
+    const { data: existingRoom, error: existingError } = await adminSupabase
       .from('chat_rooms')
-      .upsert(
-        { ...chatRoomInsert, booking_id: bookingId },
-        buildChatRoomUpsertOptions()
-      )
       .select('id')
-      .single();
+      .eq('user_id', userId)
+      .eq('coach_id', coachId)
+      .maybeSingle();
 
-    if (error) {
-      if (isDuplicateChatRoomError(error)) {
-        const { data: existingRoom, error: existingError } = await adminSupabase
-          .from('chat_rooms')
-          .select('id')
-          .eq('pair_key', chatRoomInsert.pair_key)
-          .single();
-        if (existingError) throw existingError;
-        await adminSupabase
-          .from('chat_rooms')
-          .update({ booking_id: bookingId })
-          .eq('id', existingRoom.id);
-        return;
+    if (existingError) throw existingError;
+
+    let roomId;
+    if (existingRoom) {
+      roomId = existingRoom.id;
+      await adminSupabase
+        .from('chat_rooms')
+        .update({ booking_id: bookingId })
+        .eq('id', roomId);
+    } else {
+      const { data: newRoom, error: insertError } = await adminSupabase
+        .from('chat_rooms')
+        .insert({ user_id: userId, coach_id: coachId, booking_id: bookingId })
+        .select('id')
+        .single();
+
+      if (insertError) {
+        if (isDuplicateChatRoomError(insertError)) {
+          const { data: fallbackRoom } = await adminSupabase
+            .from('chat_rooms')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('coach_id', coachId)
+            .single();
+          if (fallbackRoom) {
+            roomId = fallbackRoom.id;
+            await adminSupabase
+              .from('chat_rooms')
+              .update({ booking_id: bookingId })
+              .eq('id', roomId);
+          }
+        } else {
+          throw insertError;
+        }
+      } else {
+        roomId = newRoom?.id;
       }
-      throw error;
     }
 
-    console.info(`[AUTO-CHAT] Synced room ${maskIdentifier(room.id)} for booking ${maskIdentifier(bookingId)}`);
+    if (roomId) {
+      console.info(`[AUTO-CHAT] Synced room ${maskIdentifier(roomId)} for booking ${maskIdentifier(bookingId)}`);
+    }
   } catch (chatErr) {
     console.error('[AUTO-CHAT ERROR] Failed to sync chat room:', safeErrorDetails(chatErr));
   }
