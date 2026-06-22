@@ -362,10 +362,10 @@ export default function ChatRoomPage({ params }) {
             </button>
           ) : (
             <button 
-              onClick={() => router.push(`/coaches/${room?.coach_id}`)}
+              onClick={() => router.push(`/coaches/${room?.coach_id}#coach-plans`)}
               style={{ width: '100%', padding: '10px', background: ORANGE, color: 'var(--text-light)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' }}
             >
-              談妥了嗎？前往教練首頁選課
+              談妥了嗎？查看可預約時間
             </button>
           )}
         </div>

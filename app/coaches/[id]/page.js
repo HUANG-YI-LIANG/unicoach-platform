@@ -48,6 +48,17 @@ export default function CoachDetailPage({ params }) {
       .finally(() => setLoading(false));
   }, [id]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#coach-plans') {
+      setTimeout(() => {
+        const plansSection = document.getElementById('coach-plans');
+        if (plansSection) {
+          plansSection.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, []);
+
   async function handleChat() {
     if (!coach) return;
     setChatting(true);
@@ -69,8 +80,10 @@ export default function CoachDetailPage({ params }) {
   }
 
   function handleViewAvailability() {
-    if (typeof document === 'undefined') return;
-    document.getElementById('booking-guidance')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const plansSection = document.getElementById('coach-plans');
+    if (plansSection) {
+      plansSection.scrollIntoView({ behavior: 'smooth' });
+    }
   }
 
   if (loading) {
