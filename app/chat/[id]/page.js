@@ -199,7 +199,7 @@ export default function ChatRoomPage({ params }) {
   const isCoach = currentUser?.role === 'coach';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: BG, color: TEXT_LIGHT }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: BG, color: TEXT_LIGHT }}>
       <div
         style={{
           display: 'flex',
@@ -208,8 +208,7 @@ export default function ChatRoomPage({ params }) {
           padding: '10px 16px',
           background: 'var(--color-surface)',
           borderBottom: `1px solid ${BORDER}`,
-          position: 'sticky',
-          top: 0,
+          zIndex: 10,
           boxShadow: 'var(--shadow-sm, 0 4px 10px rgba(0,0,0,0.05))',
         }}
       >
