@@ -80,9 +80,16 @@ export default function CoachDetailPage({ params }) {
   }
 
   function handleViewAvailability() {
-    const plansSection = document.getElementById('coach-plans');
-    if (plansSection) {
-      plansSection.scrollIntoView({ behavior: 'smooth' });
+    if (planOptions.length === 1) {
+      router.push(`/book/${id}?service=${planOptions[0].id}`);
+    } else if (planOptions.length > 1) {
+      alert('請先選擇下方的課程方案，系統將為您顯示對應的可預約時間！');
+      const plansSection = document.getElementById('coach-plans');
+      if (plansSection) {
+        plansSection.scrollIntoView({ behavior: 'smooth' });
+      }
+    } else {
+      alert('教練尚未設定課程方案');
     }
   }
 
