@@ -80,17 +80,12 @@ export default function CoachDetailPage({ params }) {
   }
 
   function handleViewAvailability() {
-    if (planOptions.length === 1) {
-      router.push(`/book/${id}?service=${planOptions[0].id}`);
-    } else if (planOptions.length > 1) {
-      alert('請先選擇下方的課程方案，系統將為您顯示對應的可預約時間！');
-      const plansSection = document.getElementById('coach-plans');
-      if (plansSection) {
-        plansSection.scrollIntoView({ behavior: 'smooth' });
-      }
-    } else {
-      alert('教練尚未設定課程方案');
+    if (!coach?.primary_service_id) {
+      alert('教練尚未發布正式服務，無法預約！');
+      return;
     }
+    // Always route directly to the actual booking page using the primary_service_id
+    router.push(`/book/${id}?service=${coach.primary_service_id}`);
   }
 
   if (loading) {
@@ -529,7 +524,13 @@ export default function CoachDetailPage({ params }) {
           ) : (
             <div className="plans-grid">
               {planOptions.map(plan => (
-                <div key={plan.id} className="plan-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/service/${plan.id}`)}>
+                <div key={plan.id} className="plan-card" style={{ cursor: 'pointer' }} onClick={() => {
+                  if (!coach?.primary_service_id) {
+                    alert('教練尚未發布正式服務，無法預約！');
+                    return;
+                  }
+                  router.push(`/book/${id}?service=${coach.primary_service_id}`);
+                }}>
                   <div>
                     <h3 className="plan-title">{plan.title}</h3>
                     <p className="plan-meta">{plan.duration_minutes} 分鐘</p>

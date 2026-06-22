@@ -112,6 +112,15 @@ export async function GET(_request, { params }) {
       throw planError;
     }
 
+    // Fetch primary service ID to fix booking routing
+    const { data: services } = await adminSupabase
+      .from('coach_services')
+      .select('id, coach_profiles!inner(user_id)')
+      .eq('coach_profiles.user_id', id)
+      .eq('is_active', true)
+      .limit(1);
+    const primaryServiceId = services?.[0]?.id || null;
+
     const activePlans = getFormalActivePlans(coachPlans || []);
     const formalAvailabilityRules = getFormalActiveAvailabilityRules(availabilityRules || []);
     const saleability = getCoachSaleability({
@@ -170,6 +179,7 @@ export async function GET(_request, { params }) {
       plan_options: planOptions,
       plan_count: planOptions.length,
       min_price: planOptions.length ? Math.min(...planOptions.map((plan) => plan.price)) : null,
+      primary_service_id: primaryServiceId,
     };
 
     const formattedReviews = (reviews || []).map((review) => ({
