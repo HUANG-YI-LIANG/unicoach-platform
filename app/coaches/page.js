@@ -2,6 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Search, MapPin, Star, ChevronRight } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
@@ -184,12 +185,12 @@ function DiscoverFeed() {
 
                   {/* Layer 4: Strong CTAs */}
                   <div className="feed-actions">
-                    <button className="btn-secondary btn-press" onClick={() => router.push(`/coaches/${coachId}`)}>
+                    <Link href={`/coaches/${coachId}`} prefetch={true} className="btn-secondary btn-press" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       查看教練
-                    </button>
-                    <button className="btn-primary btn-press" onClick={() => router.push(`/chat?with=${coachId}`)}>
+                    </Link>
+                    <Link href={`/chat?with=${coachId}`} prefetch={true} className="btn-primary btn-press" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       先問教練 <ChevronRight size={18} />
-                    </button>
+                    </Link>
                   </div>
                 </div>
               </div>

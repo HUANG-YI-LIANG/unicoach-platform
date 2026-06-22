@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ChevronLeft, MapPin, MessageCircle, Star, Video, BookOpen, ShieldCheck, DollarSign, Zap, FileDigit, Calendar, User } from 'lucide-react';
 import VideoGallery from '@/components/VideoGallery';
 
@@ -29,22 +30,53 @@ export default function CoachDetailPage({ params }) {
   const [coach, setCoach] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [videos, setVideos] = useState([]);
-  const [bookings, setBookings] = useState([]);
+  const [planOptions, setPlanOptions] = useState([]);
+  const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [chatting, setChatting] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    if (!id) return;
+    
+    // Quick cache check
+    const cacheKey = `coach_profile_${id}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setCoach(parsed.coach);
+        setPlanOptions(parsed.plans);
+        setReviews(parsed.reviews);
+        setVideos(parsed.videos);
+        setMetrics(parsed.metrics);
+        setLoading(false);
+      } catch (e) {
+        console.error('Cache parsing failed', e);
+      }
+    }
+
+    // Always fetch latest in background (or foreground if no cache)
     fetch(`/api/coaches/${id}`)
-      .then((res) => res.json())
-      .then((payload) => {
-        if (payload?.coach) {
-          setCoach(payload.coach);
-          setReviews(payload.reviews || []);
-          setVideos(payload.videos || []);
-          setBookings(payload.bookings || []);
+      .then(r => r.json())
+      .then(d => {
+        if (!d.error && d.coach) {
+          setCoach(d.coach);
+          setPlanOptions(d.coach.plan_options || []);
+          setReviews(d.reviews || []);
+          setVideos(d.videos || []);
+          setMetrics(d.metrics || null);
+          
+          // Update cache
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            coach: d.coach,
+            plans: d.coach.plan_options || [],
+            reviews: d.reviews || [],
+            videos: d.videos || [],
+            metrics: d.metrics || null
+          }));
         }
       })
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -77,15 +109,6 @@ export default function CoachDetailPage({ params }) {
     } finally {
       setChatting(false);
     }
-  }
-
-  function handleViewAvailability() {
-    if (!coach?.primary_service_id) {
-      alert('教練尚未發布正式服務，無法預約！');
-      return;
-    }
-    // Always route directly to the actual booking page using the primary_service_id
-    router.push(`/book/${id}?service=${coach.primary_service_id}`);
   }
 
   if (loading) {
@@ -524,19 +547,13 @@ export default function CoachDetailPage({ params }) {
           ) : (
             <div className="plans-grid">
               {planOptions.map(plan => (
-                <div key={plan.id} className="plan-card" style={{ cursor: 'pointer' }} onClick={() => {
-                  if (!coach?.primary_service_id) {
-                    alert('教練尚未發布正式服務，無法預約！');
-                    return;
-                  }
-                  router.push(`/book/${id}?service=${coach.primary_service_id}`);
-                }}>
+                <Link key={plan.id} href={`/book/${id}?service=${coach.primary_service_id || ''}`} prefetch={true} className="plan-card" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <h3 className="plan-title">{plan.title}</h3>
                     <p className="plan-meta">{plan.duration_minutes} 分鐘</p>
                   </div>
                   <div className="plan-price">${plan.price}</div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -551,10 +568,17 @@ export default function CoachDetailPage({ params }) {
             <MessageCircle size={20} />
             <span>{chatting ? '開啟中...' : '先問教練'}</span>
           </button>
-          <button className="btn-book-primary btn-press" onClick={handleViewAvailability}>
-            <Calendar size={18} />
-            查看可預約時間
-          </button>
+          {coach.primary_service_id ? (
+            <Link href={`/book/${id}?service=${coach.primary_service_id}`} prefetch={true} className="btn-book-primary btn-press" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calendar size={18} />
+              查看可預約時間
+            </Link>
+          ) : (
+            <button className="btn-book-primary btn-press" onClick={() => alert('教練尚未發布正式服務，無法預約！')}>
+              <Calendar size={18} />
+              查看可預約時間
+            </button>
+          )}
         </div>
       </div>
       
