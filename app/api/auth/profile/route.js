@@ -115,11 +115,20 @@ export async function GET(request) {
     const totalDiscount = clampDiscountPercent(baseDiscount + (activeCoupon ? activeCoupon.discount : 0));
 
     // 5. 計算註冊順序 (registration_number)
-    const { count: regCount } = await adminSupabase
-      .from('users')
-      .select('id', { count: 'exact', head: true })
-      .eq('role', user.role)
-      .lte('created_at', user.created_at || new Date().toISOString());
+    let regCount = 1;
+    try {
+      const { count, error: countError } = await adminSupabase
+        .from('users')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', user.role || 'user')
+        .lte('created_at', user.created_at || new Date().toISOString());
+      
+      if (!countError) {
+        regCount = count || 1;
+      }
+    } catch (err) {
+      console.error('Registration count error:', err);
+    }
 
     return NextResponse.json({ 
       profile: { 
