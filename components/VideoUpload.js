@@ -39,7 +39,12 @@ export default function VideoUpload() {
       const res = await fetch('/api/videos/upload');
       if (res.ok) {
         const data = await res.json();
-        setVideos(data.videos || []);
+        let parsedVideos = data.videos || [];
+        if (typeof parsedVideos === 'string') {
+          try { parsedVideos = JSON.parse(parsedVideos); } catch(e) { parsedVideos = []; }
+        }
+        if (!Array.isArray(parsedVideos)) parsedVideos = [];
+        setVideos(parsedVideos);
         if (data.limits) setLimits(data.limits);
       }
     } catch (err) {

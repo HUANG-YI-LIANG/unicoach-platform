@@ -28,7 +28,11 @@ export async function DELETE(request) {
 
     if (fetchError) throw fetchError;
 
-    const currentPhotos = coachData.photos || [];
+    let currentPhotos = coachData.photos || [];
+    if (typeof currentPhotos === 'string') {
+      try { currentPhotos = JSON.parse(currentPhotos); } catch(e) { currentPhotos = []; }
+    }
+    if (!Array.isArray(currentPhotos)) currentPhotos = [];
     const photoToDelete = currentPhotos.find(p => p.id === id);
 
     if (!photoToDelete) {

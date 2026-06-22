@@ -46,7 +46,11 @@ export async function POST(request) {
 
     if (fetchError) throw fetchError;
 
-    const currentPhotos = coachData.photos || [];
+    let currentPhotos = coachData.photos || [];
+    if (typeof currentPhotos === 'string') {
+      try { currentPhotos = JSON.parse(currentPhotos); } catch(e) { currentPhotos = []; }
+    }
+    if (!Array.isArray(currentPhotos)) currentPhotos = [];
 
     if (currentPhotos.length >= maxPhotos) {
       return NextResponse.json({ error: `照片數量已達上限 (${maxPhotos} 張)。提升教練等級或聯繫客服擴充容量。` }, { status: 400 });
@@ -112,8 +116,14 @@ export async function GET(request) {
 
     if (error) throw error;
 
+    let parsedPhotos = coachData.photos || [];
+    if (typeof parsedPhotos === 'string') {
+      try { parsedPhotos = JSON.parse(parsedPhotos); } catch(e) { parsedPhotos = []; }
+    }
+    if (!Array.isArray(parsedPhotos)) parsedPhotos = [];
+
     return NextResponse.json({ 
-      photos: coachData.photos || [],
+      photos: parsedPhotos,
       limits
     });
   } catch (err) {

@@ -27,7 +27,12 @@ export default function PhotoUpload() {
       const res = await fetch('/api/photos/upload');
       if (res.ok) {
         const data = await res.json();
-        setPhotos(data.photos || []);
+        let parsedPhotos = data.photos || [];
+        if (typeof parsedPhotos === 'string') {
+          try { parsedPhotos = JSON.parse(parsedPhotos); } catch(e) { parsedPhotos = []; }
+        }
+        if (!Array.isArray(parsedPhotos)) parsedPhotos = [];
+        setPhotos(parsedPhotos);
         if (data.limits) setLimits(data.limits);
       }
     } catch (err) {
