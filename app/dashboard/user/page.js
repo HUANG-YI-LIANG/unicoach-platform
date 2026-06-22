@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Bell, ChevronRight, ChevronDown, Apple, Search, 
-  Calendar, Wallet, Settings, Dumbbell, Star, Smartphone
+  Calendar, Wallet, Settings, Dumbbell, Star, Smartphone, MessageCircle
 } from 'lucide-react';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
@@ -162,6 +162,27 @@ export default function UserDashboard() {
             <Settings className="quick-action-icon" />
             <span className="quick-action-text">個人檔案</span>
           </div>
+        </div>
+
+        {/* 儲值提示 Banner */}
+        <div 
+          onClick={() => router.push('/chat')}
+          style={{ 
+            marginTop: 16, marginBottom: 24, padding: '14px 16px', 
+            background: 'rgba(255, 138, 61, 0.1)', borderRadius: 16, 
+            border: '1px solid rgba(255, 138, 61, 0.25)', 
+            display: 'flex', alignItems: 'center', gap: 14, 
+            cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          }}
+        >
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(255, 138, 61, 0.4)' }}>
+            <MessageCircle size={18} color="#fff" />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 3 }}>需要儲值點數嗎？</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>點擊這裡，或右下角的客服按鈕，<br/>由專人為您服務。</div>
+          </div>
+          <ChevronRight size={18} color="var(--accent)" style={{ marginLeft: 'auto' }} />
         </div>
 
         {/* ACCORDION SECTIONS */}
