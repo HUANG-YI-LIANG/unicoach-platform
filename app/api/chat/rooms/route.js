@@ -56,7 +56,7 @@ async function resolveCoachUserId(adminSupabase, rawId) {
     .or(`id.eq.${candidateId},user_id.eq.${candidateId}`)
     .maybeSingle();
 
-  if (profileError && profileError.code !== 'PGRST116') throw profileError;
+  if (profileError && profileError.code !== 'PGRST116' && profileError.code !== '42P01') throw profileError;
 
   if (profile) {
     if (profile.verification_status !== 'approved') {
@@ -73,9 +73,6 @@ async function resolveCoachUserId(adminSupabase, rawId) {
     .maybeSingle();
 
   if (userError && userError.code !== 'PGRST116') throw userError;
-  if (coachUser?.role === 'coach') {
-    return { ok: true, coachId: coachUser.id, resolvedFrom: 'users.id' };
-  }
 
   const { data: legacyCoach, error: coachError } = await adminSupabase
     .from('coaches')
@@ -84,11 +81,12 @@ async function resolveCoachUserId(adminSupabase, rawId) {
     .maybeSingle();
 
   if (coachError && coachError.code !== 'PGRST116') throw coachError;
-  if (legacyCoach) {
-    if (legacyCoach.approval_status !== 'approved') {
+  
+  if (legacyCoach || coachUser?.role === 'coach') {
+    if (legacyCoach && legacyCoach.approval_status !== 'approved') {
       return { ok: false, status: 403, error: '該教練尚未開放聊天' };
     }
-    return { ok: true, coachId: legacyCoach.user_id, resolvedFrom: 'coaches.user_id' };
+    return { ok: true, coachId: candidateId, resolvedFrom: 'coaches.user_id' };
   }
 
   return { ok: false, status: 404, error: '找不到該教練' };
