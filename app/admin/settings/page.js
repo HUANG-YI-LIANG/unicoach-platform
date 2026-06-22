@@ -117,20 +117,24 @@ export default function AdminSettings() {
     setMissionModal({ isOpen: false, type: null, idx: null, data: {} });
   };
 
-  const openPerksBuilder = (type, idx, currentPerks) => {
+  const openPerksBuilder = (type, idx, tier) => {
     setPerksModal({
       isOpen: true,
       type,
       idx,
-      data: Array.isArray(currentPerks) ? [...currentPerks] : []
+      data: Array.isArray(tier.perks) ? [...tier.perks] : [],
+      max_videos: tier.max_videos || 3,
+      max_photos: tier.max_photos || 5
     });
   };
 
   const savePerksBuilder = () => {
-    const { type, idx, data } = perksModal;
+    const { type, idx, data, max_videos, max_photos } = perksModal;
     const newSettings = { ...settings };
     if (type === 'coach') {
       newSettings.coach_tier_rates[idx].perks = data;
+      newSettings.coach_tier_rates[idx].max_videos = max_videos;
+      newSettings.coach_tier_rates[idx].max_photos = max_photos;
     } else {
       newSettings.user_tier_discounts[idx].perks = data;
     }
@@ -239,7 +243,7 @@ export default function AdminSettings() {
               <button 
                 onClick={() => setSettings(prev => ({ 
                   ...prev, 
-                  coach_tier_rates: [...prev.coach_tier_rates, { level: prev.coach_tier_rates.length + 1, rate: 30, requirement: {} }] 
+                  coach_tier_rates: [...prev.coach_tier_rates, { level: prev.coach_tier_rates.length + 1, rate: 30, requirement: {}, max_videos: 3, max_photos: 5 }] 
                 }))}
                 style={{ background: 'rgba(5, 150, 105, 0.1)', color: '#059669', border: 'none', padding: '6px 12px', borderRadius: 8, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
               >
@@ -293,7 +297,7 @@ export default function AdminSettings() {
                     {countConditions(tier.requirement) > 0 ? `升級條件 (${countConditions(tier.requirement)})` : '設定條件'}
                   </button>
                   <button
-                    onClick={() => openPerksBuilder('coach', idx, tier.perks)}
+                    onClick={() => openPerksBuilder('coach', idx, tier)}
                     style={{ flex: 1, background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: 'none', padding: '8px 12px', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 120 }}
                   >
                     <Gift size={14} />
@@ -748,6 +752,26 @@ export default function AdminSettings() {
                 </button>
               </div>
               <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto' }}>
+                {perksModal.type === 'coach' && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: MUTED, marginBottom: 8 }}>最高可上傳影片數</label>
+                      <input 
+                        type="number" value={perksModal.max_videos || 0}
+                        onChange={e => setPerksModal({ ...perksModal, max_videos: Number(e.target.value) })}
+                        style={{ width: '100%', background: INPUT_BG, border: '1px solid rgba(255,255,255,0.05)', padding: '10px 12px', fontSize: 14, fontWeight: 800, color: DARK, borderRadius: 8, outline: 'none' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: MUTED, marginBottom: 8 }}>最高可上傳照片數</label>
+                      <input 
+                        type="number" value={perksModal.max_photos || 0}
+                        onChange={e => setPerksModal({ ...perksModal, max_photos: Number(e.target.value) })}
+                        style={{ width: '100%', background: INPUT_BG, border: '1px solid rgba(255,255,255,0.05)', padding: '10px 12px', fontSize: 14, fontWeight: 800, color: DARK, borderRadius: 8, outline: 'none' }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {perksModal.data.map((perk, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8 }}>
                     <input 
