@@ -22,6 +22,7 @@ export default function VideoUpload() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [limits, setLimits] = useState({ max_videos: 3 });
   
   const [newVideo, setNewVideo] = useState({
     file: null,
@@ -39,6 +40,7 @@ export default function VideoUpload() {
       if (res.ok) {
         const data = await res.json();
         setVideos(data.videos || []);
+        if (data.limits) setLimits(data.limits);
       }
     } catch (err) {
       console.error('Fetch videos error:', err);
@@ -135,11 +137,26 @@ export default function VideoUpload() {
         background: 'var(--bg-surface)', padding: 24, borderRadius: RADIUS, 
         boxShadow: 'var(--shadow-sm)', border: '1px solid var(--border-main)' 
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Upload size={20} color={BLUE} /> 上傳新影片
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: DARK, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Upload size={20} color={BLUE} /> 上傳新影片
+          </h3>
+          <div style={{ fontSize: 12, fontWeight: 700, color: videos.length >= limits.max_videos ? 'var(--color-danger)' : MUTED }}>
+            已使用 {videos.length} / {limits.max_videos} 支
+          </div>
+        </div>
 
-        <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {videos.length >= limits.max_videos ? (
+          <div style={{ textAlign: 'center', padding: '20px 0', background: 'rgba(234, 88, 12, 0.05)', borderRadius: 12, border: '1px solid rgba(234, 88, 12, 0.2)' }}>
+            <AlertCircle size={32} color="#EA580C" style={{ margin: '0 auto 8px' }} />
+            <p style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#EA580C' }}>您的影片數量已達目前等級上限</p>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: MUTED }}>請先刪除舊影片，或升級教練等級以獲得更多容量。</p>
+            <a href="/support?topic=expand_capacity" style={{ display: 'inline-block', padding: '8px 16px', background: '#EA580C', color: '#fff', borderRadius: 20, fontSize: 13, fontWeight: 800, textDecoration: 'none' }}>
+              聯繫客服擴充容量
+            </a>
+          </div>
+        ) : (
+          <form onSubmit={handleUpload} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: MUTED, marginBottom: 4, display: 'block' }}>影片標題</label>
@@ -200,17 +217,19 @@ export default function VideoUpload() {
 
           <button 
             type="submit" 
-            disabled={uploading || !newVideo.file || videos.length >= 10}
+            disabled={uploading || !newVideo.file || videos.length >= limits.max_videos}
             style={{ 
-              width: '100%', padding: '12px', borderRadius: 12, background: BLUE, color: 'var(--text-light)',
-              fontWeight: 800, border: 'none', cursor: 'pointer', opacity: (uploading || !newVideo.file || videos.length >= 10) ? 0.6 : 1,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+              background: BLUE, color: '#fff', padding: '12px', borderRadius: 12, border: 'none', 
+              fontWeight: 800, fontSize: 14, cursor: (uploading || !newVideo.file || videos.length >= limits.max_videos) ? 'not-allowed' : 'pointer',
+              display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8,
+              opacity: (uploading || !newVideo.file || videos.length >= limits.max_videos) ? 0.7 : 1
             }}
           >
             {uploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-            {videos.length >= 10 ? '數量已達上限' : '開始上傳'}
+            {videos.length >= limits.max_videos ? '數量已達上限' : '開始上傳'}
           </button>
         </form>
+        )}
       </section>
 
       {/* ── 已上傳列表 ── */}

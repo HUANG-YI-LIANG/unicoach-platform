@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { getCoachMediaLimits } from '@/lib/coachPerformance';
 
 const VIDEO_UPLOAD_MAX_MB = 500;
 const VIDEO_UPLOAD_MAX_BYTES = VIDEO_UPLOAD_MAX_MB * 1024 * 1024;
@@ -62,15 +63,18 @@ export async function POST(request) {
     const adminSupabase = getAdminSupabase();
     const coachId = auth.user.id;
 
-    // 3. 檢查影片數量限制 (最多 10 支)
+    // 3. 取得動態限制 (依據教練等級與客服設定)
+    const limits = await getCoachMediaLimits(coachId, adminSupabase);
+    const maxVideos = limits.max_videos;
+
     const { count, error: countError } = await adminSupabase
       .from('coach_videos')
       .select('id', { count: 'exact', head: true })
       .eq('coach_id', coachId);
 
     if (countError) throw countError;
-    if (count >= 10) {
-      return NextResponse.json({ error: '影片數量已達上限 (10 支)，請先刪除舊影片' }, { status: 400 });
+    if (count >= maxVideos) {
+      return NextResponse.json({ error: `影片數量已達上限 (${maxVideos} 支)。提升教練等級或聯繫客服擴充容量。` }, { status: 400 });
     }
 
     // 4. 上傳至 Supabase Storage
@@ -135,6 +139,10 @@ export async function GET(request) {
     if (auth.error) return NextResponse.json(auth, { status: auth.status });
 
     const adminSupabase = getAdminSupabase();
+    
+    // 同時返回目前的額度
+    const limits = await getCoachMediaLimits(auth.user.id, adminSupabase);
+
     const { data: videos, error } = await adminSupabase
       .from('coach_videos')
       .select(COACH_VIDEO_SELECT)
@@ -143,7 +151,10 @@ export async function GET(request) {
 
     if (error) throw error;
 
-    return NextResponse.json({ videos: (videos || []).map(toCoachVideoDto) });
+    return NextResponse.json({ 
+      videos: (videos || []).map(toCoachVideoDto),
+      limits
+    });
   } catch (err) {
     console.error('[VIDEO FETCH ERROR]', err);
     return NextResponse.json({ error: '載入影片失敗' }, { status: 500 });

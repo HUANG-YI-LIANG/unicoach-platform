@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
+import { getCoachMediaLimits } from '@/lib/coachPerformance';
 import { v4 as uuidv4 } from 'uuid';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm'];
@@ -35,15 +36,18 @@ export async function POST(request) {
     const adminSupabase = getAdminSupabase();
     const coachId = auth.user.id;
 
-    // Check video limit (max 10)
+    // Check video limit using dynamic tiers
+    const limits = await getCoachMediaLimits(coachId, adminSupabase);
+    const maxVideos = limits.max_videos;
+
     const { count, error: countError } = await adminSupabase
       .from('coach_videos')
       .select('*', { count: 'exact', head: true })
       .eq('coach_id', coachId);
 
     if (countError) throw countError;
-    if (count >= 10) {
-      return NextResponse.json({ error: '影片數量已達上限 (10 支)，請先刪除舊影片' }, { status: 400 });
+    if (count >= maxVideos) {
+      return NextResponse.json({ error: `影片數量已達上限 (${maxVideos} 支)。提升教練等級或聯繫客服擴充容量。` }, { status: 400 });
     }
 
     const fileExt = filename.split('.').pop();

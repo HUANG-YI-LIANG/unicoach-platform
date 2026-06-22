@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
 import VideoUpload from '@/components/VideoUpload';
+import PhotoUpload from '@/components/PhotoUpload';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
 
@@ -308,7 +309,9 @@ export default function CoachDashboard() {
           </AccordionItem>
 
           <AccordionItem title="教學影片與作品集" icon={Video}>
-            <div style={{ marginTop: 16 }}>
+            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 32 }}>
+              <PhotoUpload />
+              <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 8px' }}></div>
               <VideoUpload />
             </div>
           </AccordionItem>
