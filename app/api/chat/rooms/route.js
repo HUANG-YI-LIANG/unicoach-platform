@@ -56,9 +56,9 @@ async function resolveCoachUserId(adminSupabase, rawId) {
     .or(`id.eq.${candidateId},user_id.eq.${candidateId}`)
     .maybeSingle();
 
-  if (profileError && profileError.code !== 'PGRST116' && profileError.code !== '42P01') throw profileError;
-
-  if (profile) {
+  if (profileError) {
+    console.warn('[resolveCoachUserId] coach_profiles query failed or missing table, ignoring:', profileError.message || profileError);
+  } else if (profile) {
     if (profile.verification_status !== 'approved') {
       return { ok: false, status: 403, error: '該教練尚未開放聊天' };
     }
@@ -216,6 +216,6 @@ export async function POST(request) {
     return NextResponse.json({ success: true, roomId: newRoom.id, coachId: coachIdFinal });
   } catch (error) {
     console.error('[CHAT ROOMS POST ERROR]', error);
-    return NextResponse.json({ error: '建立聊天室失敗' }, { status: 500 });
+    return NextResponse.json({ error: `建立聊天室失敗: ${error.message || JSON.stringify(error)}` }, { status: 500 });
   }
 }
