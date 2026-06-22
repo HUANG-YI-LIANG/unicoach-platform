@@ -349,6 +349,27 @@ export default function ChatRoomPage({ params }) {
             </span>
           ))}
         </div>
+        
+        {/* Action Buttons */}
+        <div style={{ marginTop: 12 }}>
+          {isCoach ? (
+            <button 
+              onClick={() => router.push('/coach/schedule')}
+              style={{ width: '100%', padding: '10px', background: 'transparent', color: ORANGE, border: `1.5px solid ${ORANGE}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+              onMouseEnter={(e) => e.target.style.background = ORANGE_BG}
+              onMouseLeave={(e) => e.target.style.background = 'transparent'}
+            >
+              修改我的可預約時段
+            </button>
+          ) : (
+            <button 
+              onClick={() => router.push(`/coaches/${room?.coach_id}/availability`)}
+              style={{ width: '100%', padding: '10px', background: ORANGE, color: 'var(--text-light)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' }}
+            >
+              談妥了嗎？直接下單預約
+            </button>
+          )}
+        </div>
       </section>
 
       <div

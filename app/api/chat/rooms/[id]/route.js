@@ -39,6 +39,7 @@ export async function GET(request, { params }) {
     return NextResponse.json({
       room: {
         id: room.id,
+        coach_id: room.coach_id,
         coach_name: room.coaches?.name || null,
         coach_philosophy: room.coaches?.coaches?.[0]?.philosophy || null,
         user_name: room.users?.name || null,
