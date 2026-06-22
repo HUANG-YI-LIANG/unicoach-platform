@@ -166,13 +166,14 @@ export default function PhotoUpload() {
                 <button
                   onClick={() => handleDelete(photo.id)}
                   style={{
-                    position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', 
-                    border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', 
-                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                    backdropFilter: 'blur(4px)'
+                    position: 'absolute', top: 8, right: 8, background: 'rgba(239, 68, 68, 0.95)', color: '#fff', 
+                    border: 'none', borderRadius: 8, padding: '6px 12px', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center', cursor: 'pointer', gap: 4,
+                    backdropFilter: 'blur(4px)', fontSize: 13, fontWeight: 700,
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                   }}
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={14} color="#fff" /> 刪除
                 </button>
               </div>
             ))}
