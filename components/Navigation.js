@@ -73,7 +73,7 @@ export default function Navigation() {
   } else if (role === 'coach') {
     navItems = [
       { name: '後台', path: '/dashboard/coach', icon: PieChart },
-      { name: '方案', path: '/coach/plans', icon: Layers },
+      { name: '探索', path: '/explore', icon: PlaySquare },
       { name: '排程', path: '/coach/schedule', icon: Calendar },
       { name: '訊息', path: '/chat', icon: MessageCircle, badge: unreadChatCount },
       { name: '我的', path: '/coach/profile/edit', icon: User }
