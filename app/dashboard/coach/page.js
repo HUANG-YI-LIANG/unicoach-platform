@@ -7,11 +7,12 @@ import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Bell, ChevronRight, ChevronDown, Apple, Smartphone,
   Calendar, Wallet, Activity, Check, MessageCircle, FileText,
-  UserCheck, ShieldCheck, ArrowUpRight, Clock, Video
+  UserCheck, ShieldCheck, ArrowUpRight, Clock, Video, Camera
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
 import VideoUpload from '@/components/VideoUpload';
 import PhotoUpload from '@/components/PhotoUpload';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
 
@@ -309,12 +310,16 @@ export default function CoachDashboard() {
             </div>
           </AccordionItem>
 
-          <AccordionItem title="教學影片與作品集" icon={Video}>
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 32 }}>
-              <PhotoUpload />
-              <div style={{ height: 1, background: 'var(--border-subtle)', margin: '0 8px' }}></div>
+          <AccordionItem title="展示影片管理" icon={Video}>
+            <ErrorBoundary>
               <VideoUpload />
-            </div>
+            </ErrorBoundary>
+          </AccordionItem>
+
+          <AccordionItem title="個人照片集" icon={Camera}>
+            <ErrorBoundary>
+              <PhotoUpload />
+            </ErrorBoundary>
           </AccordionItem>
 
         </div>
