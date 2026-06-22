@@ -119,7 +119,7 @@ export default function CoachDetailPage({ params }) {
     return <div style={{ height: '100dvh', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF' }}>找不到教練</div>;
   }
 
-  const planOptions = coach.plan_options || [];
+  // planOptions is managed in state
   const incompleteProfileText = '這位教練正在補充公開資料';
   const publicHeadline = [coach.service_areas, coach.location].filter(Boolean).join(' · ') || incompleteProfileText;
   const hasVerifiedIdentity = coach.approval_status === 'approved';
