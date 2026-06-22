@@ -502,14 +502,14 @@ export default function CoachDetailPage({ params }) {
         </div>
 
         {/* PLANS */}
-        <div className="section-block">
+        <div id="coach-plans" className="section-block">
           <h2 className="section-title"><Zap size={20} color="var(--accent)" /> 課程方案</h2>
           {planOptions.length === 0 ? (
             <p className="section-text">尚無方案</p>
           ) : (
             <div className="plans-grid">
               {planOptions.map(plan => (
-                <div key={plan.id} className="plan-card">
+                <div key={plan.id} className="plan-card" style={{ cursor: 'pointer' }} onClick={() => router.push(`/service/${plan.id}`)}>
                   <div>
                     <h3 className="plan-title">{plan.title}</h3>
                     <p className="plan-meta">{plan.duration_minutes} 分鐘</p>
