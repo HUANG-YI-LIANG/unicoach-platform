@@ -202,7 +202,47 @@ export async function POST(request) {
       const coachUpdates = { user_id: userId };
       if (body.university !== undefined) coachUpdates.university = body.university;
       if (body.location !== undefined) coachUpdates.location = body.location;
-      if (body.service_areas !== undefined) coachUpdates.service_areas = body.service_areas?.trim() || '';
+      if (body.service_areas !== undefined) {
+        const rawAreas = body.service_areas?.trim() || '';
+        // 1. Auto format: Split by any comma, semicolon or ideographic spacing marks
+        const cats = rawAreas.split(/[,;、，；]+/).map(item => item.trim()).filter(item => item.length > 0);
+        const formattedAreas = [...new Set(cats)].join(', ');
+        coachUpdates.service_areas = formattedAreas;
+
+        // 2. Auto Scan: Aggregate globally into platform_settings
+        if (cats.length > 0) {
+          try {
+            const { data: catSetting } = await adminSupabase
+              .from('platform_settings')
+              .select('value')
+              .eq('key', 'global_categories')
+              .maybeSingle();
+
+            let existingCats = [];
+            if (catSetting && catSetting.value) {
+              existingCats = typeof catSetting.value === 'string' ? JSON.parse(catSetting.value) : catSetting.value;
+            }
+            if (!Array.isArray(existingCats)) existingCats = [];
+
+            let hasNew = false;
+            cats.forEach(cat => {
+              if (!existingCats.includes(cat)) {
+                existingCats.push(cat);
+                hasNew = true;
+              }
+            });
+
+            if (hasNew) {
+              await adminSupabase.from('platform_settings').upsert({
+                key: 'global_categories',
+                value: existingCats
+              });
+            }
+          } catch (scanErr) {
+            console.error('Auto scan categories error:', scanErr);
+          }
+        }
+      }
       if (body.languages !== undefined) coachUpdates.languages = body.languages;
       if (body.experience !== undefined) coachUpdates.experience = body.experience?.trim();
       if (body.philosophy !== undefined) coachUpdates.philosophy = body.philosophy?.trim();
