@@ -7,9 +7,10 @@ import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Bell, ChevronRight, ChevronDown, Apple, Smartphone,
   Calendar, Wallet, Activity, Check, MessageCircle, FileText,
-  UserCheck, ShieldCheck, ArrowUpRight, Clock
+  UserCheck, ShieldCheck, ArrowUpRight, Clock, Video
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
+import VideoUpload from '@/components/VideoUpload';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
 
@@ -303,6 +304,12 @@ export default function CoachDashboard() {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>編輯公開資料與自介</span>
                 <ChevronRight size={16} color="var(--text-muted)" />
               </div>
+            </div>
+          </AccordionItem>
+
+          <AccordionItem title="教學影片與作品集" icon={Video}>
+            <div style={{ marginTop: 16 }}>
+              <VideoUpload />
             </div>
           </AccordionItem>
 
