@@ -412,6 +412,51 @@ export default function UserDetailExpanded({ userId, onClose }) {
           </div>
         </section>
 
+        {/* Section 2.5: Coach Details (Only for coaches) */}
+        {user.role === 'coach' && user.coach_info && (
+          <section className="info-section">
+            <div className="section-header">
+              <h2>教練詳細資訊</h2>
+            </div>
+            <div className="section-content">
+              <div className="data-list">
+                <div className="data-row">
+                  <span className="label">上課地區 / 縣市</span>
+                  <span className="value">{user.coach_info.location || '未填寫'}</span>
+                </div>
+                <div className="data-row">
+                  <span className="label">服務項目 / 分類</span>
+                  <span className="value">
+                    {Array.isArray(user.coach_info.service_areas) 
+                      ? user.coach_info.service_areas.join(', ') 
+                      : user.coach_info.service_areas || '未填寫'}
+                  </span>
+                </div>
+                <div className="data-row">
+                  <span className="label">預設每小時底價</span>
+                  <span className="value">NT$ {user.coach_info.base_price || 0}</span>
+                </div>
+                <div className="data-row">
+                  <span className="label">最高學歷</span>
+                  <span className="value">{user.coach_info.university || '未填寫'}</span>
+                </div>
+                <div className="data-row">
+                  <span className="label">相關經歷與證照</span>
+                  <span className="value">{user.coach_info.experience || '未填寫'}</span>
+                </div>
+                <div className="data-row">
+                  <span className="label">教學理念</span>
+                  <span className="value">
+                    <div style={{ whiteSpace: 'pre-wrap', maxHeight: '100px', overflowY: 'auto', fontSize: '13px', color: 'var(--color-text-muted)' }}>
+                      {user.coach_info.philosophy || '未填寫'}
+                    </div>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Section: Warnings */}
         <section className="info-section" style={{ borderColor: 'rgba(239, 68, 68, 0.2)' }}>
           <div className="section-header">
