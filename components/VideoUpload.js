@@ -247,6 +247,8 @@ export default function VideoUpload() {
             }}>
               <video 
                 src={video.video_url} 
+                controls
+                preload="metadata"
                 style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', background: 'var(--color-text)' }}
               />
               <div style={{ padding: 12 }}>
