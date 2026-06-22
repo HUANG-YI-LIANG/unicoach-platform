@@ -114,6 +114,13 @@ export async function GET(request) {
 
     const totalDiscount = clampDiscountPercent(baseDiscount + (activeCoupon ? activeCoupon.discount : 0));
 
+    // 5. 計算註冊順序 (registration_number)
+    const { count: regCount } = await adminSupabase
+      .from('users')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', user.role)
+      .lte('created_at', user.created_at || new Date().toISOString());
+
     return NextResponse.json({ 
       profile: { 
         ...sanitizeUserProfile(user), 
@@ -121,7 +128,8 @@ export async function GET(request) {
         total_discount: totalDiscount,
         referred_by_name: referredByName, 
         coupons: claimedCoupons,
-        active_coupon: activeCoupon
+        active_coupon: activeCoupon,
+        registration_number: regCount || 1
       }, 
       coach: coachData 
     });

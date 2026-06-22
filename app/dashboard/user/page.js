@@ -123,8 +123,9 @@ export default function UserDashboard() {
         
         {/* HEADER */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
-            Hi, {profile.name || '學員'}
+          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>Hi, {profile.name || '學員'}</span>
+            {profile?.registration_number && <span style={{ fontSize: '0.65em', color: 'var(--text-muted)', fontWeight: 800 }}>#{profile.registration_number}</span>}
           </h1>
           <button onClick={() => router.push('/notifications')} style={{ background: 'transparent', padding: 8, color: 'var(--text-primary)' }}>
             <Bell size={24} />
