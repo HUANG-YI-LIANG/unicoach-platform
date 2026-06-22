@@ -95,6 +95,7 @@ export default function VideoUpload() {
         body: JSON.stringify({
           title: newVideo.title,
           category: newVideo.category,
+          path: preData.path,
           publicUrl: preData.publicUrl
         })
       });

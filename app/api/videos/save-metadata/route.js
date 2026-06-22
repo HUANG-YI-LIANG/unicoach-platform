@@ -5,9 +5,9 @@ import { NextResponse } from 'next/server';
 import { requireApprovedCoach } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { safeErrorDetails } from '@/lib/safeLogging';
+import { getCoachMediaLimits } from '@/lib/coachPerformance';
 
 const VALID_VIDEO_CATEGORIES = new Set(['teaching', 'intro', 'highlight']);
-const VIDEO_UPLOAD_MAX_COUNT = 10;
 
 function isUnsupportedQuickTimeVideoUrl(value = '') {
   return /\.(mov|qt)(\?|#|$)/i.test(String(value)) || /quicktime/i.test(String(value));
@@ -72,14 +72,17 @@ export async function POST(request) {
       return NextResponse.json({ error: '找不到已上傳的影片檔案' }, { status: 400 });
     }
 
+    const limits = await getCoachMediaLimits(coachId, adminSupabase);
+    const maxVideos = limits.max_videos;
+
     const { count, error: countError } = await adminSupabase
       .from('coach_videos')
       .select('id', { count: 'exact', head: true })
       .eq('coach_id', coachId);
 
     if (countError) throw countError;
-    if ((count || 0) >= VIDEO_UPLOAD_MAX_COUNT) {
-      return NextResponse.json({ error: '影片數量已達上限 (10 支)，請先刪除舊影片' }, { status: 400 });
+    if ((count || 0) >= maxVideos) {
+      return NextResponse.json({ error: `影片數量已達上限 (${maxVideos} 支)。提升教練等級或聯繫客服擴充容量。` }, { status: 400 });
     }
 
     const { data: { publicUrl } } = adminSupabase.storage
