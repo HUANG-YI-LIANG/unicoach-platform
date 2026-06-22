@@ -155,18 +155,9 @@ export default function UserProfileEdit() {
 
         <section>
           <p style={{ fontSize: 11, fontWeight: 760, color: MUTED, textTransform:'uppercase', letterSpacing:'0.1em', marginBottom: 10, paddingLeft: 4 }}>我的課程</p>
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ borderRadius: 18, padding: 14, background: CARD, border: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
-              <div>
-                <p style={{ margin: 0, color: TEXT_LIGHT, fontSize: 15, fontWeight: 860 }}>下次課程：籃球基礎體驗課</p>
-                <p style={{ margin: '4px 0 0', color: MUTED, fontSize: 12 }}>明天 19:30・已付款・教練已讀</p>
-              </div>
-              <span style={{ color: ORANGE, fontSize: 12, fontWeight: 850 }}>體驗課狀態</span>
-            </div>
-            <div style={{ borderRadius: 18, padding: 14, background: 'rgba(255,255,255,0.035)', border: '1px solid rgba(255,255,255,0.04)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div><p style={{ margin: 0, color: MUTED, fontSize: 11 }}>最近預約</p><p style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 13, fontWeight: 820 }}>今晚可預約・正在確認時段</p></div>
-              <div><p style={{ margin: 0, color: MUTED, fontSize: 11 }}>最近觀看</p><p style={{ margin: '3px 0 0', color: TEXT_LIGHT, fontSize: 13, fontWeight: 820 }}>數學解題影片・幾分鐘前</p></div>
-            </div>
+          <div style={{ borderRadius: 18, padding: 24, background: 'rgba(255,255,255,0.035)', border: '1px dashed rgba(255,255,255,0.1)', textAlign: 'center' }}>
+            <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無即將到來的課程</p>
+            <p style={{ margin: '4px 0 0', color: 'rgba(255,255,255,0.3)', fontSize: 12 }}>快去探索適合您的教練與課程吧！</p>
           </div>
         </section>
 
