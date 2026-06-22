@@ -194,11 +194,16 @@ export default function SupportChatWidget() {
               <div key={item.id} style={{ justifySelf: item.isFromAdmin || item.isSystem ? 'start' : 'end', maxWidth: '82%' }}>
                 <div style={{ padding: '10px 12px', borderRadius: 14, background: item.isFromAdmin || item.isSystem ? 'rgba(255,255,255,0.07)' : 'rgba(255,138,61,0.18)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   {item.message && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55 }}>{item.message}</p>}
-                  {item.imagePath && (
-                    <a href={item.imagePath.startsWith('http') || item.imagePath.startsWith('/uploads/') ? item.imagePath : `/uploads/${item.imagePath}`} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: item.message ? 8 : 0 }}>
-                      <img src={item.imagePath.startsWith('http') || item.imagePath.startsWith('/uploads/') ? item.imagePath : `/uploads/${item.imagePath}`} alt="上傳截圖" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', maxHeight: 150, objectFit: 'cover' }} />
-                    </a>
-                  )}
+                  {item.imagePath && (() => {
+                    const src = item.imagePath.startsWith('http') || item.imagePath.startsWith('/uploads/') 
+                      ? item.imagePath 
+                      : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/support_images/${item.imagePath}`;
+                    return (
+                      <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', marginTop: item.message ? 8 : 0 }}>
+                        <img src={src} alt="上傳截圖" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', maxHeight: 150, objectFit: 'cover' }} />
+                      </a>
+                    );
+                  })()}
                 </div>
               </div>
             ))}

@@ -720,13 +720,18 @@ export default function AdminSupportPage() {
                   >
                     {message.message}
                     
-                    {message.imagePath && (
-                      <div style={{ marginTop: 8 }}>
-                        <a href={`/uploads/${message.imagePath}`} target="_blank" rel="noopener noreferrer">
-                          <img src={`/uploads/${message.imagePath}`} alt="上傳截圖" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200, objectFit: 'cover' }} />
-                        </a>
-                      </div>
-                    )}
+                    {message.imagePath && (() => {
+                      const src = message.imagePath.startsWith('http') || message.imagePath.startsWith('/uploads/')
+                        ? message.imagePath
+                        : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/support_images/${message.imagePath}`;
+                      return (
+                        <div style={{ marginTop: 8 }}>
+                          <a href={src} target="_blank" rel="noopener noreferrer">
+                            <img src={src} alt="上傳截圖" style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', maxHeight: 200, objectFit: 'cover' }} />
+                          </a>
+                        </div>
+                      );
+                    })()}
                     {message.imageUrl && (
                       <div style={{ marginTop: 8 }}>
                         <a href={message.imageUrl} target="_blank" rel="noopener noreferrer">
