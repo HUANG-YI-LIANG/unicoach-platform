@@ -10,17 +10,22 @@ const PUBLIC_VIDEO_FEED_SELECT = 'id, coach_id, video_url, title, category, view
 const PUBLIC_VIDEO_COACH_SELECT = 'user_id, base_price, approval_status';
 const PUBLIC_VIDEO_USER_SELECT = 'id, name, avatar_url, is_frozen';
 
-export async function GET() {
+export async function GET(request) {
   try {
     const adminSupabase = getAdminSupabase();
     const auth = await requireAuth();
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const offset = (page - 1) * limit;
 
     const { data: rawVideos, error } = await adminSupabase
       .from('coach_videos')
       .select(PUBLIC_VIDEO_FEED_SELECT)
       .order('like_count', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(40);
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error('Error fetching video feed:', safeErrorDetails(error));
@@ -53,7 +58,7 @@ export async function GET() {
       });
     }
 
-    const publicVideos = videos.filter((video) => publicCoachIds.has(video.coach_id)).slice(0, 20);
+    const publicVideos = videos.filter((video) => publicCoachIds.has(video.coach_id));
     const videoIds = publicVideos.map((video) => video.id);
     let likedVideoIds = new Set();
 
@@ -82,7 +87,12 @@ export async function GET() {
       liked: likedVideoIds.has(v.id)
     }));
 
-    return NextResponse.json({ videos: formattedVideos });
+    return NextResponse.json({ 
+      videos: formattedVideos,
+      hasMore: rawVideos.length === limit,
+      page,
+      limit
+    });
   } catch (error) {
     console.error('Video feed error:', safeErrorDetails(error));
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
