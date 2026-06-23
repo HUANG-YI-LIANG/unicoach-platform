@@ -637,7 +637,14 @@ export async function POST(request) {
     if (settingsError) throw settingsError;
 
     const commissionSetting = platformSettings.find(s => s.key === 'commission_rate')?.value;
-    const tierSettings = platformSettings.find(s => s.key === 'user_tier_discounts')?.value || [];
+    
+    let tierSettings = [];
+    const rawTierSettings = platformSettings.find(s => s.key === 'user_tier_discounts')?.value;
+    if (typeof rawTierSettings === 'string') {
+      try { tierSettings = JSON.parse(rawTierSettings); } catch(e) { tierSettings = []; }
+    } else if (Array.isArray(rawTierSettings)) {
+      tierSettings = rawTierSettings;
+    }
 
     const parsedGlobalCommission = Number(commissionSetting);
     const globalCommission = Number.isFinite(parsedGlobalCommission)
@@ -649,7 +656,7 @@ export async function POST(request) {
       : globalCommission;
 
     let maxBonusPercent = 0;
-    if (userData?.level) {
+    if (userData?.level && Array.isArray(tierSettings)) {
       const userTier = tierSettings.find(t => t.level === userData.level);
       if (userTier && userTier.monthly_bonus_max_percent) {
         maxBonusPercent = Number(userTier.monthly_bonus_max_percent);
