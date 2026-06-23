@@ -582,7 +582,7 @@ export async function POST(request) {
         durationMinutes,
         rules: availabilityRules || [],
         exceptions: availabilityExceptions || [],
-        legacyAvailableTimes: null,
+        legacyAvailableTimes: coach.available_times || null,
       });
       if (!availabilityCheck.ok) {
         return NextResponse.json({ error: `第 ${i + 1} 堂課無法預約：${availabilityCheck.error}` }, { status: 400 });
