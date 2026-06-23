@@ -115,7 +115,12 @@ export default function BookServicePage() {
           const { buildBookedSlotSet, generateSlotsForCoach } = require('@/lib/coachAvailability');
           const bookedSet = buildBookedSlotSet(coachData.coach.public_blocked_slots || []);
           const generatedSlots = generateSlotsForCoach(coachData.coach, bookedSet, { lookaheadDays: 14 });
-          const freeSlots = generatedSlots.filter(s => !s.booked);
+          const freeSlots = generatedSlots.filter(s => {
+            if (s.booked) return false;
+            const nextTimeMs = new Date(s.iso).getTime() + 30 * 60000;
+            const nextSlot = generatedSlots.find(ns => new Date(ns.iso).getTime() === nextTimeMs);
+            return nextSlot && !nextSlot.booked;
+          });
           setAvailableSlots(freeSlots);
           if (freeSlots.length > 0 && !rebookFromBookingId) {
             setExpectedTime(freeSlots[0].iso);
