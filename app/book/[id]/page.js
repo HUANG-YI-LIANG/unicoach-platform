@@ -396,7 +396,7 @@ export default function BookServicePage() {
               </label>
               <div className="booking-two-col">
                 <label className="booking-field">
-                  <span>性別需求</span>
+                  <span>學生性別</span>
                   <input value={gender} onChange={(event) => setGender(event.target.value)} placeholder="可留空" />
                 </label>
                 <label className="booking-field">
