@@ -74,6 +74,8 @@ export default function BookServicePage() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [customPoints, setCustomPoints] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [slotsLoading, setSlotsLoading] = useState(true);
 
   const goNextStep = () => setCurrentStep((step) => Math.min(step + 1, bookingSteps.length - 1));
   const goPrevStep = () => setCurrentStep((step) => Math.max(step - 1, 0));
@@ -91,17 +93,35 @@ export default function BookServicePage() {
       router.replace(`/login?redirect=${encodeURIComponent(`/book/${coachId}?service=${serviceId || ''}`)}`);
       return;
     }
-    fetch(`/api/services/${serviceId}`, { cache: 'no-store' })
-      .then((res) => {
+    Promise.all([
+      fetch(`/api/services/${serviceId}`, { cache: 'no-store' }).then((res) => {
         if (!res.ok) throw new Error('無法載入服務資料');
         return res.json();
+      }),
+      fetch(`/api/coaches/${coachId}`, { cache: 'no-store' }).then((res) => {
+        if (!res.ok) return { coach: null }; // Fallback if coach endpoint fails
+        return res.json();
       })
-      .then((data) => {
-        if (data.error) throw new Error(data.error);
-        if (data.service?.coach?.user_id && String(data.service.coach.user_id) !== String(coachId)) {
+    ])
+      .then(([serviceData, coachData]) => {
+        if (serviceData.error) throw new Error(serviceData.error);
+        if (serviceData.service?.coach?.user_id && String(serviceData.service.coach.user_id) !== String(coachId)) {
           throw new Error('網址中的教練與服務不一致，請從服務詳情頁重新預約。');
         }
-        setService(data.service);
+        setService(serviceData.service);
+
+        // Generate Slots
+        if (coachData.coach) {
+          const { buildBookedSlotSet, generateSlotsForCoach } = require('@/lib/coachAvailability');
+          const bookedSet = buildBookedSlotSet(coachData.coach.public_blocked_slots || []);
+          const generatedSlots = generateSlotsForCoach(coachData.coach, bookedSet, { lookaheadDays: 14 });
+          const freeSlots = generatedSlots.filter(s => !s.booked);
+          setAvailableSlots(freeSlots);
+          if (freeSlots.length > 0 && !rebookFromBookingId) {
+            setExpectedTime(freeSlots[0].iso);
+          }
+        }
+        setSlotsLoading(false);
       })
       .catch((err) => setError(err.message || '載入失敗'))
       .finally(() => setLoading(false));
@@ -334,11 +354,27 @@ export default function BookServicePage() {
             <div className="booking-fields">
               <label className="booking-field">
                 <span>上課時間</span>
-                <input
-                  type="datetime-local"
-                  value={expectedTime}
-                  onChange={(event) => setExpectedTime(event.target.value)}
-                />
+                {slotsLoading ? (
+                  <select disabled className="booking-input">
+                    <option>載入中...</option>
+                  </select>
+                ) : availableSlots.length > 0 ? (
+                  <select
+                    value={expectedTime}
+                    onChange={(event) => setExpectedTime(event.target.value)}
+                    className="booking-input"
+                  >
+                    {availableSlots.map(slot => (
+                      <option key={slot.key} value={slot.iso}>
+                        {slot.date.replace(/-/g, '/')} {slot.time}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select disabled className="booking-input">
+                    <option>該教練目前無可預約時段</option>
+                  </select>
+                )}
               </label>
               {Number(service.trial_price) > 0 && (
                 <label className="booking-field">
