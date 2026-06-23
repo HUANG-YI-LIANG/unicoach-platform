@@ -152,16 +152,25 @@ export async function GET(request) {
     });
     });
 
-    // Generate unique subject/sport filters for the UI
-    const allSportsSet = new Set();
-    formatted.forEach((s) => {
-      if (s.subject_or_sport) allSportsSet.add(s.subject_or_sport);
-    });
-    const allSports = Array.from(allSportsSet).sort();
+    // Pagination
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const offset = (page - 1) * limit;
 
-    return NextResponse.json({ services: formatted, allSports });
+    const paginatedServices = formatted.slice(offset, offset + limit);
+
+    return NextResponse.json({ 
+      services: paginatedServices,
+      total: formatted.length,
+      hasMore: offset + limit < formatted.length,
+      page,
+      limit
+    });
   } catch (error) {
-    console.error('Services fetch error:', safeErrorDetails(error));
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error('Error fetching services:', safeErrorDetails(error));
+    return NextResponse.json(
+      { error: 'Failed to fetch services', details: error.message },
+      { status: 500 }
+    );
   }
 }

@@ -46,6 +46,23 @@ export default function UserDashboard() {
   const { logout } = useAuth();
 
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. Quick Cache (Stale-while-revalidate)
+    const cachedData = sessionStorage.getItem('userDashboardCache');
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setProfile(parsed.profile);
+        setBookings(parsed.bookings);
+        setRecommendedCoaches(parsed.recommendedCoaches);
+        setLoading(false);
+      } catch (e) {
+        console.error('Cache parsing failed', e);
+      }
+    }
+
+    // 2. Fetch Fresh Data
     (async () => {
       try {
         const [profileRes, bookingsRes, coachesData] = await Promise.all([
@@ -54,27 +71,50 @@ export default function UserDashboard() {
           fetch('/api/coaches?limit=3').then((res) => (res.ok ? res.json() : { coaches: [] }))
         ]);
 
-        if (!profileRes.ok) return router.push('/login');
+        if (!profileRes.ok) {
+          if (isMounted) router.push('/login');
+          return;
+        }
         const { profile: profileData } = await profileRes.json();
-        if (!profileData) return router.replace('/login');
-        if (profileData.role !== 'user') return router.replace(getDashboardPathForRole(profileData.role));
+        if (!profileData) {
+          if (isMounted) router.replace('/login');
+          return;
+        }
+        if (profileData.role !== 'user') {
+          if (isMounted) router.replace(getDashboardPathForRole(profileData.role));
+          return;
+        }
 
+        if (!isMounted) return;
         setProfile(profileData);
+        
+        let finalBookings = [];
         if (bookingsRes.ok) {
           const { bookings: bookingData } = await bookingsRes.json();
-          setBookings(Array.isArray(bookingData) ? bookingData : []);
+          finalBookings = Array.isArray(bookingData) ? bookingData : [];
+          setBookings(finalBookings);
         }
-        setRecommendedCoaches(Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 3) : []);
+        
+        const finalRecommended = Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 3) : [];
+        setRecommendedCoaches(finalRecommended);
 
         if (!profileData.referred_by && !localStorage.getItem('referral_prompt_dismissed')) {
           setShowReferralPrompt(true);
         }
+
+        sessionStorage.setItem('userDashboardCache', JSON.stringify({
+          profile: profileData,
+          bookings: finalBookings,
+          recommendedCoaches: finalRecommended
+        }));
+
       } catch (error) {
         console.error(error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     })();
+    return () => { isMounted = false; };
   }, [router]);
 
   const handleDismissReferral = () => {

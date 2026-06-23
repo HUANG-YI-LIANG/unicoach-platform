@@ -444,6 +444,9 @@ export default function VideoFeed() {
   const [videos, setVideos] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [seenIndices, setSeenIndices] = useState(new Set([0]));
   const [showConversion, setShowConversion] = useState(false);
@@ -452,18 +455,27 @@ export default function VideoFeed() {
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/videos/feed')
+    if (page === 1) setLoading(true);
+    else setLoadingMore(true);
+
+    fetch(`/api/videos/feed?page=${page}&limit=10`)
       .then(async res => {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || '載入影音失敗');
         return data;
       })
       .then(data => {
-        if (data.videos) setVideos(data.videos);
+        if (data.videos) {
+          setVideos(prev => page === 1 ? data.videos : [...prev, ...data.videos]);
+          setHasMore(data.hasMore ?? false);
+        }
       })
       .catch(err => setError(err.message || '載入影音失敗'))
-      .finally(() => setLoading(false));
-  }, []);
+      .finally(() => {
+        setLoading(false);
+        setLoadingMore(false);
+      });
+  }, [page]);
 
   async function updateInteraction(videoId, action) {
     const response = await fetch('/api/videos/interact', {
@@ -570,6 +582,11 @@ export default function VideoFeed() {
 
         return next;
       });
+
+      // Fetch more when nearing the end
+      if (index >= videos.length - 3 && hasMore && !loadingMore) {
+        setPage(p => p + 1);
+      }
     }
   };
 
@@ -624,17 +641,23 @@ export default function VideoFeed() {
         }
       `}} />
 
-      {videos.map((video, index) => (
-        <VideoItem
-          key={video.id}
-          video={video}
-          isVisible={index === currentIndex && !showConversion && !showAntiAddiction}
-          onLike={handleLike}
-          onFavorite={() => handleFavorite(video.coach_id, video.id)}
-          onShare={handleShare}
-          onView={handleView}
-        />
-      ))}
+      {videos.map((video, index) => {
+        const isNear = Math.abs(index - currentIndex) <= 2;
+        if (!isNear) {
+          return <div key={video.id} style={{ height: '100dvh', width: '100%', scrollSnapAlign: 'start', backgroundColor: '#050816' }} />;
+        }
+        return (
+          <VideoItem
+            key={video.id}
+            video={video}
+            isVisible={index === currentIndex && !showConversion && !showAntiAddiction}
+            onLike={handleLike}
+            onFavorite={() => handleFavorite(video.coach_id, video.id)}
+            onShare={handleShare}
+            onView={handleView}
+          />
+        );
+      })}
 
       {/* Conversion CTA (After 3 videos) */}
       {showConversion && currentVideo && (

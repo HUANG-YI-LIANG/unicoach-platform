@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, MapPin, Star, ChevronRight } from 'lucide-react';
@@ -55,21 +55,62 @@ function DiscoverFeed() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observer = useRef();
+
+  const lastElementRef = useRef(null);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+    setServices([]);
+    setHasMore(true);
+  }, [filters.q, filters.category]);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
     if (filters.category) params.set('category', filters.category);
+    params.set('page', page);
+    params.set('limit', 20);
 
-    // Replace URL silently
-    router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
+    // Replace URL silently only on first page to not clutter history
+    if (page === 1) {
+      router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
+    }
 
-    setLoading(true);
+    if (page === 1) setLoading(true);
+    else setLoadingMore(true);
+
     fetch(`/api/services?${params.toString()}`)
       .then((res) => res.json())
-      .then((data) => setServices(data.services || []))
+      .then((data) => {
+        setServices(prev => page === 1 ? (data.services || []) : [...prev, ...(data.services || [])]);
+        setHasMore(data.hasMore ?? false);
+      })
       .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [filters.q, filters.category, pathname, router]);
+      .finally(() => {
+        setLoading(false);
+        setLoadingMore(false);
+      });
+  }, [filters.q, filters.category, page, pathname, router]);
+
+  useEffect(() => {
+    if (loading || loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        setPage(prev => prev + 1);
+      }
+    });
+
+    if (lastElementRef.current) {
+      observer.current.observe(lastElementRef.current);
+    }
+  }, [loading, loadingMore, hasMore]);
 
   const updateCategory = (val) => setFilters(prev => ({ ...prev, category: val }));
 
@@ -113,7 +154,7 @@ function DiscoverFeed() {
             <button onClick={() => setFilters({ q: '', category: '' })} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#FFF', padding: '8px 16px', borderRadius: 20 }}>清除搜尋</button>
           </div>
         ) : (
-          services.map((service) => {
+          services.map((service, index) => {
             const coach = service.coach;
             const bgImage = service.cover_image || coach.avatar_url;
             const hasRating = Number(coach.review_count) > 0 && Number(coach.overall_rating) > 0;
@@ -124,7 +165,11 @@ function DiscoverFeed() {
             const coachId = coach.user_id || coach.id || service.coach?.id;
 
             return (
-              <div key={service.id} className="feed-card">
+              <div 
+                key={service.id} 
+                className="feed-card" 
+                ref={index === services.length - 1 ? lastElementRef : null}
+              >
                 {bgImage ? (
                   <img src={bgImage} alt={`${coach.name || '教練'}教學照片`} className="feed-media" />
                 ) : (

@@ -13,6 +13,16 @@ export async function GET(request, { params }) {
   const supabase = getAdminSupabase();
 
   try {
+    const { data: studentInfo, error: studentError } = await supabase
+      .from('users')
+      .select('id, name, avatar_url, grade, learning_goals, created_at')
+      .eq('id', id)
+      .single();
+
+    if (studentError && studentError.code !== 'PGRST116') {
+      console.error('Error fetching student info:', studentError);
+    }
+
     const { data: reviews, error } = await supabase
       .from('reviews')
       .select('*, coach:coach_id(id, full_name, role), review_scores(score)')
@@ -38,7 +48,10 @@ export async function GET(request, { params }) {
       };
     });
 
-    return NextResponse.json({ reviews: processedReviews });
+    return NextResponse.json({ 
+      student: studentInfo || null,
+      reviews: processedReviews 
+    });
   } catch (err) {
     console.error('Error fetching student portfolio:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

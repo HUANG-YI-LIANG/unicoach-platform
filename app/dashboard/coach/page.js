@@ -7,7 +7,7 @@ import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Bell, ChevronRight, ChevronDown, Apple, Smartphone,
   Calendar, Wallet, Activity, Check, MessageCircle, FileText,
-  UserCheck, ShieldCheck, ArrowUpRight, Clock, Video, Camera
+  UserCheck, ShieldCheck, ArrowUpRight, Clock, Video, Camera, Search
 } from 'lucide-react';
 import { DashboardSkeleton } from '@/components/Skeleton';
 import VideoUpload from '@/components/VideoUpload';
@@ -68,6 +68,27 @@ export default function CoachDashboard() {
   const { logout } = useAuth();
 
   useEffect(() => {
+    let isMounted = true;
+    
+    // 1. Quick Cache (Stale-while-revalidate)
+    const cachedData = sessionStorage.getItem('coachDashboardCache');
+    if (cachedData) {
+      try {
+        const parsed = JSON.parse(cachedData);
+        setProfile(parsed.profile);
+        setCoachDetail(parsed.coachDetail);
+        setBookings(parsed.bookings);
+        setUnreadCount(parsed.unreadCount);
+        setPlans(parsed.plans);
+        setUsingDefaultPlans(parsed.usingDefaultPlans);
+        setAvailabilityRules(parsed.availabilityRules);
+        setLoading(false);
+      } catch (e) {
+        console.error('Cache parsing failed', e);
+      }
+    }
+
+    // 2. Fetch Fresh Data
     (async () => {
       try {
         const [profileRes, bookingsRes, unreadRes, plansRes, availabilityRes] = await Promise.all([
@@ -78,38 +99,73 @@ export default function CoachDashboard() {
           fetch('/api/coach/availability'),
         ]);
 
-        if (!profileRes.ok) return router.push('/login');
+        if (!profileRes.ok) {
+          if (isMounted) router.push('/login');
+          return;
+        }
         const profilePayload = await profileRes.json();
         const profileData = profilePayload.profile;
-        if (!profileData) return router.replace('/login');
-        if (profileData.role !== 'coach') return router.replace(getDashboardPathForRole(profileData.role));
+        if (!profileData) {
+          if (isMounted) router.replace('/login');
+          return;
+        }
+        if (profileData.role !== 'coach') {
+          if (isMounted) router.replace(getDashboardPathForRole(profileData.role));
+          return;
+        }
 
+        if (!isMounted) return;
         setProfile(profileData);
         setCoachDetail(profilePayload.coach || null);
 
+        let finalBookings = [];
         if (bookingsRes.ok) {
           const { bookings: bookingData } = await bookingsRes.json();
-          setBookings(Array.isArray(bookingData) ? bookingData : []);
+          finalBookings = Array.isArray(bookingData) ? bookingData : [];
+          setBookings(finalBookings);
         }
+        
+        let finalUnread = 0;
         if (unreadRes.ok) {
           const data = await unreadRes.json();
-          setUnreadCount(Number(data.unreadChatCount) || 0);
+          finalUnread = Number(data.unreadChatCount) || 0;
+          setUnreadCount(finalUnread);
         }
+        
+        let finalPlans = [];
+        let finalUsingDefaultPlans = false;
         if (plansRes.ok) {
           const data = await plansRes.json();
-          setPlans(Array.isArray(data.plans) ? data.plans : []);
-          setUsingDefaultPlans(Boolean(data.using_defaults));
+          finalPlans = Array.isArray(data.plans) ? data.plans : [];
+          finalUsingDefaultPlans = Boolean(data.using_defaults);
+          setPlans(finalPlans);
+          setUsingDefaultPlans(finalUsingDefaultPlans);
         }
+        
+        let finalRules = [];
         if (availabilityRes.ok) {
           const data = await availabilityRes.json();
-          setAvailabilityRules(Array.isArray(data.rules) ? data.rules : []);
+          finalRules = Array.isArray(data.rules) ? data.rules : [];
+          setAvailabilityRules(finalRules);
         }
-      } catch (error) {
-        console.error(error);
+
+        sessionStorage.setItem('coachDashboardCache', JSON.stringify({
+          profile: profileData,
+          coachDetail: profilePayload.coach || null,
+          bookings: finalBookings,
+          unreadCount: finalUnread,
+          plans: finalPlans,
+          usingDefaultPlans: finalUsingDefaultPlans,
+          availabilityRules: finalRules
+        }));
+
+      } catch (err) {
+        console.error('Failed to load dashboard:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     })();
+    return () => { isMounted = false; };
   }, [router]);
 
   const dashboardData = useMemo(() => {
@@ -200,6 +256,10 @@ export default function CoachDashboard() {
 
         {/* QUICK ACTIONS */}
         <div className="quick-action-grid">
+          <div className="quick-action-btn" onClick={() => router.push('/dashboard/coach/students')}>
+            <Search className="quick-action-icon" color="var(--primary)" />
+            <span className="quick-action-text" style={{ fontWeight: 800, color: 'var(--primary)' }}>找學生</span>
+          </div>
           <div className="quick-action-btn" onClick={() => router.push('/coach/schedule')}>
             <Calendar className="quick-action-icon" />
             <span className="quick-action-text">行事曆</span>

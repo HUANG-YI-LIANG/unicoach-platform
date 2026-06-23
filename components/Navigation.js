@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Home, Search, MessageCircle, User, Calendar, Layers, LogIn, PieChart, PlaySquare, Wallet } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
+import { supabase } from '@/lib/supabase';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -42,11 +43,25 @@ export default function Navigation() {
         console.error(e);
       }
     };
+    // Initial fetch
     fetchUnread();
-    const interval = setInterval(fetchUnread, 10000); // Poll every 10s
+
+    // Supabase Realtime Subscription
+    const channel = supabase.channel('chat-notifications')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'chat_messages', 
+        filter: `receiver_id=eq.${user.id}` 
+      }, (payload) => {
+        // Fetch accurate count upon new message
+        fetchUnread();
+      })
+      .subscribe();
+
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      supabase.removeChannel(channel);
     };
   }, [user, isChatRoom, isTaskFlow]);
 
