@@ -222,8 +222,53 @@ async function createWalletBookingsSafely(adminSupabase, { bookingsToInsert, use
       .filter(Boolean)
       .join(' ');
 
-    if (/create_wallet_booking_safe|Could not find the function|PGRST202/i.test(text)) {
-      return { ok: false, status: 500, error: '請先執行錢包補強 SQL migration 後再建立點數預約' };
+    // Fallback to JS logic if the RPC is missing or has a schema mismatch (like missing coach_id column)
+    if (/42703|create_wallet_booking_safe|Could not find the function|PGRST202|does not exist/i.test(text)) {
+      console.warn('Falling back to JS booking logic because RPC failed:', text);
+
+      // 1. Fetch user wallet
+      const { data: user, error: userErr } = await adminSupabase.from('users').select('wallet_balance').eq('id', userId).single();
+      if (userErr || !user) throw new Error('User not found');
+      if (user.wallet_balance < totalPoints) {
+        return { ok: false, status: 400, error: '錢包餘額不足' };
+      }
+
+      // 2. Deduct points
+      const newBalance = user.wallet_balance - totalPoints;
+      const { error: updateErr } = await adminSupabase.from('users').update({ wallet_balance: newBalance }).eq('id', userId);
+      if (updateErr) throw updateErr;
+
+      // 3. Insert bookings
+      const { data: insertedBookings, error: insertErr } = await adminSupabase.from('bookings').insert(bookingsToInsert).select();
+      
+      if (insertErr) {
+        // Refund
+        await adminSupabase.from('users').update({ wallet_balance: user.wallet_balance }).eq('id', userId);
+        if (insertErr.code === '23505') return { ok: false, status: 409, error: '該時段已被預約' };
+        throw insertErr;
+      }
+
+      // 4. Insert wallet transaction
+      await adminSupabase.from('wallet_transactions').insert({
+        user_id: userId,
+        type: 'booking_payment',
+        amount: -totalPoints,
+        description: `支付預約扣點 (${bookingsToInsert.length} 堂)`,
+        metadata: { booking_ids: insertedBookings.map(b => b.id) }
+      });
+
+      // 5. Update coupon if provided
+      if (couponId) {
+        const { data: authUser } = await adminSupabase.auth.admin.getUserById(userId);
+        if (authUser?.user?.user_metadata?.coupons) {
+          const updatedCoupons = authUser.user.user_metadata.coupons.map(c => 
+            c.id === couponId ? { ...c, status: 'used', used_at: new Date().toISOString() } : c
+          );
+          await adminSupabase.auth.admin.updateUserById(userId, { user_metadata: { ...authUser.user.user_metadata, coupons: updatedCoupons } });
+        }
+      }
+
+      return { ok: true, bookings: insertedBookings, bookingIds: insertedBookings.map(b => b.id) };
     }
 
     if (/insufficient_funds/i.test(text)) {
