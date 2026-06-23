@@ -464,6 +464,7 @@ export async function POST(request) {
       recurringWeeks = 1,
       planId,
       durationMinutes: requestedDurationMinutes,
+      customPrice,
       rebookFromBookingId: camelRebookFromBookingId,
       rebook_from_booking_id: snakeRebookFromBookingId,
     } = body;
@@ -663,7 +664,12 @@ export async function POST(request) {
       coachCommission,
     });
     const currentBalance = userData.wallet_balance || 0;
-    const totalPointsToPay = roundMoney(pricing.finalPrice * totalSessions);
+    
+    // If customPrice is provided, it completely overrides the final price
+    const hasCustomPrice = customPrice !== undefined && customPrice !== null && Number.isFinite(Number(customPrice));
+    const effectiveFinalPrice = hasCustomPrice ? Math.max(0, Math.round(Number(customPrice))) : pricing.finalPrice;
+    const totalPointsToPay = roundMoney(effectiveFinalPrice * totalSessions);
+    
     if (currentBalance < totalPointsToPay) {
       return NextResponse.json({ error: '錢包餘額不足' }, { status: 400 });
     }
@@ -684,10 +690,10 @@ export async function POST(request) {
         expected_time: sessionTime.toISOString(),
         base_price: basePrice,
         discount_amount: pricing.discountAmount,
-        final_price: pricing.finalPrice,
+        final_price: effectiveFinalPrice,
         deposit_paid: pricing.depositPaid,
         platform_fee: pricing.platformFee,
-        coach_payout: pricing.coachPayout,
+        coach_payout: hasCustomPrice ? Math.max(0, effectiveFinalPrice - pricing.platformFee) : pricing.coachPayout,
         grade: finalGrade,
         gender: finalGender,
         attendees_count: Math.max(1, Math.round(Number(finalAttendeesCount) || 1)),
@@ -752,16 +758,16 @@ export async function POST(request) {
       serviceTitle: service.title,
       servicePriceType,
       rebookFromBookingId: rebookSource?.id || null,
-      perSessionFinalPrice: pricing.finalPrice,
-      totalFinalPrice: roundMoney(pricing.finalPrice * totalSessions),
-      finalPrice: roundMoney(pricing.finalPrice * totalSessions),
+      perSessionFinalPrice: effectiveFinalPrice,
+      totalFinalPrice: roundMoney(effectiveFinalPrice * totalSessions),
+      finalPrice: roundMoney(effectiveFinalPrice * totalSessions),
       perSessionDepositPaid: pricing.depositPaid,
       totalDepositPaid: roundMoney(pricing.depositPaid * totalSessions),
       depositPaid: roundMoney(pricing.depositPaid * totalSessions),
       totalSessions,
     });
   } catch (error) {
-    console.error('Booking creation error:', safeErrorDetails(error));
+    console.error('Booking creation error:', error?.stack || error);
     return NextResponse.json({ error: '預約失敗，伺服器內部錯誤' }, { status: 500 });
   }
 }
