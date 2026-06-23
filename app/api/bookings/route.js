@@ -753,8 +753,6 @@ export async function POST(request) {
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
         status: 'scheduled', // direct to scheduled since it's paid
-        payment_status: 'paid',
-        paid_at: null,
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,
         session_number: i + 1,
