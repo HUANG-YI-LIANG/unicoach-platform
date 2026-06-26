@@ -262,6 +262,12 @@ export default function AdminSupportPage() {
         alert(`發放成功！目前餘額：${data.newBalance}`);
         setSelectedConvo(prev => ({ ...prev, walletBalance: data.newBalance }));
         setConversations(prev => prev.map(c => c.userId === selectedConvo.userId ? { ...c, walletBalance: data.newBalance } : c));
+        setMessages(prev => [...prev, {
+          id: `local-${Date.now()}`,
+          isSystem: true,
+          message: `系統提示：已為您成功加值 ${amount} 點！`,
+          createdAt: new Date().toISOString()
+        }]);
       } else {
         alert(data.error || '發放失敗');
       }
@@ -298,6 +304,12 @@ export default function AdminSupportPage() {
         alert(`扣款成功！目前餘額：${data.newBalance}`);
         setSelectedConvo(prev => ({ ...prev, walletBalance: data.newBalance }));
         setConversations(prev => prev.map(c => c.userId === selectedConvo.userId ? { ...c, walletBalance: data.newBalance } : c));
+        setMessages(prev => [...prev, {
+          id: `local-${Date.now()}`,
+          isSystem: true,
+          message: `系統提示：已成功為您扣除 ${amount} 點！`,
+          createdAt: new Date().toISOString()
+        }]);
       } else {
         alert(data.error || '扣款失敗');
       }
