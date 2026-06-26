@@ -17,6 +17,13 @@ const STATUS_STYLE = {
 
 export default function AdminSettlementsPage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState('ledger'); // 'ledger' or 'settlements'
+  
+  // Ledger state
+  const [ledgerItems, setLedgerItems] = useState([]);
+  const [loadingLedger, setLoadingLedger] = useState(true);
+
+  // Settlements state
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [batches, setBatches] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -25,8 +32,27 @@ export default function AdminSettlementsPage() {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    fetchBatches();
-  }, []);
+    if (activeTab === 'settlements') {
+      fetchBatches();
+    } else {
+      fetchLedger();
+    }
+  }, [activeTab]);
+
+  async function fetchLedger() {
+    setLoadingLedger(true);
+    try {
+      const response = await fetch('/api/admin/ledger');
+      const payload = await response.json();
+      if (!response.ok) {
+        alert(payload.error || '無法讀取明細');
+        return;
+      }
+      setLedgerItems(payload.ledger || []);
+    } finally {
+      setLoadingLedger(false);
+    }
+  }
 
   async function fetchBatches() {
     setLoading(true);
@@ -92,94 +118,153 @@ export default function AdminSettlementsPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--color-bg)', padding: 24 }}>
-      <div className="content-wrapper" style={{ width: '100%' }}>
+      <div className="content-wrapper" style={{ width: '100%', maxWidth: 1000, margin: '0 auto' }}>
         <button onClick={() => router.push('/dashboard/admin')} style={linkButtonStyle}>← 回管理後台</button>
         <header style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: 16, alignItems: 'center', marginBottom: 22 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, color: 'var(--color-text)', fontWeight: 900, whiteSpace: 'nowrap' }}>結算管理</h1>
-            <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: 14 }}>依月份產生教練撥款批次，避免重複納入已結算訂單。</p>
+            <h1 style={{ margin: 0, fontSize: 28, color: 'var(--color-text)', fontWeight: 900, whiteSpace: 'nowrap' }}>提領與對帳</h1>
+            <p style={{ margin: '8px 0 0', color: 'var(--color-text-muted)', fontSize: 14 }}>檢視人工儲值扣款紀錄與教練結算批次。</p>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={inputStyle} />
-            <button onClick={generateSettlements} disabled={generating} style={primaryButtonStyle}>
-              {generating ? '產生中...' : '產生結算'}
-            </button>
-          </div>
+          {activeTab === 'settlements' && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input type="month" value={month} onChange={(event) => setMonth(event.target.value)} style={inputStyle} />
+              <button onClick={generateSettlements} disabled={generating} style={primaryButtonStyle}>
+                {generating ? '產生中...' : '產生結算'}
+              </button>
+            </div>
+          )}
         </header>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
-          <section style={{ ...cardStyle, flex: '1 1 300px', minWidth: 0 }}>
-            <h2 style={sectionTitleStyle}>結算批次</h2>
-            {loading ? (
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24, borderBottom: '2px solid var(--color-border)' }}>
+          <button 
+            onClick={() => setActiveTab('ledger')}
+            style={{ 
+              background: 'transparent', border: 'none', padding: '12px 16px', fontSize: 16, fontWeight: 900, cursor: 'pointer',
+              color: activeTab === 'ledger' ? '#2563EB' : 'var(--color-text-muted)',
+              borderBottom: activeTab === 'ledger' ? '3px solid #2563EB' : '3px solid transparent',
+              marginBottom: -2
+            }}
+          >手動異動紀錄</button>
+          <button 
+            onClick={() => setActiveTab('settlements')}
+            style={{ 
+              background: 'transparent', border: 'none', padding: '12px 16px', fontSize: 16, fontWeight: 900, cursor: 'pointer',
+              color: activeTab === 'settlements' ? '#2563EB' : 'var(--color-text-muted)',
+              borderBottom: activeTab === 'settlements' ? '3px solid #2563EB' : '3px solid transparent',
+              marginBottom: -2
+            }}
+          >教練薪資結算</button>
+        </div>
+
+        {activeTab === 'ledger' && (
+          <section style={{ ...cardStyle, width: '100%' }}>
+            <h2 style={sectionTitleStyle}>平台手動異動紀錄</h2>
+            <p style={{...mutedStyle, marginBottom: 20}}>顯示管理員手動進行的所有儲值與扣款操作紀錄。</p>
+            {loadingLedger ? (
               <p style={mutedStyle}>載入中...</p>
-            ) : batches.length === 0 ? (
-              <p style={mutedStyle}>目前沒有結算批次。</p>
+            ) : ledgerItems.length === 0 ? (
+              <p style={mutedStyle}>目前沒有手動異動紀錄。</p>
             ) : (
-              <div style={{ display: 'grid', gap: 10 }}>
-                {batches.map((batch) => {
-                  const style = STATUS_STYLE[batch.status] || STATUS_STYLE.pending;
-                  return (
-                    <button key={batch.id} onClick={() => loadDetail(batch)} style={{
-                      textAlign: 'left',
-                      border: selected?.id === batch.id ? '2px solid #2563EB' : '1px solid var(--color-border)',
-                      background: 'var(--color-surface)',
-                      borderRadius: 16,
-                      padding: 16,
-                      cursor: 'pointer',
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                        <div>
-                          <strong style={{ color: 'var(--color-text)', fontSize: 15 }}>{batch.coach?.name || '未知教練'}</strong>
-                          <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>{batch.month} · {batch.booking_count || 0} 筆訂單</div>
-                        </div>
-                        <span style={{ ...pillStyle, background: style.bg, color: style.color }}>{STATUS_LABEL[batch.status] || batch.status}</span>
+              <div style={{ display: 'grid', gap: 12 }}>
+                {ledgerItems.map((item) => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--color-border)', borderRadius: 16, padding: '16px 20px', background: 'var(--color-surface)' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                        <strong style={{ color: 'var(--color-text)', fontSize: 15 }}>{item.user_name}</strong>
+                        {item.phone_number && <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>({item.phone_number})</span>}
+                        <span style={{ ...pillStyle, background: item.type === 'top_up' ? '#D1FAE5' : '#FEE2E2', color: item.type === 'top_up' ? '#065F46' : '#991B1B' }}>
+                          {item.type === 'top_up' ? '管理員加值' : '管理員扣款'}
+                        </span>
                       </div>
-                      <div style={{ color: '#059669', fontWeight: 900, fontSize: 20, marginTop: 10 }}>
-                        NT${Number(batch.total_amount || 0).toLocaleString()}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-
-          <section style={{ ...cardStyle, flex: '1 1 360px', minWidth: 0 }}>
-            <h2 style={sectionTitleStyle}>批次明細</h2>
-            {!detail ? (
-              <p style={mutedStyle}>請選擇左側批次查看明細。</p>
-            ) : (
-              <div>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ color: 'var(--color-text)', fontWeight: 900, fontSize: 18 }}>{detail.batch.coach?.name}</div>
-                  <div style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>{detail.batch.month} · NT${Number(detail.batch.total_amount || 0).toLocaleString()}</div>
-                </div>
-
-                {detail.batch.status === 'pending' && (
-                  <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                    <button onClick={() => updateStatus(detail.batch.id, 'paid')} style={primaryButtonStyle}>標記已撥款</button>
-                    <button onClick={() => updateStatus(detail.batch.id, 'cancelled')} style={dangerButtonStyle}>取消批次</button>
-                  </div>
-                )}
-
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {(detail.bookings || []).map((booking) => (
-                    <div key={booking.id} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                        <strong style={{ color: 'var(--color-text)', fontSize: 13 }}>{booking.user_name || '學員'}</strong>
-                        <span style={{ color: '#059669', fontWeight: 900 }}>NT${Number(booking.coach_payout || 0).toLocaleString()}</span>
-                      </div>
-                      <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>
-                        {booking.completed_at ? new Date(booking.completed_at).toLocaleDateString('zh-TW') : '完課日不明'}
-                        {booking.plan_title ? ` · ${booking.plan_title}` : ''}
+                      <div style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+                        {new Date(item.created_at).toLocaleString('zh-TW')} · 由 {item.admin_name} 操作
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div style={{ color: item.type === 'top_up' ? '#059669' : '#DC2626', fontWeight: 900, fontSize: 22 }}>
+                      {item.type === 'top_up' ? '+' : '-'}{item.amount} 點
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </section>
-        </div>
+        )}
+
+        {activeTab === 'settlements' && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'flex-start' }}>
+            <section style={{ ...cardStyle, flex: '1 1 300px', minWidth: 0 }}>
+              <h2 style={sectionTitleStyle}>結算批次</h2>
+              {loading ? (
+                <p style={mutedStyle}>載入中...</p>
+              ) : batches.length === 0 ? (
+                <p style={mutedStyle}>目前沒有結算批次。</p>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {batches.map((batch) => {
+                    const style = STATUS_STYLE[batch.status] || STATUS_STYLE.pending;
+                    return (
+                      <button key={batch.id} onClick={() => loadDetail(batch)} style={{
+                        textAlign: 'left',
+                        border: selected?.id === batch.id ? '2px solid #2563EB' : '1px solid var(--color-border)',
+                        background: 'var(--color-surface)',
+                        borderRadius: 16,
+                        padding: 16,
+                        cursor: 'pointer',
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <div>
+                            <strong style={{ color: 'var(--color-text)', fontSize: 15 }}>{batch.coach?.name || '未知教練'}</strong>
+                            <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>{batch.month} · {batch.booking_count || 0} 筆訂單</div>
+                          </div>
+                          <span style={{ ...pillStyle, background: style.bg, color: style.color }}>{STATUS_LABEL[batch.status] || batch.status}</span>
+                        </div>
+                        <div style={{ color: '#059669', fontWeight: 900, fontSize: 20, marginTop: 10 }}>
+                          NT${Number(batch.total_amount || 0).toLocaleString()}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section style={{ ...cardStyle, flex: '1 1 360px', minWidth: 0 }}>
+              <h2 style={sectionTitleStyle}>批次明細</h2>
+              {!detail ? (
+                <p style={mutedStyle}>請選擇左側批次查看明細。</p>
+              ) : (
+                <div>
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ color: 'var(--color-text)', fontWeight: 900, fontSize: 18 }}>{detail.batch.coach?.name}</div>
+                    <div style={{ color: 'var(--color-text-muted)', fontSize: 13, marginTop: 4 }}>{detail.batch.month} · NT${Number(detail.batch.total_amount || 0).toLocaleString()}</div>
+                  </div>
+
+                  {detail.batch.status === 'pending' && (
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                      <button onClick={() => updateStatus(detail.batch.id, 'paid')} style={primaryButtonStyle}>標記已撥款</button>
+                      <button onClick={() => updateStatus(detail.batch.id, 'cancelled')} style={dangerButtonStyle}>取消批次</button>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {(detail.bookings || []).map((booking) => (
+                      <div key={booking.id} style={{ border: '1px solid var(--color-border)', borderRadius: 14, padding: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <strong style={{ color: 'var(--color-text)', fontSize: 13 }}>{booking.user_name || '學員'}</strong>
+                          <span style={{ color: '#059669', fontWeight: 900 }}>NT${Number(booking.coach_payout || 0).toLocaleString()}</span>
+                        </div>
+                        <div style={{ color: 'var(--color-text-muted)', fontSize: 12, marginTop: 4 }}>
+                          {booking.completed_at ? new Date(booking.completed_at).toLocaleDateString('zh-TW') : '完課日不明'}
+                          {booking.plan_title ? ` · ${booking.plan_title}` : ''}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+        )}
       </div>
     </div>
   );
