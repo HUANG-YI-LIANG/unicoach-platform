@@ -15,7 +15,7 @@ export async function GET(request) {
     // Fetch system messages that represent manual grants or deductions
     const { data: messages, error } = await adminSupabase
       .from('support_messages')
-      .select('id, user_id, admin_id, message, created_at, users!user_id(full_name, phone_number), admin:admin_id(full_name)')
+      .select('id, user_id, admin_id, message, created_at, user:users!support_messages_user_id_fkey(name, phone), admin:users!support_messages_admin_id_fkey(name)')
       .eq('is_system', true)
       .eq('is_from_admin', true)
       .order('created_at', { ascending: false })
@@ -47,9 +47,9 @@ export async function GET(request) {
 
         return {
           id: m.id,
-          user_name: m.users?.full_name || '未知學員',
-          phone_number: m.users?.phone_number || '',
-          admin_name: m.admin?.full_name || '管理員',
+          user_name: m.user?.name || '未知學員',
+          phone_number: m.user?.phone || '',
+          admin_name: m.admin?.name || '管理員',
           type,
           amount,
           message: m.message,
