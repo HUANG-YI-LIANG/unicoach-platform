@@ -83,7 +83,7 @@ export async function GET(request, { params }) {
       level: user.role === 'coach' ? '認證教練' : '標準學員',
       phone: user.phone || '無',
       email: user.email,
-      coach_info: user.coaches?.[0] || null,
+      coach_info: Array.isArray(user.coaches) ? user.coaches[0] : (user.coaches || null),
       wallet_balance: user.wallet_balance || 0,
       total_deposit: totalDeposit,
       total_withdrawal: totalWithdrawal,
