@@ -55,9 +55,13 @@ function DiscoverFeed() {
   });
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore]  const { user, loading: authLoading } = useAuth();
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const observer = useRef();
+  const lastElementRef = useRef(null);
+
+  const { user, loading: authLoading } = useAuth();
   const [showRequirementModal, setShowRequirementModal] = useState(false);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
