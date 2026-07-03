@@ -16,6 +16,13 @@ export async function GET(request, { params }) {
 
     const adminSupabase = getAdminSupabase();
 
+    // Record that admin viewed this user
+    await adminSupabase.from('platform_settings').upsert({
+      key: `admin_viewed_user_${userId}`,
+      value: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'key' });
+
     // Fetch user with their transactions
     const { data: user, error } = await adminSupabase
       .from('users')

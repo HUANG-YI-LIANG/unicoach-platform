@@ -12,16 +12,67 @@ export async function GET(request) {
 
     const adminSupabase = getAdminSupabase();
 
-    // Fetch users with their transactions
-    const { data: rawUsers, error } = await adminSupabase
-      .from('users')
-      .select(`
-        id, email, name, role, created_at, wallet_balance, avatar_url,
-        wallet_transactions(amount, transaction_type, created_at)
-      `)
-      .order('created_at', { ascending: false });
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [
+      { data: rawUsers, error },
+      { data: pendingTopups },
+      { data: unreadMsgs },
+      { data: viewSettings },
+      { data: recentClasses }
+    ] = await Promise.all([
+      adminSupabase
+        .from('users')
+        .select(`
+          id, email, name, role, created_at, wallet_balance, avatar_url,
+          wallet_transactions(amount, transaction_type, created_at)
+        `)
+        .order('created_at', { ascending: false }),
+      adminSupabase
+        .from('point_topup_requests')
+        .select('user_id')
+        .eq('status', 'pending'),
+      adminSupabase
+        .from('support_messages')
+        .select('user_id')
+        .eq('is_from_admin', false)
+        .eq('is_read_by_admin', false),
+      adminSupabase
+        .from('platform_settings')
+        .select('key, value')
+        .like('key', 'admin_viewed_user_%'),
+      adminSupabase
+        .from('bookings')
+        .select('coach_id, user_id, updated_at')
+        .eq('status', 'completed')
+        .gte('updated_at', thirtyDaysAgo)
+    ]);
 
     if (error) throw error;
+
+    const pendingTopupUsers = new Set((pendingTopups || []).map(t => t.user_id));
+    const unreadUsers = new Set((unreadMsgs || []).map(m => m.user_id));
+    
+    const adminViewedMap = {};
+    (viewSettings || []).forEach(s => {
+      const uid = s.key.replace('admin_viewed_user_', '');
+      adminViewedMap[uid] = new Date(s.value).getTime();
+    });
+
+    const latestCompletedMap = {};
+    (recentClasses || []).forEach(b => {
+      const time = new Date(b.updated_at || 0).getTime();
+      if (b.coach_id) {
+        if (!latestCompletedMap[b.coach_id] || time > latestCompletedMap[b.coach_id]) {
+          latestCompletedMap[b.coach_id] = time;
+        }
+      }
+      if (b.user_id) {
+        if (!latestCompletedMap[b.user_id] || time > latestCompletedMap[b.user_id]) {
+          latestCompletedMap[b.user_id] = time;
+        }
+      }
+    });
 
     const users = rawUsers.map(user => {
       const txs = user.wallet_transactions || [];
@@ -34,11 +85,18 @@ export async function GET(request) {
         .filter(t => t.transaction_type === 'withdrawal' || t.amount < 0)
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
 
-      const lastLogin = null; // Next-auth or custom auth may not track last login out of the box in users table. We'll use created_at as fallback.
+      const lastLogin = null;
 
       const totalClassesAmount = txs
         .filter(t => t.transaction_type === 'class_payment' || t.transaction_type === 'coach_payout')
         .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+      const lastViewedTime = adminViewedMap[user.id] || 0;
+      let hasNotification = false;
+
+      if (pendingTopupUsers.has(user.id)) hasNotification = true;
+      if (unreadUsers.has(user.id)) hasNotification = true;
+      if (latestCompletedMap[user.id] && latestCompletedMap[user.id] > lastViewedTime) hasNotification = true;
 
       return {
         id: user.id,
@@ -50,9 +108,10 @@ export async function GET(request) {
         total_withdrawal: totalWithdrawal,
         total_classes_amount: totalClassesAmount,
         last_login_time: lastLogin || user.created_at,
-        last_login_ip: '2001:b011:7007::', // Mocked IP for demonstration as requested by layout
+        last_login_ip: '2001:b011:7007::',
         created_at: user.created_at,
         avatar_url: user.avatar_url,
+        has_notification: hasNotification
       };
     });
 

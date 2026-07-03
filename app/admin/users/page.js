@@ -111,6 +111,7 @@ export default function UserManagementAdmin() {
                   </div>
                   <div className="user-name-tag">{user.name || '未命名'}</div>
                   <div className={`role-dot ${user.role || 'user'}`}></div>
+                  {user.has_notification && <div className="notification-dot"></div>}
                 </div>
               ))
             )}
@@ -298,6 +299,24 @@ export default function UserManagementAdmin() {
         .role-dot.user { background: #60a5fa; }
         .role-dot.ambassador { background: #f472b6; }
         
+        .notification-dot {
+          width: 16px;
+          height: 16px;
+          background: #ef4444;
+          border-radius: 50%;
+          position: absolute;
+          top: -2px;
+          left: 5px;
+          border: 3px solid var(--color-surface);
+          box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+          animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
         .empty-state {
           grid-column: 1 / -1;
           text-align: center;
