@@ -270,16 +270,6 @@ export default function CoachEarningsWalletPage() {
           )}
         </div>
 
-        {/* 優惠券區塊保留 */}
-        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 24, padding: 32, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Ticket size={20} color={ORANGE} /> 我的優惠券
-          </h2>
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 16, padding: 24, textAlign: 'center' }}>
-            <Ticket size={32} color={MUTED} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
-            <p style={{ margin: 0, color: MUTED, fontSize: 14 }}>目前尚無可用優惠券</p>
-          </div>
-        </div>
 
       </section>
     </main>
