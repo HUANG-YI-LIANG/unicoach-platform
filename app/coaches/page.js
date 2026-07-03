@@ -63,9 +63,11 @@ function DiscoverFeed() {
 
   const lastElementRef = useRef(null);
 
+  const { user, loading: authLoading } = useAuth();
+  const [showRequirementModal, setShowRequirementModal] = useState(false);
+  const [submittingReq, setSubmittingReq] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
   const [wizardData, setWizardData] = useState({ category: '', goal: '', level: '', mode: '', distance: '', budget: '', preference: '', time: '', extra: '' });
-  
   useEffect(() => {
     if (!authLoading) {
       if (user && user.role === 'user' && !user.learning_goals) {
