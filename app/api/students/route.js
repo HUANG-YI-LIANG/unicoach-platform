@@ -27,7 +27,7 @@ export async function GET(request) {
     // Query users who are 'user' (students)
     const { data: students, error, count } = await supabase
       .from('users')
-      .select('id, name, avatar_url, grade, learning_goals, created_at', { count: 'exact' })
+      .select('id, name, avatar_url, grade, learning_goals, created_at, level', { count: 'exact' })
       .eq('role', 'user')
       .not('learning_goals', 'is', null) // Filter out complete ghosts
       .neq('learning_goals', '')
@@ -66,10 +66,21 @@ export async function GET(request) {
       const rStats = reviewsMap[s.id];
       const avgScore = rStats && rStats.count > 0 ? (rStats.totalScore / rStats.count).toFixed(1) : null;
       
+      // Calculate lead_price
+      let leadPrice = 30; // Base cost
+      const studentLevel = s.level || 1;
+      if (studentLevel > 1) {
+        leadPrice += (studentLevel - 1) * 10;
+      }
+      if (avgScore && parseFloat(avgScore) >= 4.5) {
+        leadPrice += 20;
+      }
+      
       return {
         ...s,
         avg_score: avgScore,
-        review_count: rStats ? rStats.count : 0
+        review_count: rStats ? rStats.count : 0,
+        lead_price: leadPrice
       };
     });
 

@@ -2,15 +2,20 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Star, Target, MessageCircle, MapPin } from 'lucide-react';
+import { ChevronLeft, Star, Target, MessageCircle, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 export default function StudentDiscoveryPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const [confirmModal, setConfirmModal] = useState(null); // { studentId, name, leadPrice }
+  const [processing, setProcessing] = useState(false);
 
   const observer = useRef();
   const lastElementRef = useRef(null);
@@ -49,8 +54,55 @@ export default function StudentDiscoveryPage() {
     }
   }, [loading, loadingMore, hasMore]);
 
+  const handleStartChat = async (student) => {
+    const coachLevel = user?.level || 1;
+    if (coachLevel === 1) {
+      // Free for Level 1, directly buy
+      await executeBuyLead(student.id);
+    } else {
+      // Paid for Level 2+, show modal
+      setConfirmModal({
+        studentId: student.id,
+        name: student.name,
+        leadPrice: student.lead_price || 30
+      });
+    }
+  };
+
+  const executeBuyLead = async (studentId) => {
+    try {
+      setProcessing(true);
+      const res = await fetch('/api/chat/buy-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        if (res.status === 402) {
+          if (confirm('您的錢包餘額不足，是否前往儲值？')) {
+            router.push('/dashboard/coach/earnings');
+          }
+        } else {
+          alert(data.error || '開發學生失敗');
+        }
+        return;
+      }
+      
+      // Success, navigate to chat
+      router.push(`/chat/${studentId}`);
+    } catch (err) {
+      console.error(err);
+      alert('網路錯誤，請稍後再試');
+    } finally {
+      setProcessing(false);
+      setConfirmModal(null);
+    }
+  };
+
   return (
-    <div className="mobile-container" style={{ background: 'var(--bg-page)', minHeight: '100dvh' }}>
+    <div className="mobile-container" style={{ background: 'var(--bg-page)', minHeight: '100dvh', position: 'relative' }}>
       <header className="page-header" style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-card)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 16, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <button onClick={() => router.back()} className="icon-btn" style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', padding: 0 }}>
           <ChevronLeft size={24} />
@@ -111,6 +163,9 @@ export default function StudentDiscoveryPage() {
                       <span style={{ fontSize: 13, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: 4 }}>
                         {student.grade || '未填寫年級'}
                       </span>
+                      <span style={{ fontSize: 13, color: 'var(--primary)', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                        Lv {student.level || 1}
+                      </span>
                     </div>
 
                     <div style={{ background: 'rgba(0,0,0,0.2)', padding: 12, borderRadius: 8, borderLeft: '3px solid var(--primary)' }}>
@@ -129,15 +184,19 @@ export default function StudentDiscoveryPage() {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      router.push(`/chat/${student.id}`);
+                      handleStartChat(student);
                     }}
                     style={{ flex: 1, padding: '12px', borderRadius: 12, border: 'none', background: 'var(--primary)', color: 'var(--text-light)', fontSize: 15, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                    disabled={processing}
                   >
                     <MessageCircle size={18} />
-                    發送訊息
+                    {user?.level === 1 ? '✨ 新手免費 發送訊息' : `💰 支付 ${student.lead_price || 30} 點 發送訊息`}
                   </button>
                   <button 
-                    onClick={() => router.push(`/dashboard/coach/students/${student.id}`)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/dashboard/coach/students/${student.id}`);
+                    }}
                     style={{ flex: 1, padding: '12px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: 'var(--text-light)', fontSize: 15, fontWeight: 800 }}
                   >
                     查看歷史評價
@@ -149,6 +208,52 @@ export default function StudentDiscoveryPage() {
           </div>
         )}
       </main>
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(0,0,0,0.8)', zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', padding: 24, borderRadius: 20, width: '100%', maxWidth: 400,
+            border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255, 171, 0, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={32} color="#FFAB00" />
+              </div>
+            </div>
+            
+            <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', color: 'var(--text-primary)', margin: '0 0 12px' }}>
+              開啟開發對話
+            </h2>
+            
+            <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.5, margin: '0 0 24px' }}>
+              這將會扣除您錢包中的 <strong style={{ color: 'var(--primary)' }}>{confirmModal.leadPrice} 點</strong> 來開啟與 <strong style={{ color: 'var(--text-light)' }}>{confirmModal.name}</strong> 的專屬聊天室。
+            </p>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => setConfirmModal(null)}
+                style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: 'rgba(255,255,255,0.1)', color: 'var(--text-light)', fontSize: 16, fontWeight: 800 }}
+                disabled={processing}
+              >
+                取消
+              </button>
+              <button 
+                onClick={() => executeBuyLead(confirmModal.studentId)}
+                style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: 'var(--primary)', color: 'var(--text-light)', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                disabled={processing}
+              >
+                {processing ? <div className="spinner" style={{ width: 20, height: 20 }} /> : '確定扣款'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
