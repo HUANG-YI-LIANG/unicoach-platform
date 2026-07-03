@@ -6,35 +6,11 @@ import { requireAuth } from '@/lib/auth';
 import { getAdminSupabase } from '@/lib/supabase';
 import { revalidateTag } from 'next/cache';
 
-const PERCENTAGE_SETTING_KEYS = new Set([
-  'commission_rate',
-  'referral_commission_rate',
-  'double_referral_commission_rate',
-  'coach_level_max_discount',
-  'user_rebate_discount',
-  'commission_discount',
-  'discount_percent',
-  'first_booking_discount',
-  'base_discount_percent',
-]);
-
-const JSON_SETTING_KEYS = new Set([
-  'coach_tier_rates',
-  'top_coach_settings',
-  'deposit_bonus_tiers',
-  'user_tier_discounts',
-  'coach_review_titles',
-  'student_review_titles',
-]);
-
 function clampSettingValue(key, value) {
-  if (JSON_SETTING_KEYS.has(key)) {
-    return typeof value === 'string' ? value : JSON.stringify(value);
+  if (typeof value === 'object' && value !== null) {
+    return JSON.stringify(value);
   }
-  if (!PERCENTAGE_SETTING_KEYS.has(key)) return String(value);
-  const parsed = Number(value);
-  const normalized = Number.isFinite(parsed) ? parsed : 0;
-  return String(Math.round(Math.min(100, Math.max(0, normalized))));
+  return String(value);
 }
 
 /**
