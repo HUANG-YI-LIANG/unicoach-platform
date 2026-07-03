@@ -76,7 +76,7 @@ export default function CoachEarningsWalletPage() {
   };
 
   const openSupportChat = () => {
-    router.push('/chat');
+    router.push('/chat?topic=coach-withdrawal'); // 直接進入聊天室不經過 support 頁面
   };
 
   const handleBind = async () => {
@@ -135,27 +135,21 @@ export default function CoachEarningsWalletPage() {
         {/* 頂部整合面板：餘額與提領 */}
         <div style={{ background: CARD, borderRadius: 24, padding: 24, border: `1px solid ${BORDER}` }}>
           {/* 上部：餘額與操作 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Wallet size={28} color={ORANGE} />
-              </div>
-              <div>
-                <p style={{ margin: '0 0 4px', fontSize: 14, color: MUTED }}>可提領總收益</p>
-                <div style={{ fontSize: 32, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'baseline', gap: 4 }}>
-                  <span style={{ fontSize: 24 }}>$</span> {balance.toLocaleString()}
-                </div>
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24, gap: 16 }}>
+            <p style={{ margin: '0', fontSize: 16, color: MUTED }}>可提領總收益</p>
+            <div style={{ fontSize: 48, fontWeight: 900, color: TEXT_LIGHT, display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: 28, color: ORANGE }}>$</span> {balance.toLocaleString()}
             </div>
+            
             <button
               onClick={openSupportChat}
               style={{
-                padding: '10px 24px', borderRadius: 12, border: `1px solid rgba(255,255,255,0.1)`,
-                background: 'transparent', color: TEXT_LIGHT, fontWeight: 700, fontSize: 15,
-                cursor: 'pointer', transition: 'all 0.2s'
+                width: '100%', padding: '14px 24px', borderRadius: 16, border: 'none',
+                background: 'rgba(255, 138, 61, 0.1)', color: ORANGE, fontWeight: 800, fontSize: 16,
+                cursor: 'pointer', transition: 'all 0.2s', marginTop: '8px'
               }}
             >
-              提領收益
+              聯絡客服提領
             </button>
           </div>
 

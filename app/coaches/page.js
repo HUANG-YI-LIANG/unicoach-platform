@@ -3,7 +3,8 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Search, MapPin, Star, ChevronRight } from 'lucide-react';
+import { Search, MapPin, Star, ChevronRight, Target } from 'lucide-react';
+import { useAuth } from '@/components/AuthProvider';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: '推薦' },
@@ -62,6 +63,48 @@ function DiscoverFeed() {
 
   const lastElementRef = useRef(null);
 
+  const { user, loading: authLoading } = useAuth();
+  const [showRequirementModal, setShowRequirementModal] = useState(false);
+  const [requirementInput, setRequirementInput] = useState('');
+  const [submittingReq, setSubmittingReq] = useState(false);
+
+  useEffect(() => {
+    // If not logged in, we can either force login or let them browse. 
+    // Here we force logged-in users who haven't set learning_goals to set them.
+    // We also force guests to at least write what they want (store in localStorage).
+    if (!authLoading) {
+      if (user && user.role === 'user' && !user.learning_goals) {
+        setShowRequirementModal(true);
+      } else if (!user && !localStorage.getItem('guest_learning_goals')) {
+        setShowRequirementModal(true);
+      }
+    }
+  }, [user, authLoading]);
+
+  const handleSubmitRequirements = async () => {
+    if (!requirementInput.trim()) return;
+    setSubmittingReq(true);
+    try {
+      if (user) {
+        await fetch('/api/auth/profile', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ learning_goals: requirementInput })
+        });
+        window.location.reload(); // reload to get updated profile
+      } else {
+        localStorage.setItem('guest_learning_goals', requirementInput);
+        setShowRequirementModal(false);
+        // Could also redirect to register: router.push(`/register?goal=${encodeURIComponent(requirementInput)}`);
+        // But for now let them see coaches
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmittingReq(false);
+    }
+  };
+
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
@@ -116,6 +159,55 @@ function DiscoverFeed() {
 
   return (
     <>
+      {showRequirementModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(5, 8, 22, 0.95)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px', backdropFilter: 'blur(8px)'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border)',
+            borderRadius: 24, padding: '32px 24px', width: '100%', maxWidth: 400,
+            display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.4)'
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', textAlign: 'center' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Target size={28} color="var(--accent)" />
+              </div>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>你想學什麼？</h2>
+              <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                請簡單描述你的學習目標或想找什麼樣的教練，<br/>這能幫助我們推薦最適合的人選給你。
+              </p>
+            </div>
+            <textarea
+              value={requirementInput}
+              onChange={e => setRequirementInput(e.target.value)}
+              placeholder="例如：我想學自由式換氣、我想準備多益考試..."
+              rows={4}
+              style={{
+                width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 16, padding: 16, color: 'var(--text-primary)', fontSize: 15,
+                outline: 'none', resize: 'none'
+              }}
+            />
+            <button
+              onClick={handleSubmitRequirements}
+              disabled={submittingReq || !requirementInput.trim()}
+              style={{
+                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
+                background: requirementInput.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
+                color: requirementInput.trim() ? '#120B06' : 'rgba(255,255,255,0.3)',
+                fontWeight: 900, fontSize: 16, cursor: requirementInput.trim() ? 'pointer' : 'not-allowed',
+                transition: 'all 0.2s'
+              }}
+            >
+              {submittingReq ? '處理中...' : '開始尋找教練'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Overlay Header */}
       <div className="discover-header">
         <div className="header-content">

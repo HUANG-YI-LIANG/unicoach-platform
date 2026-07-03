@@ -19,9 +19,10 @@ import {
 import { safeErrorDetails } from '@/lib/safeLogging';
 
 const LEVEL_META = {
-  1: { key: 'beginner', label: '初階教練', rank: 1 },
-  2: { key: 'advanced', label: '進階教練', rank: 2 },
-  3: { key: 'professional', label: '專業教練', rank: 3 },
+  1: { key: 'beginner', label: '菜鳥教練', rank: 1 },
+  2: { key: 'rising', label: '新銳教練', rank: 2 },
+  3: { key: 'senior', label: '資深教練', rank: 3 },
+  4: { key: 'star', label: '明星教練', rank: 4 },
 };
 
 const PUBLIC_COACH_LIST_SELECT = `
@@ -36,6 +37,8 @@ const PUBLIC_COACH_LIST_SELECT = `
   approval_status,
   available_times,
   referral_code,
+  coach_level,
+  is_founding_coach,
   users!inner(id, name, avatar_url, level)
 `;
 const PUBLIC_COACH_PLAN_SELECT = 'id, coach_id, title, description, duration_minutes, price, is_active, is_default';
@@ -136,6 +139,8 @@ function buildCoachListModel(coach, { reviewCount = 0, ratingAverage = 0 } = {})
     commission_rate: coach.commission_rate,
     approval_status: coach.approval_status,
     available_times: coach.available_times,
+    coach_level: coach.coach_level,
+    is_founding_coach: coach.is_founding_coach,
   };
 }
 
@@ -156,7 +161,7 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     availability_rules: formalAvailabilityRules,
     availability_exceptions: availabilityExceptions,
   };
-  const coachLevelValue = normalizeLevel(coach?.users?.level);
+  const coachLevelValue = normalizeLevel(coach?.coach_level);
   const nextAvailableSlot = saleability.canSell
     ? getNextAvailableSlot(coachWithAvailability, coachBookings, {
         startDate: getTodayDateString(),
@@ -200,6 +205,7 @@ function formatCoach(coach, coachBookings, coachPlans, availabilityRules, availa
     coach_level: LEVEL_META[coachLevelValue].key,
     coach_level_label: LEVEL_META[coachLevelValue].label,
     coach_level_value: coachLevelValue,
+    is_founding_coach: Boolean(coach.is_founding_coach),
     next_available_at: nextAvailableSlot?.iso || null,
     next_available_date: nextAvailableSlot?.date || null,
     next_available_time: nextAvailableSlot?.time || null,
