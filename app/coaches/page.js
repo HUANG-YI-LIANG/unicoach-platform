@@ -57,17 +57,15 @@ function DiscoverFeed() {
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const observer = useRef();
-
-  const lastElementRef = useRef(null);
-
-  const { user, loading: authLoading } = useAuth();
+  const [hasMore, setHasMore]  const { user, loading: authLoading } = useAuth();
   const [showRequirementModal, setShowRequirementModal] = useState(false);
   const [submittingReq, setSubmittingReq] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
-  const [wizardData, setWizardData] = useState({ category: '', goal: '', level: '', mode: '', distance: '', budget: '', preference: '', time: '', extra: '' });
+  const [wizardData, setWizardData] = useState({ category: [], goal: [], level: [], mode: [], distance: [], budget: [], preference: [], time: [], extra: '' });
+  
+  // History stack for back button since steps can jump (like 4 -> 4.5 -> 5)
+  const [stepHistory, setStepHistory] = useState([]);
+
   useEffect(() => {
     if (!authLoading) {
       if (user && user.role === 'user' && !user.learning_goals) {
@@ -83,29 +81,53 @@ function DiscoverFeed() {
     const step = parseInt(searchParams.get('wizard_step'), 10);
     const cat = searchParams.get('wizard_category');
     if (step === 2 && cat) {
-      setWizardData(prev => ({ ...prev, category: cat }));
+      setWizardData(prev => ({ ...prev, category: [cat] }));
       setWizardStep(2);
+      setStepHistory([1]);
       setShowRequirementModal(true);
     } else if (step === 1) {
       setWizardStep(1);
+      setStepHistory([]);
       setShowRequirementModal(true);
     }
   }, [searchParams]);
 
-  const handleWizardSelect = (field, value) => {
-    setWizardData(prev => ({ ...prev, [field]: value }));
+  const handleWizardToggle = (field, value) => {
+    setWizardData(prev => {
+      const current = prev[field] || [];
+      if (current.includes(value)) {
+        return { ...prev, [field]: current.filter(v => v !== value) };
+      } else {
+        return { ...prev, [field]: [...current, value] };
+      }
+    });
+  };
+
+  const handleNextStep = () => {
+    setStepHistory(prev => [...prev, wizardStep]);
     
     // Custom flow logic
-    if (field === 'mode' && value === '實體') {
+    if (wizardStep === 4 && wizardData.mode.includes('實體')) {
       setWizardStep(4.5); // Sub-step for distance
-    } else if (field === 'distance' || (field === 'mode' && value !== '實體')) {
+    } else if (wizardStep === 4.5 || (wizardStep === 4 && !wizardData.mode.includes('實體'))) {
       setWizardStep(5);
     } else {
       setWizardStep(prev => Math.floor(prev) + 1);
     }
   };
 
-  const getDynamicGoals = (category) => {
+  const handlePrevStep = () => {
+    if (stepHistory.length > 0) {
+      const newHistory = [...stepHistory];
+      const prevStep = newHistory.pop();
+      setStepHistory(newHistory);
+      setWizardStep(prevStep);
+    }
+  };
+
+  const getDynamicGoals = (categories) => {
+    // We can just use the first category to determine the goals for simplicity
+    const category = categories[0] || '';
     const map = {
       '羽球': ['🏆 提升技巧', '😊 培養興趣', '💪 運動減脂', '🎯 準備比賽', '👨‍🏫 找陪練', '✨ 其他'],
       '健身': ['💪 減脂增肌', '😊 體態雕塑', '🏆 提升力量', '🎯 準備賽事', '✨ 其他'],
@@ -117,13 +139,13 @@ function DiscoverFeed() {
 
   const handleSubmitRequirements = async () => {
     const parts = [];
-    if (wizardData.category) parts.push(`想找【${wizardData.category}】教練`);
-    if (wizardData.goal) parts.push(`目標：${wizardData.goal}`);
-    if (wizardData.level) parts.push(`目前程度：${wizardData.level}`);
-    if (wizardData.mode) parts.push(`上課方式：${wizardData.mode}${wizardData.distance ? ` (${wizardData.distance})` : ''}`);
-    if (wizardData.budget) parts.push(`預算：${wizardData.budget}`);
-    if (wizardData.preference) parts.push(`教練偏好：${wizardData.preference}`);
-    if (wizardData.time) parts.push(`希望時間：${wizardData.time}`);
+    if (wizardData.category.length) parts.push(`想找【${wizardData.category.join('、')}】教練`);
+    if (wizardData.goal.length) parts.push(`目標：${wizardData.goal.join('、')}`);
+    if (wizardData.level.length) parts.push(`目前程度：${wizardData.level.join('、')}`);
+    if (wizardData.mode.length) parts.push(`上課方式：${wizardData.mode.join('、')}${wizardData.distance.length ? ` (${wizardData.distance.join('、')})` : ''}`);
+    if (wizardData.budget.length) parts.push(`預算：${wizardData.budget.join('、')}`);
+    if (wizardData.preference.length) parts.push(`教練偏好：${wizardData.preference.join('、')}`);
+    if (wizardData.time.length) parts.push(`希望時間：${wizardData.time.join('、')}`);
     if (wizardData.extra.trim()) parts.push(`補充：${wizardData.extra.trim()}`);
     
     const finalGoal = parts.join('。');
@@ -200,12 +222,15 @@ function DiscoverFeed() {
 
   const updateCategory = (val) => setFilters(prev => ({ ...prev, category: val }));
 
-  const WizardOption = ({ label, onClick }) => (
+  const WizardOption = ({ label, isActive, onClick }) => (
     <button
       onClick={onClick}
       style={{
-        width: '100%', padding: '16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)',
-        background: 'rgba(255,255,255,0.03)', color: '#FFF', fontSize: 16, fontWeight: 700,
+        width: '100%', padding: '16px', borderRadius: 16, 
+        border: `1px solid ${isActive ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+        background: isActive ? 'rgba(255, 138, 61, 0.15)' : 'rgba(255,255,255,0.03)', 
+        color: isActive ? 'var(--accent)' : '#FFF', 
+        fontSize: 16, fontWeight: 700,
         textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 12
       }}
     >
@@ -251,41 +276,45 @@ function DiscoverFeed() {
             <div style={{ marginTop: 8 }}>
               {wizardStep === 1 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {['🏸 羽球', '🏋️ 健身', '⚽ 足球', '🏀 籃球', '🎾 網球', '🇺🇸 英文', '🇯🇵 日文', '🇰🇷 韓文', '🎸 吉他', '🎹 鋼琴', '📈 投資', '💻 程式', '📷 攝影', '🎨 繪畫'].map(c => (
-                    <WizardOption key={c} label={c} onClick={() => handleWizardSelect('category', c.replace(/^[^\s]+\s/, ''))} />
-                  ))}
-                  <WizardOption label="⋯ 更多" onClick={() => handleWizardSelect('category', '其他')} />
+                  {['🏸 羽球', '🏋️ 健身', '⚽ 足球', '🏀 籃球', '🎾 網球', '🇺🇸 英文', '🇯🇵 日文', '🇰🇷 韓文', '🎸 吉他', '🎹 鋼琴', '📈 投資', '💻 程式', '📷 攝影', '🎨 繪畫'].map(c => {
+                    const cleanVal = c.replace(/^[^\s]+\s/, '');
+                    return <WizardOption key={c} label={c} isActive={wizardData.category.includes(cleanVal)} onClick={() => handleWizardToggle('category', cleanVal)} />;
+                  })}
+                  <WizardOption label="⋯ 更多" isActive={wizardData.category.includes('其他')} onClick={() => handleWizardToggle('category', '其他')} />
                 </div>
               )}
 
               {wizardStep === 2 && (
                 <div>
-                  {getDynamicGoals(wizardData.category).map(g => (
-                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('goal', g.replace(/^[^\s]+\s/, ''))} />
-                  ))}
+                  {getDynamicGoals(wizardData.category).map(g => {
+                    const cleanVal = g.replace(/^[^\s]+\s/, '');
+                    return <WizardOption key={g} label={g} isActive={wizardData.goal.includes(cleanVal)} onClick={() => handleWizardToggle('goal', cleanVal)} />;
+                  })}
                 </div>
               )}
 
               {wizardStep === 3 && (
                 <div>
-                  {['🌱 完全新手', '🙂 有基礎', '🔥 中階', '🏆 高階', '👑 比賽等級'].map(l => (
-                    <WizardOption key={l} label={l} onClick={() => handleWizardSelect('level', l.replace(/^[^\s]+\s/, ''))} />
-                  ))}
+                  {['🌱 完全新手', '🙂 有基礎', '🔥 中階', '🏆 高階', '👑 比賽等級'].map(l => {
+                    const cleanVal = l.replace(/^[^\s]+\s/, '');
+                    return <WizardOption key={l} label={l} isActive={wizardData.level.includes(cleanVal)} onClick={() => handleWizardToggle('level', cleanVal)} />;
+                  })}
                 </div>
               )}
 
               {wizardStep === 4 && (
                 <div>
-                  {['📍 實體', '💻 線上', '📱 都可以'].map(m => (
-                    <WizardOption key={m} label={m} onClick={() => handleWizardSelect('mode', m.replace(/^[^\s]+\s/, ''))} />
-                  ))}
+                  {['📍 實體', '💻 線上', '📱 都可以'].map(m => {
+                    const cleanVal = m.replace(/^[^\s]+\s/, '');
+                    return <WizardOption key={m} label={m} isActive={wizardData.mode.includes(cleanVal)} onClick={() => handleWizardToggle('mode', cleanVal)} />;
+                  })}
                 </div>
               )}
               
               {wizardStep === 4.5 && (
                 <div>
                   {['3公里', '5公里', '10公里', '不限'].map(d => (
-                    <WizardOption key={d} label={d} onClick={() => handleWizardSelect('distance', d)} />
+                    <WizardOption key={d} label={d} isActive={wizardData.distance.includes(d)} onClick={() => handleWizardToggle('distance', d)} />
                   ))}
                 </div>
               )}
@@ -293,7 +322,7 @@ function DiscoverFeed() {
               {wizardStep === 5 && (
                 <div>
                   {['300以下', '300~600', '600~1000', '1000以上', '不限'].map(b => (
-                    <WizardOption key={b} label={b} onClick={() => handleWizardSelect('budget', b)} />
+                    <WizardOption key={b} label={b} isActive={wizardData.budget.includes(b)} onClick={() => handleWizardToggle('budget', b)} />
                   ))}
                 </div>
               )}
@@ -301,7 +330,7 @@ function DiscoverFeed() {
               {wizardStep === 6 && (
                 <div>
                   {['不限', '男教練', '女教練', '高評價', '明星教練', '最快可預約'].map(p => (
-                    <WizardOption key={p} label={p} onClick={() => handleWizardSelect('preference', p)} />
+                    <WizardOption key={p} label={p} isActive={wizardData.preference.includes(p)} onClick={() => handleWizardToggle('preference', p)} />
                   ))}
                 </div>
               )}
@@ -309,7 +338,7 @@ function DiscoverFeed() {
               {wizardStep === 7 && (
                 <div>
                   {['今天', '明天', '這星期', '平日', '假日', '晚上', '不限'].map(t => (
-                    <WizardOption key={t} label={t} onClick={() => handleWizardSelect('time', t)} />
+                    <WizardOption key={t} label={t} isActive={wizardData.time.includes(t)} onClick={() => handleWizardToggle('time', t)} />
                   ))}
                 </div>
               )}
@@ -327,31 +356,47 @@ function DiscoverFeed() {
                       outline: 'none', resize: 'none'
                     }}
                   />
-                  <button
+                  <button 
                     onClick={handleSubmitRequirements}
                     disabled={submittingReq}
-                    style={{
-                      width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                      background: 'var(--accent)', color: '#120B06',
-                      fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s'
+                    style={{ 
+                      padding: '16px', borderRadius: 16, border: 'none', 
+                      background: 'linear-gradient(135deg, #FF8A3D 0%, #FF5E3A 100%)', 
+                      color: '#FFF', fontWeight: 900, fontSize: 16, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
                     }}
                   >
-                    {submittingReq ? '處理中...' : '開始推薦'}
-                  </button>
-                  <button
-                    onClick={handleSubmitRequirements}
-                    disabled={submittingReq}
-                    style={{
-                      width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                      background: 'transparent', color: 'rgba(255,255,255,0.5)',
-                      fontWeight: 700, fontSize: 15, cursor: 'pointer'
-                    }}
-                  >
-                    跳過
+                    {submittingReq ? '處理中...' : '送出需求並配對'}
                   </button>
                 </div>
               )}
             </div>
+
+            {/* Navigation Buttons for Wizard Steps */}
+            {wizardStep < 8 && (
+              <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+                {wizardStep > 1 && (
+                  <button 
+                    onClick={handlePrevStep}
+                    style={{ 
+                      flex: 1, padding: '14px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.2)', 
+                      background: 'transparent', color: '#FFF', fontWeight: 700, fontSize: 15, cursor: 'pointer',
+                    }}
+                  >
+                    回上一步
+                  </button>
+                )}
+                <button 
+                  onClick={handleNextStep}
+                  style={{ 
+                    flex: wizardStep > 1 ? 1 : 2, padding: '14px', borderRadius: 14, border: 'none', 
+                    background: 'var(--accent)', color: '#000', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                  }}
+                >
+                  下一步
+                </button>
+              </div>
+            )}
             
             {/* 步驟進度條 */}
             <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 12 }}>
