@@ -29,6 +29,16 @@ function normalizeCoupons(coupons) {
   return coupons.map((coupon) => normalizeCoupon(coupon)).filter(Boolean);
 }
 
+function determineCategory(text) {
+  if (!text) return 'sports';
+  const academicKeywords = ['數學', '英文', '理化', '國文', '物理', '化學', '生物', '社會', '歷史', '地理', '公民', '寫作', '全科', '伴讀', '國小', '國中', '高中', '多益', '雅思', '托福', '學測', '會考', '程式'];
+  const talentKeywords = ['鋼琴', '吉他', '音樂', '歌唱', '繪畫', '舞蹈', '才藝', '聲樂', '畫畫', '素描'];
+  
+  if (academicKeywords.some(kw => text.includes(kw))) return 'academic';
+  if (talentKeywords.some(kw => text.includes(kw))) return 'talent';
+  return 'sports';
+}
+
 export async function GET(request) {
   try {
     const auth = await requireAuth();
@@ -271,9 +281,10 @@ export async function POST(request) {
         if (profile) {
           const { data: svc } = await adminSupabase.from('coach_services').select('id, title, subject_or_sport').eq('coach_profile_id', profile.id);
           if (!svc || svc.length === 0) {
+            const newCategory = determineCategory(coachUpdates.service_areas || '');
             await adminSupabase.from('coach_services').insert({
               coach_profile_id: profile.id,
-              category: 'sports',
+              category: newCategory,
               title: coachUpdates.service_areas || '未填寫服務名稱',
               subject_or_sport: coachUpdates.service_areas || '未填寫',
               intro: coachUpdates.philosophy || coachUpdates.experience || '未填寫介紹',
@@ -283,7 +294,9 @@ export async function POST(request) {
               available_times: coachUpdates.available_times || '未填寫'
             });
           } else {
+            const newCategory = determineCategory(coachUpdates.service_areas || svc[0].subject_or_sport || '');
             await adminSupabase.from('coach_services').update({
+              category: newCategory,
               title: coachUpdates.service_areas || svc[0].title,
               subject_or_sport: coachUpdates.service_areas || svc[0].subject_or_sport,
               intro: coachUpdates.philosophy || coachUpdates.experience || '未填寫介紹',
