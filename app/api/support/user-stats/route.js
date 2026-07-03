@@ -28,7 +28,7 @@ export async function GET(request) {
     // 1. Get User Data
     const { data: user, error } = await adminSupabase
       .from('users')
-      .select('id, role, level, spent_points, completed_sessions')
+      .select('id, role, level')
       .eq('id', targetUserId)
       .single();
 
