@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/components/AuthProvider';
-import { Loader2, Search, ArrowLeft, Send, Plus, Minus, ShieldCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Loader2, Search, ArrowLeft, Send, Plus, Minus, ShieldCheck, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 
 const ORANGE = 'var(--color-accent, #FF8A3D)';
@@ -105,6 +106,7 @@ function RoomCard({ convo, onClick }) {
 
 export default function AdminSupportPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [conversations, setConversations] = useState([]);
   const [filteredConversations, setFilteredConversations] = useState([]);
   const [search, setSearch] = useState('');
@@ -761,6 +763,14 @@ export default function AdminSupportPage() {
         ) : (
           messages.map((message, index) => {
             const isMe = message.isFromAdmin || message.isSystem;
+            const isTopupMsg = message.message?.includes('匯款儲值');
+            const isWithdrawMsg = message.message?.includes('申請提領');
+            const isActionable = isTopupMsg || isWithdrawMsg;
+
+            const handleMsgClick = () => {
+              if (isTopupMsg) router.push('/dashboard/admin/topups');
+              if (isWithdrawMsg) router.push('/dashboard/admin/settlements');
+            };
 
             if (message.isSystem) {
               return (
@@ -800,6 +810,7 @@ export default function AdminSupportPage() {
                     </p>
                   )}
                   <div
+                    onClick={isActionable ? handleMsgClick : undefined}
                     style={{
                       padding: '12px 16px',
                       borderRadius: 18,
@@ -812,10 +823,22 @@ export default function AdminSupportPage() {
                       boxShadow: isMe ? `0 4px 12px rgba(249, 115, 22, 0.3)` : '0 4px 12px rgba(0,0,0,0.12)',
                       border: isMe ? 'none' : '1px solid var(--color-border)',
                       wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap'
+                      whiteSpace: 'pre-wrap',
+                      cursor: isActionable ? 'pointer' : 'default',
+                      position: 'relative'
                     }}
                   >
                     {message.message}
+                    {isActionable && (
+                      <div style={{ 
+                        display: 'inline-flex', alignItems: 'center', gap: 4, 
+                        marginLeft: 8, padding: '2px 6px', borderRadius: 4, 
+                        background: 'rgba(0,0,0,0.2)', fontSize: 11, fontWeight: 800,
+                        color: isMe ? '#FFF' : '#60A5FA'
+                      }}>
+                        前往審核 <ExternalLink size={10} />
+                      </div>
+                    )}
                     
                     {message.imagePath && (() => {
                       const src = message.imagePath.startsWith('http') || message.imagePath.startsWith('/uploads/')
