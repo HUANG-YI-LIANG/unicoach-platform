@@ -65,13 +65,11 @@ function DiscoverFeed() {
 
   const { user, loading: authLoading } = useAuth();
   const [showRequirementModal, setShowRequirementModal] = useState(false);
-  const [requirementInput, setRequirementInput] = useState('');
+  const [wizardStep, setWizardStep] = useState(1);
+  const [wizardData, setWizardData] = useState({ category: '', goal: '', budget: '', gender: '', distance: '', extra: '' });
   const [submittingReq, setSubmittingReq] = useState(false);
 
   useEffect(() => {
-    // If not logged in, we can either force login or let them browse. 
-    // Here we force logged-in users who haven't set learning_goals to set them.
-    // We also force guests to at least write what they want (store in localStorage).
     if (!authLoading) {
       if (user && user.role === 'user' && !user.learning_goals) {
         setShowRequirementModal(true);
@@ -81,22 +79,35 @@ function DiscoverFeed() {
     }
   }, [user, authLoading]);
 
+  const handleWizardSelect = (field, value) => {
+    setWizardData(prev => ({ ...prev, [field]: value }));
+    setWizardStep(prev => prev + 1);
+  };
+
   const handleSubmitRequirements = async () => {
-    if (!requirementInput.trim()) return;
+    const parts = [];
+    if (wizardData.category) parts.push(`想找【${wizardData.category}】教練`);
+    if (wizardData.goal) parts.push(`目標：${wizardData.goal}`);
+    if (wizardData.budget) parts.push(`預算：${wizardData.budget}`);
+    if (wizardData.gender) parts.push(`教練性別：${wizardData.gender}`);
+    if (wizardData.distance) parts.push(`上課方式/距離：${wizardData.distance}`);
+    if (wizardData.extra.trim()) parts.push(`補充：${wizardData.extra.trim()}`);
+    
+    const finalGoal = parts.join('。');
+    if (!finalGoal) return;
+
     setSubmittingReq(true);
     try {
       if (user) {
         await fetch('/api/auth/profile', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ learning_goals: requirementInput })
+          body: JSON.stringify({ learning_goals: finalGoal })
         });
-        window.location.reload(); // reload to get updated profile
+        window.location.reload(); 
       } else {
-        localStorage.setItem('guest_learning_goals', requirementInput);
+        localStorage.setItem('guest_learning_goals', finalGoal);
         setShowRequirementModal(false);
-        // Could also redirect to register: router.push(`/register?goal=${encodeURIComponent(requirementInput)}`);
-        // But for now let them see coaches
       }
     } catch (e) {
       console.error(e);
@@ -119,7 +130,6 @@ function DiscoverFeed() {
     params.set('page', page);
     params.set('limit', 20);
 
-    // Replace URL silently only on first page to not clutter history
     if (page === 1) {
       router.replace(params.toString() ? `${pathname}?${params}` : pathname, { scroll: false });
     }
@@ -157,6 +167,19 @@ function DiscoverFeed() {
 
   const updateCategory = (val) => setFilters(prev => ({ ...prev, category: val }));
 
+  const WizardOption = ({ label, onClick }) => (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', padding: '16px', borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)',
+        background: 'rgba(255,255,255,0.03)', color: '#FFF', fontSize: 16, fontWeight: 700,
+        textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', marginBottom: 12
+      }}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <>
       {showRequirementModal && (
@@ -169,41 +192,113 @@ function DiscoverFeed() {
           <div style={{
             background: 'var(--bg-card)', border: '1px solid var(--border)',
             borderRadius: 24, padding: '32px 24px', width: '100%', maxWidth: 400,
-            display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.4)'
+            display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+            maxHeight: '90vh', overflowY: 'auto'
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', textAlign: 'center' }}>
               <div style={{ width: 56, height: 56, borderRadius: 16, background: 'rgba(255, 138, 61, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Target size={28} color="var(--accent)" />
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>你想學什麼？</h2>
+              <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
+                {wizardStep === 1 && '今天想找哪一類教練？'}
+                {wizardStep === 2 && '你的目標是？'}
+                {wizardStep === 3 && '希望預算大約是？'}
+                {wizardStep === 4 && '希望教練的性別？'}
+                {wizardStep === 5 && '希望的上課距離或方式？'}
+                {wizardStep === 6 && '還有其他想補充的嗎？'}
+              </h2>
               <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                請簡單描述你的學習目標或想找什麼樣的教練，<br/>這能幫助我們推薦最適合的人選給你。
+                {wizardStep < 6 ? '點擊選項快速建立您的專屬需求' : '找不到適合的選項？用文字描述您的需求吧！'}
               </p>
             </div>
-            <textarea
-              value={requirementInput}
-              onChange={e => setRequirementInput(e.target.value)}
-              placeholder="例如：我想學自由式換氣、我想準備多益考試..."
-              rows={4}
-              style={{
-                width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: 16, padding: 16, color: 'var(--text-primary)', fontSize: 15,
-                outline: 'none', resize: 'none'
-              }}
-            />
-            <button
-              onClick={handleSubmitRequirements}
-              disabled={submittingReq || !requirementInput.trim()}
-              style={{
-                width: '100%', padding: '16px', borderRadius: 16, border: 'none',
-                background: requirementInput.trim() ? 'var(--accent)' : 'rgba(255,255,255,0.1)',
-                color: requirementInput.trim() ? '#120B06' : 'rgba(255,255,255,0.3)',
-                fontWeight: 900, fontSize: 16, cursor: requirementInput.trim() ? 'pointer' : 'not-allowed',
-                transition: 'all 0.2s'
-              }}
-            >
-              {submittingReq ? '處理中...' : '開始尋找教練'}
-            </button>
+
+            <div style={{ marginTop: 8 }}>
+              {wizardStep === 1 && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  {['🏸 羽球', '🏋️ 健身', '🏀 籃球', '🎾 網球', '🎸 吉他', '🎹 鋼琴', '🇺🇸 英文', '🇯🇵 日文', '📈 投資', '💻 程式'].map(c => (
+                    <WizardOption key={c} label={c} onClick={() => handleWizardSelect('category', c)} />
+                  ))}
+                  <WizardOption label="⋯ 其他" onClick={() => handleWizardSelect('category', '其他')} />
+                </div>
+              )}
+
+              {wizardStep === 2 && (
+                <div>
+                  {['完全沒碰過的新手', '想培養興趣', '想提升技巧', '想準備比賽或檢定', '想減肥 / 調整體態', '想找陪練', '其他'].map(g => (
+                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('goal', g)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 3 && (
+                <div>
+                  {['NT$ 300 以下 / 小時', 'NT$ 300 - 600 / 小時', 'NT$ 600 - 1000 / 小時', 'NT$ 1000 以上 / 小時', '不限'].map(b => (
+                    <WizardOption key={b} label={b} onClick={() => handleWizardSelect('budget', b)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 4 && (
+                <div>
+                  {['男教練', '女教練', '不限'].map(g => (
+                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('gender', g)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 5 && (
+                <div>
+                  {['實體：5公里內', '實體：10公里內', '線上上課', '線上或實體皆可'].map(d => (
+                    <WizardOption key={d} label={d} onClick={() => handleWizardSelect('distance', d)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 6 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <textarea
+                    value={wizardData.extra}
+                    onChange={e => setWizardData(prev => ({ ...prev, extra: e.target.value }))}
+                    placeholder="例如：我想找一位會陪我準備警專考試的教練..."
+                    rows={4}
+                    style={{
+                      width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 16, padding: 16, color: 'var(--text-primary)', fontSize: 15,
+                      outline: 'none', resize: 'none'
+                    }}
+                  />
+                  <button
+                    onClick={handleSubmitRequirements}
+                    disabled={submittingReq}
+                    style={{
+                      width: '100%', padding: '16px', borderRadius: 16, border: 'none',
+                      background: 'var(--accent)', color: '#120B06',
+                      fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s'
+                    }}
+                  >
+                    {submittingReq ? '處理中...' : '完成並開始尋找教練'}
+                  </button>
+                  <button
+                    onClick={handleSubmitRequirements}
+                    disabled={submittingReq}
+                    style={{
+                      width: '100%', padding: '16px', borderRadius: 16, border: 'none',
+                      background: 'transparent', color: 'rgba(255,255,255,0.5)',
+                      fontWeight: 700, fontSize: 15, cursor: 'pointer'
+                    }}
+                  >
+                    無補充，直接送出
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* 步驟進度條 */}
+            <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 12 }}>
+              {[1,2,3,4,5,6].map(s => (
+                <div key={s} style={{ width: 24, height: 4, borderRadius: 2, background: s <= wizardStep ? 'var(--accent)' : 'rgba(255,255,255,0.1)' }} />
+              ))}
+            </div>
           </div>
         </div>
       )}
