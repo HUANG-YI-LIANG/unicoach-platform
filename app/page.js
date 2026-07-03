@@ -18,11 +18,32 @@ const SPORT_IMAGES = {
   '數學': 'https://images.unsplash.com/photo-1509228468518-180dd4864904?q=80&w=600&auto=format&fit=crop',
   '英文': 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?q=80&w=600&auto=format&fit=crop',
   '理化': 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=600&auto=format&fit=crop',
-  '全科伴讀': 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop'
+  '全科伴讀': 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=600&auto=format&fit=crop',
+  '國文寫作': 'https://images.unsplash.com/photo-1506784926709-22f1ec395907?q=80&w=600&auto=format&fit=crop',
+  '社會公民': 'https://images.unsplash.com/photo-1589829085413-56de8ae18c73?q=80&w=600&auto=format&fit=crop',
+  '程式設計': 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=600&auto=format&fit=crop',
+  '音樂': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=600&auto=format&fit=crop'
 };
 const DEFAULT_SPORT_IMAGE = 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?q=80&w=600&auto=format&fit=crop';
 const HOME_HERO_COURSES = ['籃球', '英文', '健身', '數學', '羽球', '我不確定'];
 const HOME_HERO_STEPS = ['選課程', '看教練', '先聊聊', '約第一堂'];
+
+const getSportImage = (sport) => {
+  if (!sport) return DEFAULT_SPORT_IMAGE;
+  if (SPORT_IMAGES[sport]) return SPORT_IMAGES[sport];
+  
+  // Keyword matching for dynamically created categories
+  if (sport.includes('數學') || sport.includes('微積分')) return SPORT_IMAGES['數學'];
+  if (sport.includes('理化') || sport.includes('自然') || sport.includes('物理') || sport.includes('化學') || sport.includes('生物')) return SPORT_IMAGES['理化'];
+  if (sport.includes('英文') || sport.includes('外語') || sport.includes('多益') || sport.includes('雅思') || sport.includes('托福')) return SPORT_IMAGES['英文'];
+  if (sport.includes('國文') || sport.includes('寫作') || sport.includes('作文') || sport.includes('閱讀')) return SPORT_IMAGES['國文寫作'];
+  if (sport.includes('公民') || sport.includes('社會') || sport.includes('歷史') || sport.includes('地理')) return SPORT_IMAGES['社會公民'];
+  if (sport.includes('全科') || sport.includes('伴讀') || sport.includes('國小')) return SPORT_IMAGES['全科伴讀'];
+  if (sport.includes('程式') || sport.includes('電腦') || sport.includes('網頁')) return SPORT_IMAGES['程式設計'];
+  if (sport.includes('吉他') || sport.includes('鋼琴') || sport.includes('音樂') || sport.includes('歌唱') || sport.includes('聲樂')) return SPORT_IMAGES['音樂'];
+  
+  return DEFAULT_SPORT_IMAGE;
+};
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -252,7 +273,7 @@ export default function Home() {
             {sports.map(sport => (
               <Link href={getCoachDiscoveryHref(sport)} key={sport} className="sport-card">
                 <img 
-                  src={SPORT_IMAGES[sport] || DEFAULT_SPORT_IMAGE} 
+                  src={getSportImage(sport)} 
                   alt={sport} 
                   className="sport-card-bg"
                   loading="lazy"
