@@ -152,6 +152,70 @@ export default function UserDetailPage() {
         <p className="page-subtitle">{new Date().toLocaleString()}</p>
       </div>
 
+      <div className="summary-dashboard" style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <button onClick={() => router.push('/dashboard/admin/support')} className="stat-card" style={{ cursor: 'pointer', flex: 1, minWidth: '150px', background: 'var(--color-surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}>
+          <div style={{ background: 'rgba(96, 165, 250, 0.1)', padding: '12px', borderRadius: '12px', color: '#60a5fa' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>客服聊天室</span>
+            <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-light)' }}>與會員對話</span>
+          </div>
+        </button>
+
+        {user.coach_info && (
+          <button onClick={() => { setIsCoachProfileOpen(true); setTimeout(() => document.getElementById('coach-profile-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }} className="stat-card" style={{ cursor: 'pointer', flex: 1, minWidth: '150px', background: 'var(--color-surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}>
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '12px', borderRadius: '12px', color: '#10b981' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>教學影片</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-light)' }}>
+                {user.coach_info.videos ? 1 : 0} 支
+              </span>
+            </div>
+          </button>
+        )}
+
+        {user.coach_info && (
+          <button onClick={() => { setIsCoachProfileOpen(true); setTimeout(() => document.getElementById('coach-profile-section')?.scrollIntoView({ behavior: 'smooth' }), 100); }} className="stat-card" style={{ cursor: 'pointer', flex: 1, minWidth: '150px', background: 'var(--color-surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}>
+            <div style={{ background: 'rgba(244, 114, 182, 0.1)', padding: '12px', borderRadius: '12px', color: '#f472b6' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>教學照片</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-light)' }}>
+                {(() => {
+                  let photosList = [];
+                  try {
+                    if (Array.isArray(user.coach_info.photos)) {
+                      photosList = user.coach_info.photos;
+                    } else if (typeof user.coach_info.photos === 'string') {
+                      photosList = JSON.parse(user.coach_info.photos);
+                    }
+                  } catch(e) {}
+                  return photosList.length;
+                })()} 張
+              </span>
+            </div>
+          </button>
+        )}
+
+        {user.coach_info && (
+          <button onClick={() => { document.getElementById('bookings-section')?.scrollIntoView({ behavior: 'smooth' }); }} className="stat-card" style={{ cursor: 'pointer', flex: 1, minWidth: '150px', background: 'var(--color-surface)', padding: '16px', borderRadius: '16px', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', gap: '12px', transition: '0.2s' }}>
+            <div style={{ background: 'rgba(250, 204, 21, 0.1)', padding: '12px', borderRadius: '12px', color: '#facc15' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>學生人數</span>
+              <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-light)' }}>
+                {new Set((user.coach_bookings || []).map(b => b.user_id)).size} 位
+              </span>
+            </div>
+          </button>
+        )}
+      </div>
+
       <div className="content-card">
         <div className="card-top-actions">
           <Link href="/admin/users" className="back-btn">
@@ -278,7 +342,7 @@ export default function UserDetailPage() {
 
           {/* Section 1.5: Coach Detailed Profile */}
           {user.coach_info && (
-            <section className="info-section">
+            <section className="info-section" id="coach-profile-section">
               <div 
                 className="section-header" 
                 style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
@@ -423,6 +487,52 @@ export default function UserDetailPage() {
               </div>
             </div>
           </section>
+
+          {/* Section 5: Students / Bookings */}
+          {user.role === 'coach' && (
+            <section className="info-section" id="bookings-section">
+              <div className="section-header">
+                <h2>指導學生名單 ({new Set((user.coach_bookings || []).map(b => b.user_id)).size} 位)</h2>
+              </div>
+              <div className="section-content no-padding">
+                <div className="tx-content">
+                  {user.coach_bookings && user.coach_bookings.length > 0 ? (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table className="tx-table">
+                        <thead>
+                          <tr>
+                            <th>學生帳號</th>
+                            <th>課程名稱</th>
+                            <th>狀態</th>
+                            <th>建立時間</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {user.coach_bookings.map((b, i) => (
+                            <tr key={i}>
+                              <td className="value highlight-link" onClick={() => router.push(`/admin/users/${b.user_id}`)}>
+                                前往查看 ({b.user_id.slice(0, 8)}...)
+                              </td>
+                              <td>{b.plan_title || b.service_title || '課程'}</td>
+                              <td>
+                                <span className={`status-badge ${b.status === 'completed' ? 'approved' : b.status === 'cancelled' ? 'rejected' : 'pending'}`}>
+                                  {b.status === 'completed' ? '已完成' : b.status === 'cancelled' ? '已取消' : b.status}
+                                </span>
+                              </td>
+                              <td>{new Date(b.created_at).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="no-data">目前尚未有學生預約紀錄</div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
         </div>
       </div>
 
