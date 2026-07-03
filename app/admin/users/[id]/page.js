@@ -320,6 +320,48 @@ export default function UserDetailPage() {
                       <span className="label">請假與退費規則</span>
                       <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.policy_rules || '未填寫'}</span>
                     </div>
+                    <div className="data-row">
+                      <span className="label">照片與影片</span>
+                      <span className="value" style={{ width: '100%' }}>
+                        {(() => {
+                          let photosList = [];
+                          let videoUrl = user.coach_info.videos || '';
+                          try {
+                            if (Array.isArray(user.coach_info.photos)) {
+                              photosList = user.coach_info.photos;
+                            } else if (typeof user.coach_info.photos === 'string') {
+                              photosList = JSON.parse(user.coach_info.photos);
+                            }
+                          } catch(e) {}
+
+                          if (photosList.length === 0 && !videoUrl) return <span style={{ color: 'var(--color-text-muted)' }}>無提供多媒體內容</span>;
+
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '8px' }}>
+                              {videoUrl && (
+                                <div>
+                                  <h4 style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>教學影片</h4>
+                                  <a href={videoUrl} target="_blank" rel="noreferrer" style={{ color: '#60a5fa', textDecoration: 'underline' }}>{videoUrl}</a>
+                                </div>
+                              )}
+                              {photosList.length > 0 && (
+                                <div>
+                                  <h4 style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '8px' }}>教學照片</h4>
+                                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                    {photosList.map((photo, i) => (
+                                      <a key={i} href={photo} target="_blank" rel="noreferrer" style={{ display: 'block', width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--color-border)' }}>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={photo} alt={`coach photo ${i}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
