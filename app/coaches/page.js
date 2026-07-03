@@ -63,12 +63,9 @@ function DiscoverFeed() {
 
   const lastElementRef = useRef(null);
 
-  const { user, loading: authLoading } = useAuth();
-  const [showRequirementModal, setShowRequirementModal] = useState(false);
   const [wizardStep, setWizardStep] = useState(1);
-  const [wizardData, setWizardData] = useState({ category: '', goal: '', budget: '', gender: '', distance: '', extra: '' });
-  const [submittingReq, setSubmittingReq] = useState(false);
-
+  const [wizardData, setWizardData] = useState({ category: '', goal: '', level: '', mode: '', distance: '', budget: '', preference: '', time: '', extra: '' });
+  
   useEffect(() => {
     if (!authLoading) {
       if (user && user.role === 'user' && !user.learning_goals) {
@@ -79,18 +76,52 @@ function DiscoverFeed() {
     }
   }, [user, authLoading]);
 
+  // Handle URL query for skipping steps
+  useEffect(() => {
+    const step = parseInt(searchParams.get('wizard_step'), 10);
+    const cat = searchParams.get('wizard_category');
+    if (step === 2 && cat) {
+      setWizardData(prev => ({ ...prev, category: cat }));
+      setWizardStep(2);
+      setShowRequirementModal(true);
+    } else if (step === 1) {
+      setWizardStep(1);
+      setShowRequirementModal(true);
+    }
+  }, [searchParams]);
+
   const handleWizardSelect = (field, value) => {
     setWizardData(prev => ({ ...prev, [field]: value }));
-    setWizardStep(prev => prev + 1);
+    
+    // Custom flow logic
+    if (field === 'mode' && value === '實體') {
+      setWizardStep(4.5); // Sub-step for distance
+    } else if (field === 'distance' || (field === 'mode' && value !== '實體')) {
+      setWizardStep(5);
+    } else {
+      setWizardStep(prev => Math.floor(prev) + 1);
+    }
+  };
+
+  const getDynamicGoals = (category) => {
+    const map = {
+      '羽球': ['🏆 提升技巧', '😊 培養興趣', '💪 運動減脂', '🎯 準備比賽', '👨‍🏫 找陪練', '✨ 其他'],
+      '健身': ['💪 減脂增肌', '😊 體態雕塑', '🏆 提升力量', '🎯 準備賽事', '✨ 其他'],
+      '英文': ['多益', '口說', '雅思', '旅遊', '商業英文', '兒童英文', '其他'],
+      '日文': ['JLPT檢定', '生活會話', '商務日語', '旅遊日語', '其他']
+    };
+    return map[category] || ['完全新手入門', '想培養興趣', '進階技巧提升', '解決特定問題', '其他'];
   };
 
   const handleSubmitRequirements = async () => {
     const parts = [];
     if (wizardData.category) parts.push(`想找【${wizardData.category}】教練`);
     if (wizardData.goal) parts.push(`目標：${wizardData.goal}`);
+    if (wizardData.level) parts.push(`目前程度：${wizardData.level}`);
+    if (wizardData.mode) parts.push(`上課方式：${wizardData.mode}${wizardData.distance ? ` (${wizardData.distance})` : ''}`);
     if (wizardData.budget) parts.push(`預算：${wizardData.budget}`);
-    if (wizardData.gender) parts.push(`教練性別：${wizardData.gender}`);
-    if (wizardData.distance) parts.push(`上課方式/距離：${wizardData.distance}`);
+    if (wizardData.preference) parts.push(`教練偏好：${wizardData.preference}`);
+    if (wizardData.time) parts.push(`希望時間：${wizardData.time}`);
     if (wizardData.extra.trim()) parts.push(`補充：${wizardData.extra.trim()}`);
     
     const finalGoal = parts.join('。');
@@ -202,64 +233,91 @@ function DiscoverFeed() {
               <h2 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0 }}>
                 {wizardStep === 1 && '今天想找哪一類教練？'}
                 {wizardStep === 2 && '你的目標是？'}
-                {wizardStep === 3 && '希望預算大約是？'}
-                {wizardStep === 4 && '希望教練的性別？'}
-                {wizardStep === 5 && '希望的上課距離或方式？'}
-                {wizardStep === 6 && '還有其他想補充的嗎？'}
+                {wizardStep === 3 && '目前程度？'}
+                {wizardStep === 4 && '希望怎麼上課？'}
+                {wizardStep === 4.5 && '距離偏好？'}
+                {wizardStep === 5 && '預算？'}
+                {wizardStep === 6 && '教練偏好？'}
+                {wizardStep === 7 && '希望上課時間？'}
+                {wizardStep === 8 && '還有其他想補充的嗎？'}
               </h2>
               <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {wizardStep < 6 ? '點擊選項快速建立您的專屬需求' : '找不到適合的選項？用文字描述您的需求吧！'}
+                {wizardStep < 8 ? '點擊選項快速建立您的專屬需求' : '找不到適合的選項？用文字描述您的需求吧！'}
               </p>
             </div>
 
             <div style={{ marginTop: 8 }}>
               {wizardStep === 1 && (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  {['🏸 羽球', '🏋️ 健身', '🏀 籃球', '🎾 網球', '🎸 吉他', '🎹 鋼琴', '🇺🇸 英文', '🇯🇵 日文', '📈 投資', '💻 程式'].map(c => (
-                    <WizardOption key={c} label={c} onClick={() => handleWizardSelect('category', c)} />
+                  {['🏸 羽球', '🏋️ 健身', '⚽ 足球', '🏀 籃球', '🎾 網球', '🇺🇸 英文', '🇯🇵 日文', '🇰🇷 韓文', '🎸 吉他', '🎹 鋼琴', '📈 投資', '💻 程式', '📷 攝影', '🎨 繪畫'].map(c => (
+                    <WizardOption key={c} label={c} onClick={() => handleWizardSelect('category', c.replace(/^[^\s]+\s/, ''))} />
                   ))}
-                  <WizardOption label="⋯ 其他" onClick={() => handleWizardSelect('category', '其他')} />
+                  <WizardOption label="⋯ 更多" onClick={() => handleWizardSelect('category', '其他')} />
                 </div>
               )}
 
               {wizardStep === 2 && (
                 <div>
-                  {['完全沒碰過的新手', '想培養興趣', '想提升技巧', '想準備比賽或檢定', '想減肥 / 調整體態', '想找陪練', '其他'].map(g => (
-                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('goal', g)} />
+                  {getDynamicGoals(wizardData.category).map(g => (
+                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('goal', g.replace(/^[^\s]+\s/, ''))} />
                   ))}
                 </div>
               )}
 
               {wizardStep === 3 && (
                 <div>
-                  {['NT$ 300 以下 / 小時', 'NT$ 300 - 600 / 小時', 'NT$ 600 - 1000 / 小時', 'NT$ 1000 以上 / 小時', '不限'].map(b => (
-                    <WizardOption key={b} label={b} onClick={() => handleWizardSelect('budget', b)} />
+                  {['🌱 完全新手', '🙂 有基礎', '🔥 中階', '🏆 高階', '👑 比賽等級'].map(l => (
+                    <WizardOption key={l} label={l} onClick={() => handleWizardSelect('level', l.replace(/^[^\s]+\s/, ''))} />
                   ))}
                 </div>
               )}
 
               {wizardStep === 4 && (
                 <div>
-                  {['男教練', '女教練', '不限'].map(g => (
-                    <WizardOption key={g} label={g} onClick={() => handleWizardSelect('gender', g)} />
+                  {['📍 實體', '💻 線上', '📱 都可以'].map(m => (
+                    <WizardOption key={m} label={m} onClick={() => handleWizardSelect('mode', m.replace(/^[^\s]+\s/, ''))} />
+                  ))}
+                </div>
+              )}
+              
+              {wizardStep === 4.5 && (
+                <div>
+                  {['3公里', '5公里', '10公里', '不限'].map(d => (
+                    <WizardOption key={d} label={d} onClick={() => handleWizardSelect('distance', d)} />
                   ))}
                 </div>
               )}
 
               {wizardStep === 5 && (
                 <div>
-                  {['實體：5公里內', '實體：10公里內', '線上上課', '線上或實體皆可'].map(d => (
-                    <WizardOption key={d} label={d} onClick={() => handleWizardSelect('distance', d)} />
+                  {['300以下', '300~600', '600~1000', '1000以上', '不限'].map(b => (
+                    <WizardOption key={b} label={b} onClick={() => handleWizardSelect('budget', b)} />
                   ))}
                 </div>
               )}
 
               {wizardStep === 6 && (
+                <div>
+                  {['不限', '男教練', '女教練', '高評價', '明星教練', '最快可預約'].map(p => (
+                    <WizardOption key={p} label={p} onClick={() => handleWizardSelect('preference', p)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 7 && (
+                <div>
+                  {['今天', '明天', '這星期', '平日', '假日', '晚上', '不限'].map(t => (
+                    <WizardOption key={t} label={t} onClick={() => handleWizardSelect('time', t)} />
+                  ))}
+                </div>
+              )}
+
+              {wizardStep === 8 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <textarea
                     value={wizardData.extra}
                     onChange={e => setWizardData(prev => ({ ...prev, extra: e.target.value }))}
-                    placeholder="例如：我想找一位會陪我準備警專考試的教練..."
+                    placeholder="例如：想找會陪我準備多益900分的老師..."
                     rows={4}
                     style={{
                       width: '100%', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.1)',
@@ -276,7 +334,7 @@ function DiscoverFeed() {
                       fontWeight: 900, fontSize: 16, cursor: 'pointer', transition: 'all 0.2s'
                     }}
                   >
-                    {submittingReq ? '處理中...' : '完成並開始尋找教練'}
+                    {submittingReq ? '處理中...' : '開始推薦'}
                   </button>
                   <button
                     onClick={handleSubmitRequirements}
@@ -287,7 +345,7 @@ function DiscoverFeed() {
                       fontWeight: 700, fontSize: 15, cursor: 'pointer'
                     }}
                   >
-                    無補充，直接送出
+                    跳過
                   </button>
                 </div>
               )}
@@ -295,8 +353,8 @@ function DiscoverFeed() {
             
             {/* 步驟進度條 */}
             <div style={{ display: 'flex', gap: 4, justifyContent: 'center', marginTop: 12 }}>
-              {[1,2,3,4,5,6].map(s => (
-                <div key={s} style={{ width: 24, height: 4, borderRadius: 2, background: s <= wizardStep ? 'var(--accent)' : 'rgba(255,255,255,0.1)' }} />
+              {[1,2,3,4,5,6,7,8].map(s => (
+                <div key={s} style={{ flex: 1, height: 4, borderRadius: 2, background: s <= Math.floor(wizardStep) ? 'var(--accent)' : 'rgba(255,255,255,0.1)' }} />
               ))}
             </div>
           </div>

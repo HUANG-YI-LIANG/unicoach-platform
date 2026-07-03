@@ -25,6 +25,7 @@ export default function UserDashboard() {
   const [recommendedCoaches, setRecommendedCoaches] = useState([]);
   const [feedVideos, setFeedVideos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [showReferralPrompt, setShowReferralPrompt] = useState(false);
   const [referralCode, setReferralCode] = useState('');
@@ -163,25 +164,39 @@ export default function UserDashboard() {
         </h1>
 
         {/* AI 搜尋框 */}
-        <div 
-          onClick={() => router.push('/coaches')}
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (searchQuery.trim()) {
+              router.push(`/coaches?q=${encodeURIComponent(searchQuery)}`);
+            }
+          }}
           style={{ 
             marginTop: 24, padding: '16px 20px', borderRadius: 20, 
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 14,
             boxShadow: '0 8px 32px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)'
           }}
         >
           <Search size={22} color="rgba(255,255,255,0.5)" />
-          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>搜尋領域或教練...</span>
-        </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="搜尋領域或教練..."
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              color: '#FFF', fontSize: 16, width: '100%', fontWeight: 600
+            }}
+          />
+        </form>
 
         {/* 熱門分類 */}
         <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '24px 0 8px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
           {CATEGORIES.map((cat) => (
             <div 
               key={cat.id} 
-              onClick={() => router.push(`/coaches?category=${cat.id}`)}
+              onClick={() => router.push(`/coaches?wizard_step=2&wizard_category=${cat.id}`)}
               style={{
                 flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
               }}
@@ -193,7 +208,7 @@ export default function UserDashboard() {
             </div>
           ))}
           <div 
-            onClick={() => router.push('/coaches')}
+            onClick={() => router.push('/coaches?wizard_step=1')}
             style={{
               flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
             }}
