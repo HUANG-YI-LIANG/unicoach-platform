@@ -122,6 +122,9 @@ export default function AdminSupportPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   
+  const [levelModal, setLevelModal] = useState(false);
+  const [selectedLevel, setSelectedLevel] = useState(1);
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -336,23 +339,24 @@ export default function AdminSupportPage() {
 
   const handleChangeLevel = async () => {
     if (!selectedConvo || !userStats) return;
-    const newLevelStr = window.prompt(`請輸入要強制設定的等級 (目前 Lv${userStats.currentLevel})：`);
-    if (!newLevelStr) return;
-    const newLevel = parseInt(newLevelStr, 10);
-    if (isNaN(newLevel) || newLevel <= 0) {
-      return alert('等級必須是大於 0 的正整數');
-    }
+    setSelectedLevel(userStats.currentLevel || 1);
+    setLevelModal(true);
+  };
 
+  const executeChangeLevel = async () => {
+    if (!selectedConvo || !userStats || !selectedLevel) return;
+    
     setActionLoading(true);
     try {
       const res = await fetch('/api/admin/support/change-level', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: selectedConvo.userId, level: newLevel, role: userStats.role })
+        body: JSON.stringify({ userId: selectedConvo.userId, level: selectedLevel, role: userStats.role })
       });
       const data = await res.json();
       if (res.ok) {
         alert('等級調整成功！(教練等級預設維持 30 天)');
+        setLevelModal(false);
         // Re-fetch user stats
         fetch(`/api/support/user-stats?userId=${selectedConvo.userId}`)
           .then(res => res.json())
@@ -912,6 +916,73 @@ export default function AdminSupportPage() {
           )}
         </button>
       </div>
+
+      {/* Level Selection Modal */}
+      {levelModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', zIndex: 100000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 20, backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            background: 'var(--color-bg, #0F172A)', padding: 24, borderRadius: 20, width: '100%', maxWidth: 400,
+            border: `1px solid ${BORDER}`, boxShadow: '0 20px 40px rgba(0,0,0,0.5)'
+          }}>
+            <h2 style={{ fontSize: 20, fontWeight: 800, textAlign: 'center', color: TEXT_LIGHT, margin: '0 0 16px' }}>
+              強制設定等級
+            </h2>
+            <p style={{ textAlign: 'center', color: MUTED, fontSize: 14, margin: '0 0 20px' }}>
+              目前等級：Lv{userStats?.currentLevel || 1}
+              <br/>
+              <span style={{ fontSize: 12 }}>
+                {userStats?.role === 'coach' ? '教練等級調整將預設維持 30 天' : '學員等級調整將立即生效'}
+              </span>
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+              {[1, 2, 3, 4, 5, 6].map(lvl => (
+                <label key={lvl} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  background: selectedLevel === lvl ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `2px solid ${selectedLevel === lvl ? '#3B82F6' : 'transparent'}`,
+                  padding: '12px 16px', borderRadius: 12, cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}>
+                  <input 
+                    type="radio" 
+                    name="level" 
+                    value={lvl} 
+                    checked={selectedLevel === lvl}
+                    onChange={() => setSelectedLevel(lvl)}
+                    style={{ margin: 0, accentColor: '#3B82F6', width: 16, height: 16 }}
+                  />
+                  <span style={{ fontSize: 16, fontWeight: 800, color: selectedLevel === lvl ? '#60A5FA' : TEXT_LIGHT }}>
+                    Lv {lvl}
+                  </span>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 12 }}>
+              <button 
+                onClick={() => setLevelModal(false)}
+                disabled={actionLoading}
+                style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: 'rgba(255,255,255,0.1)', color: TEXT_LIGHT, fontSize: 16, fontWeight: 800, cursor: 'pointer' }}
+              >
+                取消
+              </button>
+              <button 
+                onClick={executeChangeLevel}
+                disabled={actionLoading}
+                style={{ flex: 1, padding: '14px', borderRadius: 12, border: 'none', background: '#3B82F6', color: '#fff', fontSize: 16, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}
+              >
+                {actionLoading ? <Loader2 size={20} className="animate-spin" /> : '確定儲存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
