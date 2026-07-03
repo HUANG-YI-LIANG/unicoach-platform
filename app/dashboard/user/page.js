@@ -6,7 +6,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
   Search, Calendar, Wallet, Settings, Star, ChevronRight, 
-  MessageCircle, Sparkles, MapPin, Zap
+  MessageCircle, Sparkles, MapPin, Zap, Play
 } from 'lucide-react';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
@@ -23,6 +23,7 @@ export default function UserDashboard() {
   const [profile, setProfile] = useState(EMPTY_PROFILE);
   const [bookings, setBookings] = useState([]);
   const [recommendedCoaches, setRecommendedCoaches] = useState([]);
+  const [feedVideos, setFeedVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   
   const [showReferralPrompt, setShowReferralPrompt] = useState(false);
@@ -42,16 +43,18 @@ export default function UserDashboard() {
         setProfile(parsed.profile);
         setBookings(parsed.bookings);
         setRecommendedCoaches(parsed.recommendedCoaches);
+        if (parsed.feedVideos) setFeedVideos(parsed.feedVideos);
         setLoading(false);
       } catch (e) {}
     }
 
     (async () => {
       try {
-        const [profileRes, bookingsRes, coachesData] = await Promise.all([
+        const [profileRes, bookingsRes, coachesData, videosData] = await Promise.all([
           fetch('/api/auth/profile'),
           fetch('/api/bookings'),
-          fetch('/api/coaches?limit=5').then((res) => (res.ok ? res.json() : { coaches: [] }))
+          fetch('/api/coaches?limit=5').then((res) => (res.ok ? res.json() : { coaches: [] })),
+          fetch('/api/videos/feed?page=1&limit=5').then((res) => (res.ok ? res.json() : { videos: [] }))
         ]);
 
         if (!profileRes.ok) {
@@ -81,6 +84,9 @@ export default function UserDashboard() {
         // 抓取推薦教練 (前 5 名)
         const finalRecommended = Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 5) : [];
         setRecommendedCoaches(finalRecommended);
+        
+        const finalVideos = Array.isArray(videosData.videos) ? videosData.videos : [];
+        setFeedVideos(finalVideos);
 
         if (!profileData.referred_by && !localStorage.getItem('referral_prompt_dismissed')) {
           setShowReferralPrompt(true);
@@ -89,7 +95,8 @@ export default function UserDashboard() {
         sessionStorage.setItem('userDashboardCache', JSON.stringify({
           profile: profileData,
           bookings: finalBookings,
-          recommendedCoaches: finalRecommended
+          recommendedCoaches: finalRecommended,
+          feedVideos: finalVideos
         }));
       } catch (error) {
         console.error(error);
@@ -271,30 +278,38 @@ export default function UserDashboard() {
         </section>
 
         {/* =========================================
-            第三屏：視覺動態 (Shorts / Moments) - 暫以精選照片替代
+            第三屏：視覺動態 (Shorts / Moments)
         ========================================= */}
         <section style={{ padding: '0 0 32px' }}>
           <div style={{ padding: '0 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <h2 style={{ fontSize: 20, fontWeight: 900, color: '#FFF', margin: 0 }}>🌟 熱門教學亮點</h2>
           </div>
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 20px', scrollbarWidth: 'none' }}>
-            {recommendedCoaches.map((coach, i) => (
-              <div 
-                key={i}
-                onClick={() => router.push(`/coaches/${coach.id}`)}
-                style={{
-                  flexShrink: 0, width: 140, height: 220, borderRadius: 20, position: 'relative', overflow: 'hidden', cursor: 'pointer',
-                  border: '1px solid rgba(255,255,255,0.1)'
-                }}
-              >
-                <img src={coach.avatar_url || `https://placehold.co/300x500/${i%2===0?'1e293b':'334155'}/fff?text=Moment`} alt="moment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
-                <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#FFF', marginBottom: 2 }}>{coach.name}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{coach.title || '教練日常'}</div>
+            {feedVideos.length > 0 ? (
+              feedVideos.map((video, i) => (
+                <div 
+                  key={video.id || i}
+                  onClick={() => router.push(`/explore`)}
+                  style={{
+                    flexShrink: 0, width: 140, height: 220, borderRadius: 20, position: 'relative', overflow: 'hidden', cursor: 'pointer',
+                    border: '1px solid rgba(255,255,255,0.1)', background: '#1e293b'
+                  }}
+                >
+                  <video src={video.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted loop autoPlay playsInline />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 60%)' }} />
+                  <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color: '#FFF', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.title}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Play size={10} /> {video.coach_name || '教練'}
+                    </div>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div style={{ width: '100%', textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+                目前尚未有短影音
               </div>
-            ))}
+            )}
           </div>
         </section>
 
