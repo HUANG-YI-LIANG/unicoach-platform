@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, User as UserIcon, Loader2, Building, CreditCard, Clock } from 'lucide-react';
+import { ArrowLeft, User as UserIcon, Loader2, Building, CreditCard, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserDetailPage() {
@@ -17,6 +17,8 @@ export default function UserDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '' });
   const [saving, setSaving] = useState(false);
+  
+  const [isCoachProfileOpen, setIsCoachProfileOpen] = useState(false);
   
   const [mounted, setMounted] = useState(false);
 
@@ -272,6 +274,57 @@ export default function UserDetailPage() {
               </div>
             </div>
           </section>
+
+          {/* Section 1.5: Coach Detailed Profile */}
+          {user.coach_info && (
+            <section className="info-section">
+              <div 
+                className="section-header" 
+                style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                onClick={() => setIsCoachProfileOpen(!isCoachProfileOpen)}
+              >
+                <h2>教練詳細履歷 (認證審查用)</h2>
+                <button style={{ background: 'transparent', border: 'none', color: 'var(--text-light)', display: 'flex', alignItems: 'center', cursor: 'pointer', gap: '4px' }}>
+                  {isCoachProfileOpen ? <><ChevronUp size={20} /> 收起</> : <><ChevronDown size={20} /> 展開</>}
+                </button>
+              </div>
+              
+              {isCoachProfileOpen && (
+                <div className="section-content">
+                  <div className="data-list">
+                    <div className="data-row">
+                      <span className="label">期望薪資 (底價)</span>
+                      <span className="value">{user.coach_info.base_price ? `$${user.coach_info.base_price}` : '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">上課地點 / 服務區域</span>
+                      <span className="value">{user.coach_info.service_areas || user.coach_info.location || '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">學歷與教學經驗</span>
+                      <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.experience || '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">核心教學理念</span>
+                      <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.philosophy || '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">教學特色與風格</span>
+                      <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.teaching_features || '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">溝通與互動方式</span>
+                      <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.communication_style || '未填寫'}</span>
+                    </div>
+                    <div className="data-row">
+                      <span className="label">請假與退費規則</span>
+                      <span className="value" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{user.coach_info.policy_rules || '未填寫'}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Section 2: Organization Info */}
           <section className="info-section">
