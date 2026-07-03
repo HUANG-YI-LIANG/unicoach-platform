@@ -69,6 +69,7 @@ export default function ChatRoomPage({ params }) {
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+  const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editingPhilosophy, setEditingPhilosophy] = useState(false);
   const [phiText, setPhiText] = useState('');
@@ -92,9 +93,10 @@ export default function ChatRoomPage({ params }) {
 
     const init = async () => {
       try {
-        const [roomRes, authRes] = await Promise.all([
+        const [roomRes, authRes, statsRes] = await Promise.all([
           fetch(`/api/chat/rooms/${id}`, { cache: 'no-store' }),
           fetch('/api/auth/profile', { cache: 'no-store' }),
+          fetch('/api/support/user-stats', { cache: 'no-store' }),
         ]);
 
         if (roomRes.ok) {
@@ -112,6 +114,13 @@ export default function ChatRoomPage({ params }) {
           const authData = await authRes.json();
           if (isMounted) {
             setCurrentUser(authData.profile || null);
+          }
+        }
+
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          if (isMounted && !statsData.error) {
+            setUserStats(statsData);
           }
         }
 
@@ -197,6 +206,28 @@ export default function ChatRoomPage({ params }) {
   }
 
   const isCoach = currentUser?.role === 'coach';
+  const isAdmin = currentUser?.role === 'admin';
+
+  const handleApprovePioneer = async () => {
+    if (!room?.coach_id) return;
+    if (!confirm('確定要將此教練設為創始教練嗎？')) return;
+
+    try {
+      const res = await fetch('/api/admin/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'approve_pioneer', coachUserId: room.coach_id }),
+      });
+      if (res.ok) {
+        alert('設定成功！');
+      } else {
+        const data = await res.json();
+        alert(data.error || '設定失敗');
+      }
+    } catch (err) {
+      alert('網路錯誤');
+    }
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', background: BG, color: TEXT_LIGHT }}>
@@ -270,6 +301,26 @@ export default function ChatRoomPage({ params }) {
           )}
         </div>
 
+        {isAdmin && room?.other_is_coach && (
+          <button
+            onClick={handleApprovePioneer}
+            style={{
+              background: 'linear-gradient(135deg, #FFDF73 0%, #D4AF37 100%)',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: 12,
+              color: '#000',
+              fontWeight: 900,
+              fontSize: 11,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}
+          >
+            🏆 設為創始教練
+          </button>
+        )}
+
         {isCoach && (
           <button
             onClick={() => {
@@ -292,85 +343,21 @@ export default function ChatRoomPage({ params }) {
         )}
       </div>
 
-      {isCoach && editingPhilosophy && (
-        <div style={{ background: 'var(--color-surface)', padding: 12, borderBottom: `1px solid ${BORDER}` }}>
-          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: TEXT_LIGHT }}>編輯教學理念</p>
-          <textarea
-            value={phiText}
-            onChange={(event) => setPhiText(event.target.value)}
-            style={{
-              width: '100%',
-              padding: 10,
-              borderRadius: 8,
-              border: `1px solid ${BORDER}`,
-              background: INPUT_BG,
-              color: TEXT_LIGHT,
-              fontSize: 13,
-              marginBottom: 8,
-            }}
-            placeholder="輸入要展示在聊天室上方的教學理念"
-            rows={2}
-          />
-          <button
-            onClick={savePhilosophy}
-            style={{
-              width: '100%',
-              background: ORANGE,
-              color: 'var(--text-light)',
-              border: 'none',
-              padding: '8px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            儲存理念
-          </button>
+      {userStats && userStats.progress && (
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderBottom: `1px solid ${BORDER}`, padding: '8px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(59,130,246,0.15)', color: '#60A5FA', padding: '2px 6px', borderRadius: 4 }}>
+              Lv{userStats.currentLevel}
+            </span>
+            <span style={{ fontSize: 12, color: MUTED }}>我的升級進度</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 12, color: '#FDBA74', fontWeight: 600 }}>
+            {userStats.progress}
+          </p>
         </div>
       )}
 
-      <section className="chat-task-context-card" style={{ margin: '10px 14px 0', padding: '12px 14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-          <div>
-            <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>Booking context</p>
-            <h2 style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 760, color: TEXT_LIGHT }}>上課前對話任務</h2>
-          </div>
-          <span style={{ fontSize: 11, color: ORANGE, background: ORANGE_BG, borderRadius: 999, padding: '4px 8px', fontWeight: 700 }}>先問清楚</span>
-        </div>
-        <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.55, color: MUTED }}>
-          確認時段、地點、器材與線上連結；正式預約與付款狀態仍以「我的課程」為準。
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
-          {CHAT_CONTEXT_CHECKLIST.map((item) => (
-            <span key={item} style={{ borderRadius: 12, background: 'rgba(255,255,255,0.045)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.72)', fontSize: 11, fontWeight: 720, padding: '7px 8px' }}>
-              ✓ {item}
-            </span>
-          ))}
-        </div>
-        
-        {/* Action Buttons */}
-        <div style={{ marginTop: 12 }}>
-          {isCoach ? (
-            <button 
-              onClick={() => router.push('/coach/schedule')}
-              style={{ width: '100%', padding: '10px', background: 'transparent', color: ORANGE, border: `1.5px solid ${ORANGE}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => e.target.style.background = ORANGE_BG}
-              onMouseLeave={(e) => e.target.style.background = 'transparent'}
-            >
-              修改我的可預約時段
-            </button>
-          ) : (
-            <button 
-              onClick={() => router.push(`/coaches/${room?.coach_id}#coach-plans`)}
-              style={{ width: '100%', padding: '10px', background: ORANGE, color: 'var(--text-light)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' }}
-            >
-              談妥了嗎？查看可預約時間
-            </button>
-          )}
-        </div>
-      </section>
-
+      {/* Messages */}
       <div
         style={{
           flex: 1,
@@ -381,6 +368,84 @@ export default function ChatRoomPage({ params }) {
           gap: 10,
         }}
       >
+        {isCoach && editingPhilosophy && (
+          <div style={{ background: 'var(--color-surface)', padding: 12, borderBottom: `1px solid ${BORDER}`, borderRadius: 12, marginBottom: 10 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 800, color: TEXT_LIGHT }}>編輯教學理念</p>
+            <textarea
+              value={phiText}
+              onChange={(event) => setPhiText(event.target.value)}
+              style={{
+                width: '100%',
+                padding: 10,
+                borderRadius: 8,
+                border: `1px solid ${BORDER}`,
+                background: INPUT_BG,
+                color: TEXT_LIGHT,
+                fontSize: 13,
+                marginBottom: 8,
+              }}
+              placeholder="輸入要展示在聊天室上方的教學理念"
+              rows={2}
+            />
+            <button
+              onClick={savePhilosophy}
+              style={{
+                width: '100%',
+                background: ORANGE,
+                color: 'var(--text-light)',
+                border: 'none',
+                padding: '8px',
+                borderRadius: 8,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              儲存理念
+            </button>
+          </div>
+        )}
+
+        <section className="chat-task-context-card" style={{ padding: '12px 14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)', marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+            <div>
+              <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>Booking context</p>
+              <h2 style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 760, color: TEXT_LIGHT }}>上課前對話任務</h2>
+            </div>
+            <span style={{ fontSize: 11, color: ORANGE, background: ORANGE_BG, borderRadius: 999, padding: '4px 8px', fontWeight: 700 }}>先問清楚</span>
+          </div>
+          <p style={{ margin: '8px 0 0', fontSize: 12, lineHeight: 1.55, color: MUTED }}>
+            確認時段、地點、器材與線上連結；正式預約與付款狀態仍以「我的課程」為準。
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8, marginTop: 10 }}>
+            {CHAT_CONTEXT_CHECKLIST.map((item) => (
+              <span key={item} style={{ borderRadius: 12, background: 'rgba(255,255,255,0.045)', border: `1px solid ${BORDER}`, color: 'rgba(255,255,255,0.72)', fontSize: 11, fontWeight: 720, padding: '7px 8px' }}>
+                ✓ {item}
+              </span>
+            ))}
+          </div>
+          
+          {/* Action Buttons */}
+          <div style={{ marginTop: 12 }}>
+            {isCoach ? (
+              <button 
+                onClick={() => router.push('/coach/schedule')}
+                style={{ width: '100%', padding: '10px', background: 'transparent', color: ORANGE, border: `1.5px solid ${ORANGE}`, borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+                onMouseEnter={(e) => e.target.style.background = ORANGE_BG}
+                onMouseLeave={(e) => e.target.style.background = 'transparent'}
+              >
+                修改我的可預約時段
+              </button>
+            ) : (
+              <button 
+                onClick={() => router.push(`/coaches/${room?.coach_id}#coach-plans`)}
+                style={{ width: '100%', padding: '10px', background: ORANGE, color: 'var(--text-light)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(249, 115, 22, 0.3)' }}
+              >
+                談妥了嗎？查看可預約時間
+              </button>
+            )}
+          </div>
+        </section>
         {messages.length === 0 ? (
           <div style={{ margin: 'auto', textAlign: 'center', padding: '0 20px' }}>
             {room?.coach_name && (

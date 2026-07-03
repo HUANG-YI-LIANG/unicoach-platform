@@ -51,29 +51,9 @@ export default function CoachEarningsWalletPage() {
         if (data.transactions) {
           combinedTransactions = [...combinedTransactions, ...data.transactions.map(tx => ({
             ...tx,
-            isBooking: false,
+            isBooking: tx.transaction_type === 'booking_payout',
             date: new Date(tx.created_at)
           }))];
-        }
-      }
-
-      if (bookingsRes.ok) {
-        const data = await bookingsRes.json();
-        if (Array.isArray(data.bookings)) {
-          const completedBookings = data.bookings.filter(b => b.status === 'completed' && b.coach_payout);
-          totalBalance += completedBookings.reduce((sum, b) => sum + (b.coach_payout || 0), 0);
-          
-          combinedTransactions = [
-            ...combinedTransactions, 
-            ...completedBookings.map(b => ({
-              id: b.id,
-              amount: b.coach_payout,
-              description: `課程完課收入：${b.user_name || '學員'}`,
-              transaction_type: 'booking_payout',
-              isBooking: true,
-              date: new Date(b.completed_at || b.expected_time || b.created_at)
-            }))
-          ];
         }
       }
 

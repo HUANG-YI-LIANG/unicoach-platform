@@ -11,6 +11,7 @@ function RegisterForm() {
   const { refresh } = useAuth();
   const defaultRole = searchParams.get('role') || 'user';
   const initialRef = searchParams.get('ref') || '';
+  const inviteParam = searchParams.get('invite') || '';
   const [referralCode, setReferralCode] = useState(initialRef);
 
   const [form, setForm] = useState({
@@ -27,6 +28,21 @@ function RegisterForm() {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [error, setError] = useState('');
   const [matchData, setMatchData] = useState(null);
+  const [pioneerPromoCode, setPioneerPromoCode] = useState('UNIPIONEER');
+
+  // Fetch settings for dynamic pioneer promo code
+  useState(() => {
+    if (typeof window !== 'undefined') {
+      fetch('/api/settings/public')
+        .then(res => res.json())
+        .then(data => {
+          if (data?.settings?.pioneer_promo_code) {
+            setPioneerPromoCode(data.settings.pioneer_promo_code.toUpperCase());
+          }
+        })
+        .catch(console.error);
+    }
+  });
 
   // 初始化時讀取可能存在的媒合/教練申請資料
   useState(() => {
@@ -66,8 +82,9 @@ function RegisterForm() {
           acceptedTerms: termsChecked,
           acceptedPrivacy: form.privacyConsent,
           acceptedDisclaimer: disclaimerChecked,
-          referralCode: referralCode || null,
-          matchData: matchData
+          referralCode: referralCode === pioneerPromoCode ? null : (referralCode || null),
+          matchData: matchData,
+          inviteType: referralCode === pioneerPromoCode ? 'pioneer' : inviteParam
         })
       });
       const data = await res.json();
@@ -192,10 +209,12 @@ function RegisterForm() {
                 onChange={e => setReferralCode(e.target.value.toUpperCase())}
                 placeholder="如有推廣碼請在此輸入"
                 style={{ ...inputStyle, textTransform: 'uppercase' }}
-                maxLength={10}
+                maxLength={20}
               />
-              <p style={{ fontSize: '12px', color: 'var(--color-primary)', marginTop: '6px', fontWeight: 600 }}>
-                {form.role === 'coach' 
+              <p style={{ fontSize: '12px', color: referralCode === pioneerPromoCode ? '#D4AF37' : 'var(--color-primary)', marginTop: '6px', fontWeight: 600 }}>
+                {referralCode === pioneerPromoCode ? (
+                  '🎉 已啟用創始教練專屬審核通道！'
+                ) : form.role === 'coach' 
                   ? '輸入推廣碼即可享有平台抽成 45% 優惠（原抽成 50%）' 
                   : '輸入推廣碼，建立連結後可享有專屬優惠'}
               </p>

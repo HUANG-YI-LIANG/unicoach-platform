@@ -75,6 +75,7 @@ const GET_BOOKING_FIELDS = [
   'coach_payout',
   'rebook_from_booking_id',
   'rebook_context',
+  'updated_at',
 ];
 
 function isExpiredPendingPayment(booking) {
@@ -644,7 +645,7 @@ export async function POST(request) {
 
     const { data: userData, error: userDataErr } = await adminSupabase
       .from('users')
-      .select('level, wallet_balance')
+      .select('level, wallet_balance, warnings_count')
       .eq('id', userId)
       .maybeSingle();
 
@@ -669,6 +670,15 @@ export async function POST(request) {
 
     const isFirst = (userBookingsCount || 0) === 0;
     const baseDiscountPercent = calcBaseDiscount(userData?.level || 1, isFirst);
+
+    const { data: coachData, error: coachUserErr } = await adminSupabase
+      .from('users')
+      .select('warnings_count')
+      .eq('id', coachId)
+      .maybeSingle();
+
+    if (coachUserErr) console.warn('Failed to load coach warnings:', coachUserErr);
+    const coachWarnings = coachData?.warnings_count || 0;
 
     const { data: platformSettings, error: settingsError } = await adminSupabase
       .from('platform_settings')
@@ -705,17 +715,23 @@ export async function POST(request) {
     }
 
     const couponDiscountPercent = couponResult.percent;
+    const studentWarnings = userData?.warnings_count || 0;
+    
+    // If customPrice is provided, it serves as the new negotiated base price for all calculations
+    const hasCustomPrice = customPrice !== undefined && customPrice !== null && Number.isFinite(Number(customPrice));
+    const effectiveBasePrice = hasCustomPrice ? Math.max(0, Math.round(Number(customPrice))) : basePrice;
+
     const pricing = calculateBookingPrice({
-      basePrice,
+      basePrice: effectiveBasePrice,
       baseDiscountPercent,
       couponDiscountPercent,
       coachCommission,
+      studentWarnings,
+      coachWarnings,
     });
     const currentBalance = userData.wallet_balance || 0;
     
-    // If customPrice is provided, it completely overrides the final price
-    const hasCustomPrice = customPrice !== undefined && customPrice !== null && Number.isFinite(Number(customPrice));
-    const effectiveFinalPrice = hasCustomPrice ? Math.max(0, Math.round(Number(customPrice))) : pricing.finalPrice;
+    const effectiveFinalPrice = pricing.finalPrice;
     const totalPointsToPay = roundMoney(effectiveFinalPrice * totalSessions);
     
     if (currentBalance < totalPointsToPay) {
@@ -736,19 +752,19 @@ export async function POST(request) {
         service_price_type: servicePriceType,
         service_snapshot: serviceSnapshot,
         expected_time: sessionTime.toISOString(),
-        base_price: basePrice,
+        base_price: effectiveBasePrice,
         discount_amount: pricing.discountAmount,
         final_price: effectiveFinalPrice,
         deposit_paid: pricing.depositPaid,
         platform_fee: pricing.platformFee,
-        coach_payout: hasCustomPrice ? Math.max(0, effectiveFinalPrice - pricing.platformFee) : pricing.coachPayout,
+        coach_payout: pricing.coachPayout,
         grade: finalGrade,
         gender: finalGender,
         attendees_count: Math.max(1, Math.round(Number(finalAttendeesCount) || 1)),
         learning_status: finalLearningStatus,
         coupon_id: couponResult.couponId,
         coupon_discount: couponDiscountPercent,
-        status: 'scheduled', // direct to scheduled since it's paid
+        status: 'pending_confirmation',
         series_id: seriesId,
         recurrence_pattern: recurrencePattern,
         session_number: i + 1,
@@ -765,6 +781,8 @@ export async function POST(request) {
           is_default: selectedPlan?.is_default || false,
           source: selectedPlan ? 'coach_plans' : 'coach_services',
         }),
+        student_penalty_fee: pricing.studentPenaltyFee,
+        coach_penalty_discount: pricing.coachPenaltyDiscount,
         rebook_from_booking_id: rebookSource?.id || null,
         rebook_context: rebookSource ? {
           source_booking_id: rebookSource.id,
@@ -795,6 +813,20 @@ export async function POST(request) {
 
     const bookingId = bookings[0].id;
     await syncBookingChatRoom(adminSupabase, { userId, coachId, bookingId });
+
+    // Send notification to coach
+    try {
+      await adminSupabase.from('notifications').insert({
+        user_id: coachId,
+        type: 'new_booking_request',
+        title: '新預約請求',
+        message: `${userData?.name || '學員'} 預約了您的「${service.title}」，請前往確認。`,
+        link_url: `/dashboard/coach/students/${userId}`,
+        is_read: false
+      });
+    } catch (notifErr) {
+      console.warn('[BOOKING NOTIFICATION ERROR]', safeErrorDetails(notifErr));
+    }
 
     return NextResponse.json({
       success: true,

@@ -223,10 +223,28 @@ export default function CoachDashboard() {
         
         {/* HEADER */}
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Hi, {profile?.name || '教練'}</span>
-            {profile?.registration_number ? <span style={{ fontSize: '0.65em', color: 'var(--text-muted)', fontWeight: 800 }}>#{profile.registration_number}</span> : null}
-          </h1>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>Hi, {profile?.name || '教練'}</span>
+              {profile?.registration_number ? (
+                <span style={{ fontSize: '0.65em', color: 'var(--text-muted)', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  #{profile.registration_number}
+                  {profile?.role === 'coach' && profile.registration_number <= 50 && (
+                    <span style={{ background: 'linear-gradient(135deg, #FFDF73 0%, #D4AF37 100%)', color: '#000', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                      創始教練
+                    </span>
+                  )}
+                </span>
+              ) : null}
+            </h1>
+            {profile?.warnings_count > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#ef4444', fontWeight: 800 }}>
+                <ShieldCheck size={14} />
+                <span>警告 * {profile.warnings_count}</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: 12 }}>(學員預約折扣 {profile.warnings_count * 2.5}%)</span>
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <button onClick={() => router.push('/chat')} style={{ background: 'transparent', padding: 0, color: 'var(--text-primary)', position: 'relative' }}>
               <MessageCircle size={24} />

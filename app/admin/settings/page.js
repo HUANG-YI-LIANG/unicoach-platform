@@ -27,7 +27,8 @@ export default function AdminSettings() {
     top_coach_settings: { enabled: true, top_n: 50, bonus_discount: 5 },
     deposit_bonus_tiers: [{ deposit: 10000, bonus: 1000 }],
     coach_review_titles: ['優良教師', '細心指導', '幽默風趣'],
-    student_review_titles: ['優質學生', '準時出席', '認真學習']
+    student_review_titles: ['優質學生', '準時出席', '認真學習'],
+    pioneer_promo_code: 'UNIPIONEER'
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,7 +61,8 @@ export default function AdminSettings() {
             top_coach_settings: parseJSON(data.settings.top_coach_settings, { enabled: true, top_n: 50, bonus_discount: 5 }),
             deposit_bonus_tiers: parseJSON(data.settings.deposit_bonus_tiers, [{ deposit: 10000, bonus: 1000 }]),
             coach_review_titles: parseJSON(data.settings.coach_review_titles, ['優良教師', '細心指導', '幽默風趣']),
-            student_review_titles: parseJSON(data.settings.student_review_titles, ['優質學生', '準時出席', '認真學習'])
+            student_review_titles: parseJSON(data.settings.student_review_titles, ['優質學生', '準時出席', '認真學習']),
+            pioneer_promo_code: data.settings.pioneer_promo_code || 'UNIPIONEER'
           });
         }
       } else if (res.status === 403) {
@@ -208,6 +210,35 @@ export default function AdminSettings() {
             </div>
             <button 
               onClick={() => handleSave('no_show_threshold', settings.no_show_threshold, '遲到/曠課寬限期')}
+              disabled={saving}
+              style={{ background: BLUE, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              儲存
+            </button>
+          </div>
+
+          <div className="setting-card" style={{ background: CARD_BG, border: '1px solid rgba(255,255,255,0.05)', borderRadius: 24, padding: 24, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, background: '#FFFFFF', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#D4AF37', flexShrink: 0 }}>
+                <Award size={24} />
+              </div>
+              <div style={{ paddingTop: 4 }}>
+                <h3 style={{ margin: 0, fontWeight: 900, color: DARK, fontSize: 18 }}>創始教練推廣碼</h3>
+                <p style={{ margin: '6px 0 0', fontSize: 13, color: MUTED, lineHeight: 1.5 }}>輸入此代碼的教練將被視為創始教練申請，並開啟快速審核通道。</p>
+              </div>
+            </div>
+
+            <div style={{ background: INPUT_BG, borderRadius: 12, position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+              <input 
+                type="text"
+                value={settings.pioneer_promo_code}
+                onChange={(e) => setSettings({ ...settings, pioneer_promo_code: e.target.value.toUpperCase() })}
+                style={{ flex: 1, background: 'transparent', border: 'none', padding: '16px 20px', fontSize: 20, fontWeight: 900, color: DARK, outline: 'none', textTransform: 'uppercase' }}
+              />
+            </div>
+            <button 
+              onClick={() => handleSave('pioneer_promo_code', settings.pioneer_promo_code, '創始教練推廣碼')}
               disabled={saving}
               style={{ background: BLUE, color: '#FFF', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 900, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: saving ? 0.7 : 1, fontSize: 16 }}
             >

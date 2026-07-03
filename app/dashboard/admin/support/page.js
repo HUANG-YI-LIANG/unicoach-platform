@@ -115,6 +115,7 @@ export default function AdminSupportPage() {
   const [selectedConvo, setSelectedConvo] = useState(null);
   const [messages, setMessages] = useState([]);
   const [reply, setReply] = useState('');
+  const [userStats, setUserStats] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
@@ -161,6 +162,19 @@ export default function AdminSupportPage() {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, selectedConvo]);
+
+  useEffect(() => {
+    if (selectedConvo && selectedConvo.role !== 'anonymous') {
+      fetch(`/api/support/user-stats?userId=${selectedConvo.userId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.error) setUserStats(data);
+        })
+        .catch(console.error);
+    } else {
+      setUserStats(null);
+    }
+  }, [selectedConvo]);
 
   const loadConversations = async () => {
     try {
@@ -315,6 +329,39 @@ export default function AdminSupportPage() {
       }
     } catch (error) {
       alert('扣款失敗');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleChangeLevel = async () => {
+    if (!selectedConvo || !userStats) return;
+    const newLevelStr = window.prompt(`請輸入要強制設定的等級 (目前 Lv${userStats.currentLevel})：`);
+    if (!newLevelStr) return;
+    const newLevel = parseInt(newLevelStr, 10);
+    if (isNaN(newLevel) || newLevel <= 0) {
+      return alert('等級必須是大於 0 的正整數');
+    }
+
+    setActionLoading(true);
+    try {
+      const res = await fetch('/api/admin/support/change-level', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selectedConvo.userId, level: newLevel, role: userStats.role })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert('等級調整成功！(教練等級預設維持 30 天)');
+        // Re-fetch user stats
+        fetch(`/api/support/user-stats?userId=${selectedConvo.userId}`)
+          .then(res => res.json())
+          .then(stats => { if (!stats.error) setUserStats(stats); });
+      } else {
+        alert(data.error || '調整失敗');
+      }
+    } catch (error) {
+      alert('調整失敗');
     } finally {
       setActionLoading(false);
     }
@@ -580,13 +627,47 @@ export default function AdminSupportPage() {
       {/* Finance Actions Card */}
       <section style={{ margin: '14px 14px 0', padding: '14px', borderRadius: 16, background: 'rgba(11,18,32,0.88)', border: `1px solid ${BORDER}`, boxShadow: '0 6px 16px rgba(0,0,0,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>用戶餘額</p>
-          <h2 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>
-            {selectedConvo.walletBalance}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <p style={{ margin: 0, fontSize: 11, color: MUTED, fontWeight: 650 }}>用戶餘額</p>
+            {userStats && (
+              <span style={{ fontSize: 10, background: 'rgba(59,130,246,0.15)', color: '#60A5FA', padding: '2px 6px', borderRadius: 4 }}>
+                Lv{userStats.currentLevel}
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+            <h2 style={{ margin: '2px 0 0', fontSize: 22, fontWeight: 900, color: '#34D399', fontFamily: 'monospace' }}>
+              {selectedConvo.walletBalance}
+            </h2>
+            {userStats && userStats.progress && (
+              <p style={{ margin: '0 0 4px', fontSize: 11, color: '#FDBA74' }}>
+                {userStats.progress}
+              </p>
+            )}
+          </div>
         </div>
         {selectedConvo.role !== 'anonymous' && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <button
+              onClick={handleChangeLevel}
+              disabled={actionLoading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                background: 'rgba(59,130,246,0.12)',
+                color: '#60A5FA',
+                border: '1px solid rgba(59,130,246,0.2)',
+                padding: '8px 12px',
+                borderRadius: 12,
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: 'pointer'
+              }}
+            >
+              <ShieldCheck size={14} />
+              調整等級
+            </button>
             <button
               onClick={handleGrantPoints}
               disabled={actionLoading}

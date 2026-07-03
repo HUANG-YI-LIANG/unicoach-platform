@@ -258,6 +258,42 @@ export async function POST(request) {
           .from('coaches')
           .upsert(coachUpdates);
         if (coachError) throw coachError;
+
+        // Auto-sync to V2 coach_profiles and coach_services to prevent booking failures
+        const { data: profile } = await adminSupabase.from('coach_profiles').upsert({
+          user_id: userId,
+          school: coachUpdates.university,
+          bio: coachUpdates.philosophy || coachUpdates.experience,
+          verification_status: 'pending',
+          commission_rate: 45
+        }, { onConflict: 'user_id' }).select('id').single();
+
+        if (profile) {
+          const { data: svc } = await adminSupabase.from('coach_services').select('id, title, subject_or_sport').eq('coach_profile_id', profile.id);
+          if (!svc || svc.length === 0) {
+            await adminSupabase.from('coach_services').insert({
+              coach_profile_id: profile.id,
+              category: 'sports',
+              title: coachUpdates.service_areas || '未填寫服務名稱',
+              subject_or_sport: coachUpdates.service_areas || '未填寫',
+              intro: coachUpdates.philosophy || coachUpdates.experience || '未填寫介紹',
+              price: coachUpdates.base_price || 1000,
+              city: coachUpdates.location || '未填寫',
+              target_students: coachUpdates.target_audience || '未填寫',
+              available_times: coachUpdates.available_times || '未填寫'
+            });
+          } else {
+            await adminSupabase.from('coach_services').update({
+              title: coachUpdates.service_areas || svc[0].title,
+              subject_or_sport: coachUpdates.service_areas || svc[0].subject_or_sport,
+              intro: coachUpdates.philosophy || coachUpdates.experience || '未填寫介紹',
+              price: coachUpdates.base_price || 1000,
+              city: coachUpdates.location || '未填寫',
+              target_students: coachUpdates.target_audience || '未填寫',
+              available_times: coachUpdates.available_times || '未填寫'
+            }).eq('id', svc[0].id);
+          }
+        }
       }
     }
 

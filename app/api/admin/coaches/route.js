@@ -28,6 +28,22 @@ export async function GET(request) {
 
     if (error) throw error;
 
+    // Fetch user metadata for pending coaches to check pioneer invite status
+    const pendingCoachIds = rawCoaches.filter(c => c.approval_status === 'pending').map(c => c.user_id);
+    const pioneerApplicants = new Set();
+    
+    // We fetch one by one since there is no bulk getUserById in Supabase JS, and pending list is usually small
+    for (const pid of pendingCoachIds) {
+      try {
+        const { data: authUser } = await adminSupabase.auth.admin.getUserById(pid);
+        if (authUser?.user?.user_metadata?.applied_as_pioneer) {
+          pioneerApplicants.add(pid);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch auth user for pioneer check', e);
+      }
+    }
+
     const coaches = rawCoaches.map(c => {
       const allRatings = c.user?.reviews?.map(r => r.rating) || [];
       const avgRating = allRatings.length > 0 
@@ -79,6 +95,7 @@ export async function GET(request) {
         total_classes_amount: totalClassesAmount,
         last_login_ip: '2001:b011:7007::', // Mock IP as before
         created_at: c.user?.created_at,
+        applied_as_pioneer: pioneerApplicants.has(c.user_id),
       };
     });
 

@@ -30,7 +30,8 @@ export async function POST(request) {
       guardianConsent = false,
       age,
       referralCode = null,
-      matchData = null
+      matchData = null,
+      inviteType = null
     } = await request.json();
 
     const role = normalizeRegistrationRole(requestedRole);
@@ -97,12 +98,26 @@ export async function POST(request) {
       recoveredProfileId = existingProfile.id;
     }
 
+    // Fetch pioneer promo code from settings
+    const { data: pSettings } = await adminSupabase
+      .from('platform_settings')
+      .select('value')
+      .eq('key', 'pioneer_promo_code')
+      .maybeSingle();
+      
+    const backendPioneerCode = pSettings?.value || 'UNIPIONEER';
+    const isPioneerApplication = inviteType === 'pioneer' || (referralCode && referralCode.toUpperCase() === backendPioneerCode.toUpperCase());
+
     // 4. 建立 Supabase Auth 帳戶
     const authPayload = {
       email: normalizedEmail,
       password,
       email_confirm: true,
-      user_metadata: { name, role }
+      user_metadata: { 
+        name, 
+        role,
+        ...(isPioneerApplication ? { applied_as_pioneer: true } : {})
+      }
     };
 
     if (recoveredProfileId) {
@@ -124,7 +139,11 @@ export async function POST(request) {
     // 5. 處理推廣碼 (Referral Logic)
     let referredById = null;
     let isReferredByAmbassador = false;
-    if (referralCode) {
+    
+    // 如果 referralCode 等於 pioneer 碼，則不作為一般的推薦人處理
+    const isRegularReferral = referralCode && referralCode.toUpperCase() !== backendPioneerCode.toUpperCase();
+    
+    if (isRegularReferral) {
       const { data: referrer } = await adminSupabase
         .from('users')
         .select('id')
@@ -298,6 +317,31 @@ export async function POST(request) {
       }]);
     } catch (auditError) {
       console.warn('[REGISTER AUDIT LOG ERROR]', auditError);
+    }
+
+    // 10. Pioneer Coach 專屬審核對話框
+    if (role === 'coach' && inviteType === 'pioneer') {
+      try {
+        const { data: adminUser } = await adminSupabase.from('users').select('id').eq('role', 'admin').limit(1).maybeSingle();
+        if (adminUser) {
+          const { data: newRoom } = await adminSupabase.from('chat_rooms').insert({
+            user_id: adminUser.id,
+            coach_id: authData.user.id
+          }).select('id').single();
+
+          if (newRoom) {
+            await adminSupabase.from('chat_messages').insert([{
+              room_id: newRoom.id,
+              sender_id: adminUser.id,
+              message: "您好！感謝您透過專屬邀請連結申請成為創始教練。\n\n為確認您的資格，請回覆以下幾個簡單的問題：\n1. 您的教學經驗有多久？\n2. 您的主要教學項目為何？\n3. 是否有其他社群平台的經歷？\n\n期待您的回覆！",
+              is_system: false,
+              is_read: false
+            }]);
+          }
+        }
+      } catch (chatError) {
+        console.warn('[REGISTER PIONEER CHAT ERROR]', chatError);
+      }
     }
 
     return NextResponse.json({ success: true, user: sessionData }, { status: 201 });

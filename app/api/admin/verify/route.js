@@ -41,13 +41,13 @@ export async function POST(request) {
     const { fileId, coachUserId, action, reason } = await request.json();
     
     // 驗證參數
-    const validActions = ['approve', 'reject', 'suspend', 'delete_coach'];
+    const validActions = ['approve', 'approve_pioneer', 'reject', 'suspend', 'delete_coach'];
     if (!validActions.includes(action)) {
       return NextResponse.json({ error: '無效的操作' }, { status: 400 });
     }
 
     const adminSupabase = getAdminSupabase();
-    const statusMap = { approve: 'approved', reject: 'rejected', suspend: 'suspended' };
+    const statusMap = { approve: 'approved', approve_pioneer: 'approved', reject: 'rejected', suspend: 'suspended' };
     const targetStatus = statusMap[action];
 
     let targetUserId = coachUserId;
@@ -107,6 +107,10 @@ export async function POST(request) {
       verified_at: targetStatus === 'approved' ? new Date().toISOString() : null,
       verified_by: targetStatus === 'approved' ? auth.user.id : null
     };
+    
+    if (action === 'approve_pioneer') {
+      updatePayload.commission_discount = 5;
+    }
 
     const { error: coachError } = await adminSupabase
       .from('coaches')
@@ -114,6 +118,13 @@ export async function POST(request) {
       .eq('user_id', targetUserId);
 
     if (coachError) throw coachError;
+    
+    if (action === 'approve_pioneer') {
+      const { error: updateAuthError } = await adminSupabase.auth.admin.updateUserById(targetUserId, {
+        user_metadata: { is_pioneer: true }
+      });
+      if (updateAuthError) console.warn('[PIONEER UPDATE ERROR]', updateAuthError);
+    }
 
     // 3. 記錄審計日誌
     await adminSupabase.from('audit_logs').insert([{

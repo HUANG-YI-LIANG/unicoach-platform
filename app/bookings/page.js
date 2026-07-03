@@ -2,7 +2,33 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
-import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet, BookOpen, Star, X } from 'lucide-react';
+import { ShoppingBag, Calendar, FileText, Loader2, Upload, ExternalLink, Wallet, BookOpen, Star, X, Play, Square } from 'lucide-react';
+
+function TimerButton({ startTime, onStop }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = new Date(startTime).getTime();
+    const interval = setInterval(() => {
+      setElapsed(Math.max(0, Math.floor((Date.now() - start) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  const hrs = Math.floor(elapsed / 3600);
+  const mins = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+  const secs = (elapsed % 60).toString().padStart(2, '0');
+  const timeStr = hrs > 0 ? `${hrs}:${mins}:${secs}` : `${mins}:${secs}`;
+
+  return (
+    <button
+      onClick={onStop}
+      style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'var(--color-danger)', color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+    >
+      <Square size={14} fill="currentColor" /> 下課 ({timeStr})
+    </button>
+  );
+}
 
 const BLUE  = 'var(--color-primary)';
 const DARK  = 'var(--color-text)';
@@ -156,7 +182,7 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewingBooking, setReviewingBooking] = useState(null);
-  const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [reviewData, setReviewData] = useState({ rating: 5, timeScore: 5, teachingScore: 5, attitudeScore: 5, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState(PAYMENT_SETTINGS_FALLBACK);
   const [paymentModalBooking, setPaymentModalBooking] = useState(null);
@@ -301,13 +327,16 @@ export default function BookingsPage() {
         body: JSON.stringify({
           bookingId: reviewingBooking.id,
           rating: reviewData.rating,
+          timeScore: reviewData.timeScore,
+          teachingScore: reviewData.teachingScore,
+          attitudeScore: reviewData.attitudeScore,
           comment: reviewData.comment
         }),
       });
       if (res.ok) {
         alert('感謝您的評價！');
         setReviewingBooking(null);
-        setReviewData({ rating: 5, comment: '' });
+        setReviewData({ rating: 5, timeScore: 5, teachingScore: 5, attitudeScore: 5, comment: '' });
         fetchBookings();
       } else {
         const data = await res.json();
@@ -604,9 +633,10 @@ export default function BookingsPage() {
             const studentGroup = getStudentBookingGroup(b.status);
             const nextStepCopy = COACH_NEXT_STEP_COPY[coachGroup];
             const studentNextStepCopy = STUDENT_NEXT_STEP_COPY[b.status] || '先查看課程狀態，需要時可到聊天室確認下一步。';
-            const canStartReport = isCoach && ['scheduled', 'confirmed', 'in_progress', 'pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required'].includes(b.status);
-            const canConfirmCompletion = isCoach && ['pending_completion', 'in_progress'].includes(b.status);
+            const canStartReport = isCoach && ['pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required', 'completed'].includes(b.status);
+            const canConfirmCompletion = isCoach && ['pending_completion'].includes(b.status);
             const isCompleted = b.status === 'completed';
+            const isClassEnded = ['pending_completion', 'report_required', 'needs_report', 'pending_report', 'lesson_log_required', 'completed'].includes(b.status);
             const isPendingPayment = b.status === 'pending_payment';
             const isCancelled = ['cancelled', 'refunded', 'expired'].includes(b.status);
             const hasReceipt = Boolean(b.payment_reference);
@@ -737,12 +767,46 @@ export default function BookingsPage() {
                         前往聊天
                       </button>
                     )}
+                    {['scheduled', 'confirmed'].includes(b.status) && (
+                      <button
+                        onClick={() => handleStatusUpdate(b.id, 'in_progress')}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'var(--success)', color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                      >
+                        <Play size={14} fill="currentColor" /> 開始上課
+                      </button>
+                    )}
+                    {b.status === 'in_progress' && (
+                      <TimerButton
+                        startTime={b.updated_at || b.expected_time || Date.now()}
+                        onStop={() => handleStatusUpdate(b.id, 'pending_completion')}
+                      />
+                    )}
                     {canStartReport && !isCompleted && !isCancelled && (
                       <button
                         onClick={() => router.push(`/reports/${b.id}`)}
                         style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: `1px solid ${BLUE}`, background: 'var(--color-surface)', color: BLUE, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
                         <FileText size={14} /> 填寫課後日誌
+                      </button>
+                    )}
+                    {b.status === 'pending_confirmation' && (
+                      <button
+                        onClick={() => handleStatusUpdate(b.id, 'scheduled')}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'var(--success)', color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        接受預約
+                      </button>
+                    )}
+                    {b.status === 'pending_confirmation' && (
+                      <button
+                        onClick={() => {
+                           if(confirm('確定要拒絕此預約嗎？點數將自動退還給學員。')) {
+                               handleStatusUpdate(b.id, 'cancelled');
+                           }
+                        }}
+                        style={{ flex: '1 1 140px', padding: '10px', borderRadius: 12, border: 'none', background: 'var(--color-danger)', color: 'var(--text-light)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        拒絕預約
                       </button>
                     )}
                     {canConfirmCompletion && !isCompleted && !isCancelled && (
@@ -848,7 +912,7 @@ export default function BookingsPage() {
                 )}
 
                 {/* Completed badge and review actions */}
-                {isCompleted && (
+                {isClassEnded && (
                   <div style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
                     {!isCoach && !b.review_id ? (
                       <button
@@ -908,20 +972,31 @@ export default function BookingsPage() {
               為教練 <b>{reviewingBooking.coach_name}</b> 的表現評分
             </p>
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  onClick={() => setReviewData({ ...reviewData, rating: star })}
-                  style={{
-                    background: 'none', border: 'none', fontSize: 32, cursor: 'pointer',
-                    color: star <= reviewData.rating ? '#F59E0B' : 'var(--color-border)',
-                    transition: 'transform 0.1s',
-                    transform: star <= reviewData.rating ? 'scale(1.1)' : 'scale(1)',
-                  }}
-                >
-                  ★
-                </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
+              {[
+                { label: '時間觀念', key: 'timeScore' },
+                { label: '教學內容', key: 'teachingScore' },
+                { label: '教學態度', key: 'attitudeScore' }
+              ].map((item) => (
+                <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: DARK }}>{item.label}</span>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => setReviewData({ ...reviewData, [item.key]: star })}
+                        style={{
+                          background: 'none', border: 'none', fontSize: 24, cursor: 'pointer',
+                          color: star <= reviewData[item.key] ? '#F59E0B' : 'var(--color-border)',
+                          transition: 'transform 0.1s',
+                          transform: star <= reviewData[item.key] ? 'scale(1.1)' : 'scale(1)',
+                        }}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
 

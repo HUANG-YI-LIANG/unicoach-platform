@@ -173,6 +173,39 @@ export async function POST(request) {
       return NextResponse.json({ error: '此預約報告已被其他操作更新，請重新整理後再試。' }, { status: 409 });
     }
 
+    // 4. Update Student Warnings logic
+    const averageScore = (focusScore + cooperationScore + completionScore + understandingScore) / 4;
+    const { data: studentUser, error: studentError } = await adminSupabase
+      .from('users')
+      .select('warnings_count, consecutive_excellent_ratings')
+      .eq('id', booking.user_id)
+      .single();
+
+    if (!studentError && studentUser) {
+      let newConsecutive = studentUser.consecutive_excellent_ratings || 0;
+      let newWarnings = studentUser.warnings_count || 0;
+
+      if (averageScore >= 4.8) {
+        newConsecutive += 1;
+        if (newConsecutive >= 3 && newWarnings > 0) {
+          newWarnings -= 1;
+          newConsecutive = 0; // Reset after redemption
+        }
+      } else {
+        newConsecutive = 0; // Reset if below 4.8
+      }
+
+      if (newConsecutive !== studentUser.consecutive_excellent_ratings || newWarnings !== studentUser.warnings_count) {
+        await adminSupabase
+          .from('users')
+          .update({
+            warnings_count: newWarnings,
+            consecutive_excellent_ratings: newConsecutive
+          })
+          .eq('id', booking.user_id);
+      }
+    }
+
     await adminSupabase.from('audit_logs').insert([{
       actor_id: auth.user.id,
       actor_role: auth.user.role,

@@ -274,12 +274,19 @@ export default function VerificationAdmin() {
                           <div className="account-info">
                             <span className="account-id">{coach.user?.email}</span>
                             <div className="account-name-row">
-                              <span className="account-name">{coach.user?.name}</span>
+                              <span className="account-name">
+                                {coach.user?.name || '未知使用者'}
+                                {coach.applied_as_pioneer && (
+                                  <span style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #FFDF73 0%, #D4AF37 100%)', color: '#000', padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 900, letterSpacing: '0.5px' }}>
+                                    🌟 申請創始教練
+                                  </span>
+                                )}
+                              </span>
                             </div>
                             <span className={`status-badge ${coach.approval_status}`}>
                               {coach.approval_status === 'approved' ? '已核准' : 
                                coach.approval_status === 'pending' ? '待審核' :
-                               coach.approval_status === 'rejected' ? '已拒絕' : '已停用'}
+                               coach.approval_status === 'rejected' ? '已拒絕' : '已停權'}
                             </span>
                             {coach.average_rating && Number(coach.average_rating) < 4.5 && (
                               <span style={{ fontSize: '11px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', width: 'fit-content' }}>

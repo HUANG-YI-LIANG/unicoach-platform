@@ -21,6 +21,10 @@ const STATUS_TRANSITION_RULES = {
   pending_payment: {
     student: ["cancelled"],
   },
+  pending_confirmation: {
+    student: ["cancelled"],
+    coach: ["scheduled", "cancelled"],
+  },
   scheduled: {
     student: ["cancelled"],
     coach: ["in_progress", "cancelled"],
@@ -146,7 +150,7 @@ export async function POST(request, { params }) {
         throw completeError;
       }
     } else {
-      const updateData = { status: newStatus };
+      const updateData = { status: newStatus, updated_at: new Date().toISOString() };
       if (newStatus === 'cancelled') {
         updateData.cancelled_at = new Date().toISOString();
         if (typeof cancelReason === 'string' && cancelReason.trim()) {
@@ -157,7 +161,21 @@ export async function POST(request, { params }) {
         } else if (isStudentCancellation) {
           updateData.cancel_fault_party = 'student_fault';
         }
+
+        // Refund points if the booking was paid and not yet refunded
+        if (booking.payment_status === 'paid' || booking.payment_status === 'pending') {
+          try {
+             await adminSupabase.rpc('refund_booking_points', {
+               p_booking_id: id,
+               p_actor_id: auth.user.id
+             });
+             updateData.payment_status = 'refunded';
+          } catch (refundError) {
+             console.warn('[REFUND POINTS ERROR]', safeErrorDetails(refundError));
+          }
+        }
       }
+
       const { data: updatedBooking, error: updateError } = await adminSupabase
         .from('bookings')
         .update(updateData)
@@ -169,6 +187,33 @@ export async function POST(request, { params }) {
       if (updateError) throw updateError;
       if (!updatedBooking) {
         return NextResponse.json({ error: '預約狀態已被其他操作更新，請重新整理後再試。' }, { status: 409 });
+      }
+
+      // Send Notifications
+      if (newStatus === 'cancelled' && booking.status === 'pending_confirmation' && role === 'coach') {
+        try {
+          const { data: coachUser } = await adminSupabase.from('users').select('name').eq('id', booking.coach_id).single();
+          await adminSupabase.from('notifications').insert({
+            user_id: booking.user_id,
+            type: 'booking_rejected',
+            title: '預約未成立',
+            message: `${coachUser?.name || '教練'} 無法接下您的這筆預約，點數已退還至您的錢包。`,
+            link_url: `/dashboard/user/wallet`,
+            is_read: false
+          });
+        } catch(e) {}
+      } else if (newStatus === 'scheduled' && booking.status === 'pending_confirmation' && role === 'coach') {
+        try {
+          const { data: coachUser } = await adminSupabase.from('users').select('name').eq('id', booking.coach_id).single();
+          await adminSupabase.from('notifications').insert({
+            user_id: booking.user_id,
+            type: 'booking_confirmed',
+            title: '預約已確認',
+            message: `${coachUser?.name || '教練'} 已確認您的預約！請準時上課。`,
+            link_url: `/chat/${booking.id}`,
+            is_read: false
+          });
+        } catch(e) {}
       }
     }
 

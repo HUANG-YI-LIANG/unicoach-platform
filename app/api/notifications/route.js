@@ -12,6 +12,8 @@ const ALLOWED_TYPES = new Set([
   'booking_reminder',
   'booking_changed',
   'rebook_suggestion',
+  'new_booking_request',
+  'booking_rejected',
 ]);
 
 function notificationDto(row) {

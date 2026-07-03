@@ -37,6 +37,7 @@ export async function GET(request) {
       user_tier_discounts: parseIfJSON(settingsObj.user_tier_discounts) || [],
       top_coach_settings: parseIfJSON(settingsObj.top_coach_settings) || { top_n: 50, bonus_discount: 5 },
       deposit_bonus_tiers: parseIfJSON(settingsObj.deposit_bonus_tiers) || [],
+      pioneer_promo_code: settingsObj.pioneer_promo_code || 'UNIPIONEER',
     };
 
     return NextResponse.json({ settings: publicSettings });
