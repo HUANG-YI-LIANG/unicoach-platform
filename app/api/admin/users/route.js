@@ -16,7 +16,7 @@ export async function GET(request) {
     const { data: rawUsers, error } = await adminSupabase
       .from('users')
       .select(`
-        id, email, name, role, created_at, wallet_balance,
+        id, email, name, role, created_at, wallet_balance, avatar_url,
         wallet_transactions(amount, transaction_type, created_at)
       `)
       .order('created_at', { ascending: false });
@@ -52,6 +52,7 @@ export async function GET(request) {
         last_login_time: lastLogin || user.created_at,
         last_login_ip: '2001:b011:7007::', // Mocked IP for demonstration as requested by layout
         created_at: user.created_at,
+        avatar_url: user.avatar_url,
       };
     });
 

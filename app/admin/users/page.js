@@ -2,16 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Users, Loader2, Search, Filter, ShieldCheck, Mail, Info, RefreshCcw } from 'lucide-react';
-import Link from 'next/link';
-import UserDetailExpanded from '@/components/admin/UserDetailExpanded';
+import { Users, Loader2, Search, RefreshCcw } from 'lucide-react';
 
 export default function UserManagementAdmin() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [expandedRows, setExpandedRows] = useState(new Set());
+  
+  const filterCycle = ['all', 'user', 'coach', 'ambassador'];
+  const filterLabels = {
+    all: '全部帳號管理',
+    user: '學員帳號管理',
+    coach: '教練帳號管理',
+    ambassador: '推廣大使管理'
+  };
+  const [currentFilterIdx, setCurrentFilterIdx] = useState(0);
+
   const router = useRouter();
 
   const fetchUsers = async () => {
@@ -33,33 +39,13 @@ export default function UserManagementAdmin() {
     fetchUsers();
   }, []);
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(users.map(u => u.id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelect = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
-
-  const toggleExpand = (id) => {
-    setExpandedRows(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) newSet.delete(id);
-      else newSet.add(id);
-      return newSet;
-    });
-  };
-
-  const filteredUsers = users.filter(u => 
-    u.account?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    u.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const activeRoleFilter = filterCycle[currentFilterIdx];
+  const filteredUsers = users.filter(u => {
+    const matchSearch = u.account?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        u.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchRole = activeRoleFilter === 'all' ? true : u.role === activeRoleFilter;
+    return matchSearch && matchRole;
+  });
 
   return (
     <div className="admin-member-page">
@@ -83,134 +69,50 @@ export default function UserManagementAdmin() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          <button 
+            className="role-cycle-btn"
+            onClick={() => setCurrentFilterIdx((prev) => (prev + 1) % 4)}
+          >
+            {filterLabels[activeRoleFilter]}
+          </button>
           <button onClick={fetchUsers} className="refresh-btn">
             <RefreshCcw size={18} />
           </button>
         </div>
       </header>
 
-      <div className="table-container">
+      <div className="grid-container">
         {loading ? (
           <div className="loading-state">
             <Loader2 className="animate-spin" size={40} />
             <p>正在載入會員資料...</p>
           </div>
         ) : (
-          <div className="table-wrapper">
-            <table className="dense-table">
-              <thead>
-                <tr>
-                  <th className="sticky-col checkbox-col">
-                    <input 
-                      type="checkbox" 
-                      onChange={handleSelectAll} 
-                      checked={selectedIds.length === users.length && users.length > 0} 
-                    />
-                  </th>
-                  <th className="sticky-col action-col">操作</th>
-                  <th>組織路徑</th>
-                  <th>帳號 / 名稱</th>
-                  <th>錢包數據 (餘額/完課/出金/儲值)</th>
-                  <th>最後登入與註冊時間</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center py-8 text-[var(--color-text-muted)]">
-                      找不到符合條件的會員
-                    </td>
-                  </tr>
-                ) : (
-                  filteredUsers.map(user => (
-                    <tr key={user.id} className={selectedIds.includes(user.id) ? 'selected-row' : ''}>
-                      <td className="sticky-col checkbox-col">
-                        <input 
-                          type="checkbox" 
-                          checked={selectedIds.includes(user.id)}
-                          onChange={() => handleSelect(user.id)}
-                        />
-                      </td>
-                      <td className="sticky-col action-col">
-                        <button 
-                          onClick={() => toggleExpand(user.id)}
-                          className="detail-btn"
-                        >
-                          {expandedRows.has(user.id) ? '收起' : '詳細'}
-                        </button>
-                      </td>
-                      <td className="path-col">
-                        <div className="path-box">
-                          <span>&gt; {user.role === 'coach' ? '教練' : '學員'}</span>
-                          <span className="path-sub">/ 系統</span>
-                        </div>
-                      </td>
-                      <td className="account-col">
-                        <div className="account-info">
-                          <span className="account-id">{user.account}</span>
-                          <div className="account-name-row">
-                            <span className="account-name">{user.name}</span>
-                            <Info size={14} className="text-blue-400" />
-                          </div>
-                          <span className={`role-badge ${user.role}`}>
-                            {user.role === 'coach' ? '認證教練' : '標準學員'}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="wallet-col">
-                        <div className="wallet-grid">
-                          <div className="wallet-item">
-                            <span className="label">錢包總餘額</span>
-                            <span className="value highlight">{user.wallet_balance.toLocaleString()}</span>
-                          </div>
-                          <div className="wallet-item">
-                            <span className="label">總完課金額</span>
-                            <span className="value">{user.total_classes_amount.toLocaleString()}</span>
-                          </div>
-                          <div className="wallet-item">
-                            <span className="label">總出金</span>
-                            <span className="value">{user.total_withdrawal.toLocaleString()}</span>
-                          </div>
-                          <div className="wallet-item">
-                            <span className="label">總儲值</span>
-                            <span className="value">{user.total_deposit.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="time-col">
-                        <div className="time-info">
-                          <div className="time-row">
-                            <span className="label">登入 :</span>
-                            <span className="value">{new Date(user.last_login_time).toLocaleString()}</span>
-                          </div>
-                          <div className="time-row">
-                            <span className="label">IP :</span>
-                            <span className="value ip">{user.last_login_ip}</span>
-                          </div>
-                          <div className="time-row mt-2">
-                            <span className="label">註冊 :</span>
-                            <span className="value">{new Date(user.created_at).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )).reduce((acc, row, index) => {
-                    const user = filteredUsers[index];
-                    acc.push(row);
-                    if (expandedRows.has(user.id)) {
-                      acc.push(
-                        <tr key={`expanded-${user.id}`} className="expanded-row-container">
-                          <td colSpan="6" style={{ padding: 0 }}>
-                            <UserDetailExpanded userId={user.id} />
-                          </td>
-                        </tr>
-                      );
-                    }
-                    return acc;
-                  }, [])
-                )}
-              </tbody>
-            </table>
+          <div className="users-grid">
+            {filteredUsers.length === 0 ? (
+              <div className="empty-state">
+                找不到符合條件的會員
+              </div>
+            ) : (
+              filteredUsers.map(user => (
+                <div 
+                  key={user.id} 
+                  className={`user-circle-card ${user.role || 'user'}`}
+                  onClick={() => router.push(`/admin/users/${user.id}`)}
+                  title={`${user.name || '未命名'} (${user.account})`}
+                >
+                  <div className="avatar-circle">
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt={user.name} />
+                    ) : (
+                      <span>{(user.name || user.account || '?').charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <div className="user-name-tag">{user.name || '未命名'}</div>
+                  <div className={`role-dot ${user.role || 'user'}`}></div>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
@@ -256,6 +158,7 @@ export default function UserManagementAdmin() {
           display: flex;
           gap: 12px;
           align-items: center;
+          flex-wrap: wrap;
         }
         .search-box {
           display: flex;
@@ -265,7 +168,7 @@ export default function UserManagementAdmin() {
           border: 1px solid var(--color-border);
           padding: 10px 16px;
           border-radius: 12px;
-          width: 300px;
+          width: 250px;
         }
         .search-box input {
           background: transparent;
@@ -273,6 +176,23 @@ export default function UserManagementAdmin() {
           color: var(--text-light);
           outline: none;
           width: 100%;
+        }
+        .role-cycle-btn {
+          background: rgba(96, 165, 250, 0.15);
+          color: #60a5fa;
+          border: 1px solid rgba(96, 165, 250, 0.3);
+          padding: 10px 20px;
+          border-radius: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.2s;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .role-cycle-btn:hover {
+          background: rgba(96, 165, 250, 0.25);
         }
         .refresh-btn {
           background: var(--color-surface);
@@ -292,14 +212,15 @@ export default function UserManagementAdmin() {
           color: var(--text-light);
         }
 
-        .table-container {
+        .grid-container {
           background: var(--color-surface);
           border: 1px solid var(--color-border);
           border-radius: 20px;
-          overflow-x: auto;
+          padding: 24px;
+          min-height: 400px;
         }
         .loading-state {
-          height: 400px;
+          height: 300px;
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -307,169 +228,82 @@ export default function UserManagementAdmin() {
           color: var(--color-text-muted);
           gap: 16px;
         }
-        .table-wrapper {
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
+        .users-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+          gap: 30px;
         }
-        .dense-table {
-          width: 100%;
-          min-width: 1000px;
-          border-collapse: collapse;
-          font-size: 13px;
-        }
-        .dense-table th {
-          background: rgba(0, 0, 0, 0.2);
-          color: #4cc9f0;
-          font-weight: 700;
-          padding: 16px 20px;
-          text-align: left;
-          border-bottom: 2px solid var(--color-border);
-          white-space: nowrap;
-        }
-        .dense-table td {
-          padding: 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          vertical-align: top;
-        }
-        .dense-table tr:hover {
-          background: rgba(255, 255, 255, 0.02);
-        }
-        .dense-table tr.selected-row {
-          background: rgba(96, 165, 250, 0.05);
-        }
-
-        /* Sticky Columns */
-        .sticky-col {
-          position: sticky;
-          background: var(--color-surface);
-          z-index: 10;
-        }
-        .dense-table tr:hover .sticky-col {
-          background: #1a1e27; /* slightly lighter surface */
-        }
-        .dense-table tr.selected-row .sticky-col {
-          background: #1a2233;
-        }
-        .dense-table th.sticky-col {
-          background: #151821;
-          z-index: 11;
-        }
-        .checkbox-col {
-          left: 0;
-          width: 50px;
-          text-align: center;
-        }
-        .action-col {
-          left: 50px;
-          width: 80px;
-          border-right: 1px solid var(--color-border);
-        }
-        
-        .detail-btn {
-          display: inline-block;
-          background: rgba(255, 255, 255, 0.1);
-          color: var(--text-light);
-          padding: 6px 16px;
-          border-radius: 6px;
-          font-weight: 700;
-          text-decoration: none;
-          transition: 0.2s;
-          text-align: center;
-          width: 100%;
-        }
-        .detail-btn:hover {
-          background: #4cc9f0;
-          color: #000;
-        }
-
-        .path-box {
-          background: rgba(255,255,255,0.03);
-          padding: 10px;
-          border-radius: 8px;
-          display: inline-flex;
-          flex-direction: column;
-          gap: 4px;
-          font-weight: 700;
-          color: var(--text-light);
-        }
-        .path-sub {
-          color: #fbbf24; /* yellow/orange like screenshot */
-          padding-left: 12px;
-        }
-
-        .account-info {
+        .user-circle-card {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          position: relative;
+          transition: transform 0.2s;
         }
-        .account-id {
-          color: #f472b6; /* pinkish like screenshot */
-          font-family: monospace;
-          font-size: 14px;
+        .user-circle-card:hover {
+          transform: translateY(-5px);
         }
-        .account-name-row {
+        .avatar-circle {
+          width: 80px;
+          height: 80px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.05);
+          border: 3px solid var(--color-border);
           display: flex;
           align-items: center;
-          gap: 6px;
+          justify-content: center;
+          overflow: hidden;
           color: var(--text-light);
+          font-size: 28px;
           font-weight: bold;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
-        .role-badge {
-          display: inline-block;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-size: 11px;
-          font-weight: 800;
-          width: fit-content;
+        .avatar-circle img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
         }
-        .role-badge.coach { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
-        .role-badge.user { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
-
-        .wallet-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px 24px;
+        .user-circle-card.coach .avatar-circle {
+          border-color: #4ade80;
         }
-        .wallet-item {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .user-circle-card.ambassador .avatar-circle {
+          border-color: #f472b6;
         }
-        .wallet-item .label {
-          color: #4cc9f0;
-          font-weight: 700;
+        .user-circle-card.user .avatar-circle {
+          border-color: #60a5fa;
         }
-        .wallet-item .value {
-          color: var(--color-text-muted);
-          font-family: monospace;
-          font-size: 14px;
-        }
-        .wallet-item .value.highlight {
+        .user-name-tag {
+          font-size: 13px;
+          font-weight: 600;
           color: var(--text-light);
-          font-weight: bold;
+          text-align: center;
+          max-width: 100px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
-
-        .time-info {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        .role-dot {
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          position: absolute;
+          top: 0;
+          right: 5px;
+          border: 3px solid var(--color-surface);
         }
-        .time-row {
-          display: flex;
-          gap: 8px;
-        }
-        .time-row .label {
+        .role-dot.coach { background: #4ade80; }
+        .role-dot.user { background: #60a5fa; }
+        .role-dot.ambassador { background: #f472b6; }
+        
+        .empty-state {
+          grid-column: 1 / -1;
+          text-align: center;
+          padding: 60px 0;
           color: var(--color-text-muted);
-          width: 40px;
+          font-size: 16px;
         }
-        .time-row .value {
-          color: var(--text-light);
-        }
-        .time-row .ip {
-          color: #f472b6;
-          font-family: monospace;
-        }
-        .mt-2 { margin-top: 8px; }
       `}</style>
     </div>
   );
