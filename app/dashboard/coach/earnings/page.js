@@ -76,7 +76,7 @@ export default function CoachEarningsWalletPage() {
   };
 
   const openSupportChat = () => {
-    router.push('/chat?topic=coach-withdrawal'); // 直接進入聊天室不經過 support 頁面
+    window.dispatchEvent(new Event('open-support-chat')); // 直接開啟右下角客服彈窗
   };
 
   const handleBind = async () => {

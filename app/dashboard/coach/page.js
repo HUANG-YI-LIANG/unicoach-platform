@@ -282,7 +282,7 @@ export default function CoachDashboard() {
             <Calendar className="quick-action-icon" />
             <span className="quick-action-text">行事曆</span>
           </div>
-          <div className="quick-action-btn" onClick={() => router.push('/support?topic=coach-withdrawal')}>
+          <div className="quick-action-btn" onClick={() => router.push('/dashboard/coach/earnings')}>
             <Wallet className="quick-action-icon" />
             <span className="quick-action-text">收益錢包</span>
           </div>

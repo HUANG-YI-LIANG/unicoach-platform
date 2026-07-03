@@ -41,6 +41,12 @@ export default function SupportChatWidget() {
   const hidden = loading || !user || isHiddenRoute(pathname);
 
   useEffect(() => {
+    const handleOpen = () => setOpen(true);
+    window.addEventListener('open-support-chat', handleOpen);
+    return () => window.removeEventListener('open-support-chat', handleOpen);
+  }, []);
+
+  useEffect(() => {
     if (!open || hidden || loaded) return;
 
     let cancelled = false;

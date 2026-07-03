@@ -90,7 +90,10 @@ export default function SupportPage() {
 
         <button
           type="button"
-          onClick={() => router.push('/chat?topic=coach-withdrawal')}
+          onClick={() => {
+            window.dispatchEvent(new Event('open-support-chat'));
+            if (isWithdrawalTopic) router.back();
+          }}
           className="btn-press"
           style={{
             width: '100%', border: 'none', borderRadius: 16, padding: '15px 18px',
