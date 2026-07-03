@@ -5,31 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/AuthProvider';
 import { getDashboardPathForRole } from '@/lib/authRedirects';
 import {
-  Bell, ChevronRight, ChevronDown, Apple, Search, 
-  Calendar, Wallet, Settings, Dumbbell, Star, Smartphone, MessageCircle
+  Search, Calendar, Wallet, Settings, Star, ChevronRight, 
+  MessageCircle, Sparkles, MapPin, Zap
 } from 'lucide-react';
 
 const EMPTY_PROFILE = { name: '', avatar_url: null, level: 1 };
 
-function AccordionItem({ title, icon: Icon, children, defaultOpen = false }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  return (
-    <div className="accordion-item">
-      <div className="accordion-header" onClick={() => setIsOpen(!isOpen)}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Icon size={20} color="var(--text-muted)" />
-          <span>{title}</span>
-        </div>
-        {isOpen ? <ChevronDown size={20} color="var(--text-muted)" /> : <ChevronRight size={20} color="var(--text-muted)" />}
-      </div>
-      <div className={`accordion-content ${isOpen ? 'open' : ''}`}>
-        <div className="accordion-inner">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-}
+const CATEGORIES = [
+  { id: '羽球', label: '羽球', icon: '🏸', color: 'rgba(16,185,129,0.15)' },
+  { id: '英文口說', label: '英文口說', icon: '🗣️', color: 'rgba(59,130,246,0.15)' },
+  { id: '健身', label: '健身', icon: '🏋️', color: 'rgba(239,68,68,0.15)' },
+  { id: '投資', label: '投資', icon: '📈', color: 'rgba(245,158,11,0.15)' },
+  { id: '吉他', label: '吉他', icon: '🎸', color: 'rgba(139,92,246,0.15)' },
+];
 
 export default function UserDashboard() {
   const [profile, setProfile] = useState(EMPTY_PROFILE);
@@ -47,8 +35,6 @@ export default function UserDashboard() {
 
   useEffect(() => {
     let isMounted = true;
-
-    // 1. Quick Cache (Stale-while-revalidate)
     const cachedData = sessionStorage.getItem('userDashboardCache');
     if (cachedData) {
       try {
@@ -57,18 +43,15 @@ export default function UserDashboard() {
         setBookings(parsed.bookings);
         setRecommendedCoaches(parsed.recommendedCoaches);
         setLoading(false);
-      } catch (e) {
-        console.error('Cache parsing failed', e);
-      }
+      } catch (e) {}
     }
 
-    // 2. Fetch Fresh Data
     (async () => {
       try {
         const [profileRes, bookingsRes, coachesData] = await Promise.all([
           fetch('/api/auth/profile'),
           fetch('/api/bookings'),
-          fetch('/api/coaches?limit=3').then((res) => (res.ok ? res.json() : { coaches: [] }))
+          fetch('/api/coaches?limit=5').then((res) => (res.ok ? res.json() : { coaches: [] }))
         ]);
 
         if (!profileRes.ok) {
@@ -95,7 +78,8 @@ export default function UserDashboard() {
           setBookings(finalBookings);
         }
         
-        const finalRecommended = Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 3) : [];
+        // 抓取推薦教練 (前 5 名)
+        const finalRecommended = Array.isArray(coachesData.coaches) ? coachesData.coaches.slice(0, 5) : [];
         setRecommendedCoaches(finalRecommended);
 
         if (!profileData.referred_by && !localStorage.getItem('referral_prompt_dismissed')) {
@@ -107,7 +91,6 @@ export default function UserDashboard() {
           bookings: finalBookings,
           recommendedCoaches: finalRecommended
         }));
-
       } catch (error) {
         console.error(error);
       } finally {
@@ -149,159 +132,261 @@ export default function UserDashboard() {
 
   if (loading) {
     return (
-      <div className="mobile-container" style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <p style={{ color: 'var(--text-muted)' }}>載入中...</p>
+      <div className="mobile-container" style={{ justifyContent: 'center', alignItems: 'center', background: '#050816' }}>
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 700, letterSpacing: 1 }}>載入專屬推薦中...</p>
       </div>
     );
   }
 
-  const nextBooking = bookings[0] || null;
-
   return (
-    <div className="mobile-container" style={{ background: 'var(--bg-primary)' }}>
-      <main className="content" style={{ padding: '24px 20px', paddingBottom: '120px' }}>
+    <div className="mobile-container" style={{ background: '#050816', overflowX: 'hidden' }}>
+      
+      {/* =========================================
+          第一屏：意圖驅動 (Intent-Driven)
+      ========================================= */}
+      <header style={{ padding: '40px 20px 24px', position: 'relative', zIndex: 10 }}>
+        {/* 背景光暈效果 */}
+        <div style={{ position: 'absolute', top: -50, left: '50%', transform: 'translateX(-50%)', width: 400, height: 400, background: 'radial-gradient(circle, rgba(255, 138, 61, 0.12) 0%, transparent 60%)', zIndex: -1, pointerEvents: 'none' }} />
         
-        {/* HEADER */}
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>Hi, {profile?.name || '學員'}</span>
-            {profile?.registration_number ? <span style={{ fontSize: '0.65em', color: 'var(--text-muted)', fontWeight: 800 }}>#{profile.registration_number}</span> : null}
-          </h1>
-          <button onClick={() => router.push('/notifications')} style={{ background: 'transparent', padding: 8, color: 'var(--text-primary)' }}>
-            <Bell size={24} />
-          </button>
-        </header>
+        <p style={{ margin: '0 0 8px', fontSize: 16, color: 'rgba(255,255,255,0.6)', fontWeight: 700 }}>
+          Hi, {profile?.name || '學員'} 👋
+        </p>
+        <h1 style={{ margin: 0, fontSize: 32, fontWeight: 900, color: '#FFF', letterSpacing: '-0.5px' }}>
+          今天想學什麼？
+        </h1>
 
-        {/* METALLIC LEVEL CARD */}
-        <div className="metallic-card metallic-silver" style={{ marginBottom: 24 }}>
-          <div className="metallic-card-title">一般會員等級</div>
-          <div className="metallic-progress-bg">
-            <div className="metallic-progress-fill" style={{ width: '40%' }}></div>
-          </div>
-          <div className="metallic-card-desc">再消費 NT$5400 即可成為黃金會員等級</div>
-          <div className="metallic-card-link" onClick={() => router.push('/levels')}>
-            <span>了解會員等級權益</span>
-            <ChevronRight size={16} />
-          </div>
-          <div style={{ position: 'absolute', right: 20, top: 20, width: 24, height: 24, background: 'rgba(0,0,0,0.1)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, color: 'var(--text-primary)' }}>
-            S
-          </div>
-        </div>
-
-        {/* QUICK ACTIONS */}
-        <div className="quick-action-grid">
-          <div className="quick-action-btn" onClick={() => router.push('/coaches')}>
-            <Search className="quick-action-icon" />
-            <span className="quick-action-text">找教練</span>
-          </div>
-          <div className="quick-action-btn" onClick={() => router.push('/dashboard/user/wallet')}>
-            <Wallet className="quick-action-icon" />
-            <span className="quick-action-text">我的點數</span>
-          </div>
-          <div className="quick-action-btn" onClick={() => router.push('/dashboard/user/edit')}>
-            <Settings className="quick-action-icon" />
-            <span className="quick-action-text">個人檔案</span>
-          </div>
-        </div>
-
-        {/* 儲值提示 Banner */}
+        {/* AI 搜尋框 */}
         <div 
-          onClick={() => router.push('/chat')}
+          onClick={() => router.push('/coaches')}
           style={{ 
-            marginTop: 16, marginBottom: 24, padding: '14px 16px', 
-            background: 'rgba(255, 138, 61, 0.1)', borderRadius: 16, 
-            border: '1px solid rgba(255, 138, 61, 0.25)', 
-            display: 'flex', alignItems: 'center', gap: 14, 
-            cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            marginTop: 24, padding: '16px 20px', borderRadius: 20, 
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)', backdropFilter: 'blur(10px)'
           }}
         >
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 2px 8px rgba(255, 138, 61, 0.4)' }}>
-            <MessageCircle size={18} color="#fff" />
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 3 }}>需要儲值點數嗎？</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>點擊這裡，或右下角的客服按鈕，<br/>由專人為您服務。</div>
-          </div>
-          <ChevronRight size={18} color="var(--accent)" style={{ marginLeft: 'auto' }} />
+          <Search size={22} color="rgba(255,255,255,0.5)" />
+          <span style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>搜尋領域或教練...</span>
         </div>
 
-        {/* ACCORDION SECTIONS */}
-        <div className="accordion-wrapper">
-          
-          <AccordionItem title="學習活動與預約" icon={Calendar} defaultOpen={true}>
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ background: 'var(--bg-card)', padding: 12, borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4 }}>下次預約</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{nextBooking?.services?.title || '尚未安排'}</div>
+        {/* 熱門分類 */}
+        <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '24px 0 8px', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {CATEGORIES.map((cat) => (
+            <div 
+              key={cat.id} 
+              onClick={() => router.push(`/coaches?category=${cat.id}`)}
+              style={{
+                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
+              }}
+            >
+              <div style={{ width: 64, height: 64, borderRadius: 20, background: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, border: '1px solid rgba(255,255,255,0.05)' }}>
+                {cat.icon}
               </div>
-              <div style={{ background: 'var(--bg-card)', padding: 12, borderRadius: 8 }}>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 700, marginBottom: 4 }}>近期完成</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)' }}>{bookings.length} 堂課程</div>
-              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{cat.label}</span>
             </div>
-          </AccordionItem>
+          ))}
+          <div 
+            onClick={() => router.push('/coaches')}
+            style={{
+              flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer'
+            }}
+          >
+            <div style={{ width: 64, height: 64, borderRadius: 20, background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFF', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <ChevronRight size={24} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.5)' }}>更多</span>
+          </div>
+        </div>
+      </header>
 
-          <AccordionItem title="推薦教練" icon={Star}>
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {recommendedCoaches.length > 0 ? recommendedCoaches.map((coach, idx) => (
-                <div key={idx} onClick={() => router.push(`/coaches/${coach.id}`)} style={{ display: 'flex', gap: 12, alignItems: 'center', cursor: 'pointer', background: 'var(--bg-card)', padding: 8, borderRadius: 8 }}>
-                  <img src={coach.avatar_url || 'https://placehold.co/100x100/1e293b/fff?text=Coach'} alt="coach" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
-                  <div>
-                    <div style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: 14 }}>{coach.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{coach.title || '專業教練'}</div>
+      <main style={{ paddingBottom: 120 }}>
+        
+        {/* =========================================
+            第二屏：今日推薦教練 (Direct Sales)
+        ========================================= */}
+        <section style={{ padding: '0 0 32px' }}>
+          <div style={{ padding: '0 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#FFF', margin: 0 }}>🔥 今日推薦教練</h2>
+          </div>
+          
+          <div style={{ display: 'flex', gap: 16, overflowX: 'auto', padding: '0 20px 20px', scrollbarWidth: 'none' }}>
+            {recommendedCoaches.length > 0 ? recommendedCoaches.map((coach) => {
+              const defaultService = Array.isArray(coach.services) ? coach.services[0] : null;
+              const price = defaultService ? defaultService.price : '詢價';
+              const rating = coach.average_rating ? Number(coach.average_rating).toFixed(1) : '5.0';
+              
+              return (
+                <div 
+                  key={coach.id} 
+                  onClick={() => router.push(`/coaches/${coach.id}`)}
+                  style={{
+                    flexShrink: 0, width: 260, background: 'rgba(255,255,255,0.03)', 
+                    border: '1px solid rgba(255,255,255,0.06)', borderRadius: 24, overflow: 'hidden',
+                    cursor: 'pointer', boxShadow: '0 12px 40px rgba(0,0,0,0.2)'
+                  }}
+                >
+                  {/* 教練照片 */}
+                  <div style={{ width: '100%', height: 260, position: 'relative' }}>
+                    <img 
+                      src={coach.avatar_url || 'https://placehold.co/400x500/1e293b/fff?text=Coach'} 
+                      alt={coach.name} 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', height: '50%', background: 'linear-gradient(to top, #0B1220, transparent)' }} />
+                    <div style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', padding: '4px 10px', borderRadius: 100, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Star size={12} fill="#FBBF24" color="#FBBF24" />
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#FFF' }}>{rating}</span>
+                    </div>
+                  </div>
+                  
+                  {/* 教練資訊與預約按鈕 */}
+                  <div style={{ padding: '16px 20px', background: '#0B1220' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: '#FFF' }}>{coach.name}</h3>
+                        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{coach.title || '專業教練'}</p>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>起始價</span>
+                        <div style={{ fontSize: 16, fontWeight: 900, color: '#FF8A3D' }}>NT${price}</div>
+                      </div>
+                    </div>
+                    
+                    <button style={{ 
+                      width: '100%', marginTop: 12, padding: 14, borderRadius: 16, border: 0,
+                      background: 'rgba(255,255,255,0.06)', color: '#FFF', fontSize: 15, fontWeight: 800,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}>
+                      <Zap size={16} color="#FF8A3D" /> 立即預約
+                    </button>
                   </div>
                 </div>
-              )) : (
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>目前無推薦教練</div>
-              )}
-            </div>
-          </AccordionItem>
-
-          <AccordionItem title="探索領域" icon={Dumbbell}>
-            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {['運動健身', '語言學習', '音樂藝術', '商業職涯'].map(cat => (
-                <div key={cat} onClick={() => router.push(`/coaches?category=${cat}`)} style={{ background: 'var(--bg-card)', padding: '12px 8px', borderRadius: 8, textAlign: 'center', fontWeight: 800, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
-                  {cat}
-                </div>
-              ))}
-            </div>
-          </AccordionItem>
-
-        </div>
-
-        {/* APP DOWNLOAD BUTTONS (Inverted for dark section look, but page is white. Let's make it fit.) */}
-        <div style={{ marginTop: 40, marginBottom: 20 }}>
-          <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, color: 'var(--text-muted)', marginBottom: 12 }}>
-            下載 UniteCoach 專屬 APP
+              );
+            }) : (
+              <div style={{ padding: '40px 20px', width: '100%', textAlign: 'center', color: 'rgba(255,255,255,0.4)' }}>
+                載入教練中...
+              </div>
+            )}
           </div>
-          <button onClick={() => router.push('/download')} className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
-            <Apple size={20} /> iOS 下載
-          </button>
-          <button onClick={() => router.push('/download')} className="app-download-btn" style={{ border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)' }}>
-            <Smartphone size={20} /> Android 下載
-          </button>
-        </div>
+        </section>
 
-        {/* LOGOUT BUTTON */}
-        <button className="logout-btn-black" onClick={logout}>
-          登出
-        </button>
+        {/* =========================================
+            第三屏：視覺動態 (Shorts / Moments) - 暫以精選照片替代
+        ========================================= */}
+        <section style={{ padding: '0 0 32px' }}>
+          <div style={{ padding: '0 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: '#FFF', margin: 0 }}>🌟 熱門教學亮點</h2>
+          </div>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', padding: '0 20px 20px', scrollbarWidth: 'none' }}>
+            {recommendedCoaches.map((coach, i) => (
+              <div 
+                key={i}
+                onClick={() => router.push(`/coaches/${coach.id}`)}
+                style={{
+                  flexShrink: 0, width: 140, height: 220, borderRadius: 20, position: 'relative', overflow: 'hidden', cursor: 'pointer',
+                  border: '1px solid rgba(255,255,255,0.1)'
+                }}
+              >
+                <img src={coach.avatar_url || `https://placehold.co/300x500/${i%2===0?'1e293b':'334155'}/fff?text=Moment`} alt="moment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%)' }} />
+                <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#FFF', marginBottom: 2 }}>{coach.name}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{coach.title || '教練日常'}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* =========================================
+            第四屏：AI 推薦助理
+        ========================================= */}
+        <section style={{ padding: '0 20px 40px' }}>
+          <div 
+            onClick={() => router.push('/coaches')}
+            style={{
+              padding: 24, borderRadius: 24, background: 'linear-gradient(135deg, #1E1B4B, #0B1220)',
+              border: '1px solid rgba(99, 102, 241, 0.3)', position: 'relative', overflow: 'hidden',
+              cursor: 'pointer', boxShadow: '0 12px 30px rgba(49, 46, 129, 0.3)'
+            }}
+          >
+            <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, background: 'radial-gradient(circle, rgba(99, 102, 241, 0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
+            
+            <Sparkles size={28} color="#818CF8" style={{ marginBottom: 16 }} />
+            <h2 style={{ margin: '0 0 8px', fontSize: 20, fontWeight: 900, color: '#FFF' }}>不知道找誰？</h2>
+            <p style={{ margin: '0 0 20px', fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
+              告訴我們你的學習目標<br/>AI 將為你配對最合適的專業教練
+            </p>
+            <button style={{ 
+              background: '#818CF8', color: '#FFF', border: 0, padding: '12px 24px', borderRadius: 16,
+              fontSize: 14, fontWeight: 800, display: 'inline-block'
+            }}>
+              AI 幫我找教練
+            </button>
+          </div>
+        </section>
+
+        {/* =========================================
+            第五屏：基礎設施 (會員/錢包/設定) 退居幕後
+        ========================================= */}
+        <section style={{ padding: '24px 20px 0', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 800, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1 }}>
+            我的帳戶
+          </h3>
+          
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div onClick={() => router.push('/dashboard/user/wallet')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 16, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Wallet size={20} color="rgba(255,255,255,0.5)" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#FFF' }}>點數錢包與儲值</span>
+              </div>
+              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+            </div>
+
+            <div onClick={() => router.push('/levels')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 16, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Star size={20} color="rgba(255,255,255,0.5)" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#FFF' }}>會員等級 (一般會員)</span>
+              </div>
+              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+            </div>
+
+            <div onClick={() => router.push('/dashboard/user/edit')} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 16, background: 'rgba(255,255,255,0.03)', borderRadius: 16, cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Settings size={20} color="rgba(255,255,255,0.5)" />
+                <span style={{ fontSize: 15, fontWeight: 700, color: '#FFF' }}>個人設定</span>
+              </div>
+              <ChevronRight size={18} color="rgba(255,255,255,0.3)" />
+            </div>
+            
+            <button 
+              onClick={logout}
+              style={{ 
+                marginTop: 16, padding: 16, borderRadius: 16, background: 'transparent', 
+                border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444', 
+                fontSize: 15, fontWeight: 800, cursor: 'pointer'
+              }}
+            >
+              登出
+            </button>
+          </div>
+        </section>
 
       </main>
 
-      {/* REFERRAL MODAL */}
+      {/* 推薦碼彈窗 */}
       {showReferralPrompt && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
-          display: 'flex', alignItems: 'center', justifyItems: 'center', zIndex: 9999, padding: 24
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24
         }}>
           <div style={{
-            background: 'var(--bg-card)', borderRadius: 24, padding: '32px 24px', width: '100%', maxWidth: 360,
+            background: '#0B1220', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 24, padding: '32px 24px', width: '100%', maxWidth: 360,
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16
           }}>
-            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>有朋友推薦你嗎？</h3>
-            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+            <h3 style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#FFF' }}>有朋友推薦你嗎？</h3>
+            <p style={{ margin: 0, fontSize: 14, color: 'rgba(255,255,255,0.6)', textAlign: 'center', lineHeight: 1.5 }}>
               可以輸入推薦碼，<br />也可以之後再補。
             </p>
             <div style={{ width: '100%', marginTop: 8 }}>
@@ -311,8 +396,8 @@ export default function UserDashboard() {
                 value={referralCode}
                 onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                 style={{
-                  width: '100%', background: '#F5F5F5', border: 'none',
-                  borderRadius: 12, padding: '14px 16px', color: 'var(--text-primary)', fontSize: 16, textAlign: 'center',
+                  width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 12, padding: '14px 16px', color: '#FFF', fontSize: 16, textAlign: 'center',
                   fontWeight: 800, letterSpacing: '2px', outline: 'none'
                 }}
               />
@@ -321,12 +406,12 @@ export default function UserDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', width: '100%', gap: 12, marginTop: 8 }}>
               <button onClick={handleBindReferral} disabled={binding || !referralCode.trim()} style={{
                 width: '100%', padding: 14, borderRadius: 12, border: 0,
-                background: referralCode.trim() ? '#FF8A3D' : '#E5E5E5', color: referralCode.trim() ? '#000' : '#999',
-                fontWeight: 800, fontSize: 15, cursor: referralCode.trim() ? 'pointer' : 'not-allowed'
+                background: referralCode.trim() ? '#FF8A3D' : 'rgba(255,255,255,0.1)', color: referralCode.trim() ? '#000' : 'rgba(255,255,255,0.3)',
+                fontWeight: 900, fontSize: 15, cursor: referralCode.trim() ? 'pointer' : 'not-allowed'
               }}>
                 {binding ? '綁定中...' : '確認綁定'}
               </button>
-              <button onClick={handleDismissReferral} style={{ width: '100%', padding: 14, borderRadius: 12, border: 0, background: 'transparent', color: 'var(--text-muted)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+              <button onClick={handleDismissReferral} style={{ width: '100%', padding: 14, borderRadius: 12, border: 0, background: 'transparent', color: 'rgba(255,255,255,0.5)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
                 (可略過)
               </button>
             </div>
